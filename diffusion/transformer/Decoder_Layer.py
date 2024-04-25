@@ -2,24 +2,26 @@ from Attention import multi_head_attention
 from torch import nn
 from Encoder_Layer import LayerNorm, PositionwiseFeedForward
 
-class DecodeLayer(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
-        super(DecodeLayer, self).__init__()
+class DecoderLayer(nn.Module):
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, device):
+        super(DecoderLayer, self).__init__()
         #self-attention(自注意力)
-        self.atttention = multi_head_attention(d_model, n_head)
+        self.atttention = multi_head_attention(d_model, n_head, device)
         #归一化
         self.norm1 = LayerNorm(d_model)
         #仅启动部分神经网络--Dropout：增加能够收敛的概率
         self.dropout1 = nn.Dropout(drop_prob)
 
         #encoder-decoder-attention(取decoder的Q在encoder里面找K和V)
-        self.cross_attention = multi_head_attention(d_model, n_head)
+        self.cross_attention = multi_head_attention(d_model, n_head, device)
         self.norm2 = LayerNorm(d_model)
         self.dropout2 = nn.Dropout(drop_prob)
 
         self.ffn = PositionwiseFeedForward(d_model, ffn_hidden, drop_prob)
         self.norm3 = LayerNorm(d_model)
         self.dropout3 = nn.Dropout(drop_prob)
+
+        self.device = device
 
     def forward(self, dec, enc, t_mask, s_mask):
         """
@@ -30,13 +32,13 @@ class DecodeLayer(nn.Module):
         :return:
         """
         _x = dec
-        x = self.atttention(dec, dec, dec, t_mask)
+        x = self.atttention.forward(dec, dec, dec, t_mask)
         x = self.dropout1(x)
         x = self.norm1(x + _x)
 
         if enc is not None:
             _x = x
-            x = self.cross_attention(x, enc, enc, s_mask)
+            x = self.cross_attention.forward(x, enc, enc, s_mask)
             x = self.dropout2(x)
             x = self.norm2(x + _x)
 
@@ -44,6 +46,7 @@ class DecodeLayer(nn.Module):
         x = self.ffn(x)
         x = self.dropout3(x)
         x = self.norm3(x + _x)
+        return x
 
 
 

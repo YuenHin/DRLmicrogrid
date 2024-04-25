@@ -13,12 +13,12 @@ class TokenEmbedding(nn.Embedding):
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, maxlen, device):
         super(PositionalEmbedding, self).__init__()
-        self.encoding = torch.zeros(maxlen, d_model, device)
-        self.encoding.requires_grad(False)
+        self.encoding = torch.zeros(maxlen, d_model).to(device)
+        self.encoding.requires_grad = False
 
-        pos = torch.arange(0, maxlen, device)
+        pos = torch.arange(0, maxlen).to(device)
         pos = pos.float().unsqueeze(1)
-        _2i = torch.arange(0, d_model, 2, device = device)
+        _2i = torch.arange(0, d_model, 2).to(device)
 
         self.encoding[:, 0::2] = torch.sin(pos / (10000 ** (_2i / d_model)))
         self.encoding[:, 1::2] = torch.cos(pos / (10000 ** (_2i / d_model)))
@@ -29,7 +29,7 @@ class PositionalEmbedding(nn.Module):
 
 #归一化
 class LayerNorm(nn.Module):
-    def __init__(self, d_model, eps = 1e-10):
+    def __init__(self, d_model, eps = 1e-6):
         super(LayerNorm, self).__init__()
         self.gamma = nn.Parameter(torch.ones(d_model))
         self.beta = nn.Parameter(torch.zeros(d_model))
@@ -37,7 +37,7 @@ class LayerNorm(nn.Module):
 
     def forward(self, x):
         mean = x.mean(-1, keepdim = True)
-        var = x.var(-1, unbiassed = False, keepdim = True)
+        var = x.var(-1, keepdim = True)
         out = (x - mean) / torch.sqrt(var + self.eps)
         out = out * self.gamma + self.beta
         return out
@@ -54,31 +54,45 @@ class PositionwiseFeedForward(nn.Module):
 
     def forward(self, x):
         x = self.fc1(x)
-        x = F.relu(x)
+        x = torch.relu(x)
         x = self.dropout(x)
         x = self.fc2(x)
+        return x
 
 class TransformerEmbedding(nn.Module):
     def __init__(self, vocab_size, d_model, max_len, drop_prob, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         #连续化映射
-        self.tok_emb = TokenEmbedding(vocab_size, d_model)
+        #self.tok_emb = TokenEmbedding(vocab_size, d_model)
+        self.tok_emb = nn.Embedding(vocab_size, d_model).to(device)
         #添加位置编码
         self.pos_emb = PositionalEmbedding(d_model, max_len, device)
         #归一化
         self.drop_out = nn.Dropout(p=drop_prob)
 
+        self.device = device
+
 
     def forward(self, x):
         tok_emb = self.tok_emb(x)
-        pos_emb = self.pos_emb(x)
+        pos_emb = self.pos_emb.forward(x)
         return self.drop_out(tok_emb + pos_emb)
 
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob)-> None:
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, device)-> None:
+        """
+
+        :param d_model: 传入的数据
+        :param ffn_hidden: 隐藏层数量
+        :param n_head: 分多少批次
+        :param drop_prob: Dropout的百分比，即每次训练会让drop_prob%的神经元失效
+        """
         super(EncoderLayer, self).__init__()
 
-        self.attention = multi_head_attention(d_model, n_head)
+        self.device = device
+
+
+        self.attention = multi_head_attention(d_model, n_head, self.device)
         self.norm1 = LayerNorm(d_model)
         self.drop1 = nn.Dropout(drop_prob)
 
@@ -100,19 +114,7 @@ class EncoderLayer(nn.Module):
         x = self.norm2.forward(x + _x)
         return x
 
-X = torch.randn(2, 2, 8) # Batch, Time, Dimension
 
-d_model = 8
-n_head = 4
-print(X)
-print(X.shape)
-
-encoder = EncoderLayer(d_model, 64, n_head, 0.1)
-
-X = encoder.forward(X, False)
-
-print(X)
-print(X.shape)
 
 
 

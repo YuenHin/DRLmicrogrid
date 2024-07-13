@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 ########----------------------------Basic_data-getting------------------------------------##################
 def get_re_narure_data(day):
-    file = "D:\project\diffusion\data\RE\\2024_re_nature_"+ str(day) + ".xlsx"
+    file = "D:\Project\microgrid\DRLmicrogrid\Data\RE\\2024_re_nature_"+ str(day) + ".xlsx"
     data = getDataFromExcel(file, 0, 14, 0, 96)
     #0：全球辐射
     #1：直接辐射
@@ -51,7 +51,7 @@ def get_draw_wind_generation_power(day, power_coefficient, area, draw = False):
 
 ########----------------------------太阳能发电出力数据------------------------------------##################
 def get_draw_solar_nature_ending(day, draw = False):
-    file = "D:\project\diffusion\data\RE\\2024_re_nature_" + str(day) + ".xlsx"
+    file = "D:\Project\microgrid\DRLmicrogrid\Data\RE\\2024_re_nature_" + str(day) + ".xlsx"
     global_radiation = getDataFromExcel(file, 0, 1, 0, 96).flatten()
     direct_radiation = getDataFromExcel(file, 1, 2, 0, 96).flatten()
     diffusion_radiation = getDataFromExcel(file, 2, 3, 0, 96).flatten()
@@ -190,8 +190,8 @@ def create_dataloaders(data, target, context_length, prediction_length, batch_si
     train_data = data[:96 * 27]
     train_target = target[:96 * 27]
     # 确保测试数据足够大，以满足后续处理需求
-    test_data = data[96 * 27 - context_length:]
-    test_target = target[96 * 27:]
+    test_data = data[96 * 27 - context_length - prediction_length:]
+    test_target = target[96 * 27 - context_length - prediction_length:]
 
     # 创建数据集
     train_dataset = CustomDataset(train_data, train_target, context_length, prediction_length)
@@ -230,11 +230,11 @@ def main(data,features ,feature_indices, target_feature_index, context_length, p
     else:
         raise ValueError("Invalid model type")
 
-    model_path = f'{model_type.lower()}_'+features[target_feature_index]+'.pth'
+    model_path = f'Data\RE\model\{model_type.lower()}_'+features[target_feature_index]+'.pth'
     if only_test is False:
-        train_deepar_nll(model, train_loader, model_path=model_path)
+        train_deepar_nll(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path)
 
-    pred_mu, pred_sigma, target = test_deepar(model, test_loader, context_length, prediction_length, model_path=model_path)
+    pred_mu, pred_sigma, target = test_deepar(model, test_loader, context_length, prediction_length, model_path=model_path, index="ending")
     metrics = calculate_metrics(pred_mu, target, pred_sigma)
 
     print(metrics)
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     num_layers = 2
 
     model_type = 'DeepAR_GRU'  # 或 'DeepAR_LSTM' 或 'DeepAR_Transformer'
-    main(data, features, feature_indices, target_feature_index, context_length, prediction_length, batch_size, hidden_size, num_layers, model_type, only_test=False)
+    main(data, features, feature_indices, target_feature_index, context_length, prediction_length, batch_size, hidden_size, num_layers, model_type, only_test=True)
     # model_type = 'DeepAR_LSTM'  # 或 'DeepAR_LSTM' 或 'DeepAR_Transformer'
     # main(data, features, feature_indices, target_feature_index, context_length, prediction_length, batch_size,
     #      hidden_size, num_layers, model_type, only_test=True)

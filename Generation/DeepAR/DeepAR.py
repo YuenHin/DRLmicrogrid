@@ -4,7 +4,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
+import scipy.stats as stats
 from algorithm import GRUDeepAR, TransformerDeepAR, LSTMDeepAR
 
 # 解决 OMP 问题
@@ -66,6 +68,26 @@ import sys
 def print_progress(message):
     sys.stdout.write('\r' + message)
     sys.stdout.flush()
+
+
+def truncated_normal_sample(mu, sigma, lower_bound, upper_bound, num_samples, device):
+    mu_np = mu.cpu().numpy()
+    sigma_np = sigma.cpu().numpy()
+    lower_bound_np = lower_bound.cpu().numpy()
+    upper_bound_np = upper_bound.cpu().numpy()
+
+    samples = []
+    for i in range(mu_np.shape[0]):
+        for j in range(mu_np.shape[1]):
+            a, b = (lower_bound_np[i, j] - mu_np[i, j]) / sigma_np[i, j], (upper_bound_np[i, j] - mu_np[i, j]) / \
+                   sigma_np[i, j]
+            dist = stats.truncnorm(a, b, loc=mu_np[i, j], scale=sigma_np[i, j])
+            samples.append(dist.rvs(size=num_samples))
+
+    samples = np.array(samples).reshape(mu_np.shape[0], mu_np.shape[1], num_samples)
+    samples = torch.tensor(samples, device=device).permute(2, 0, 1)
+
+    return samples
 
 def train_deepar_mse(model, dataloader, lr=0.00001, patience=100, delta=0.0001, model_path='deepar_mse.pth'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -137,7 +159,7 @@ def train_deepar_mse(model, dataloader, lr=0.00001, patience=100, delta=0.0001, 
 
 
 # 训练函数 - 使用 nn.GaussianNLLLoss
-def train_deepar_nll(model, dataloader, lr=0.00001, patience=100, delta=0.0001, model_path='deepar_nll.pth'):
+def train_deepar_nll(model, dataloader, testloader, context_length, prediction_length, lr=0.00001, patience=100, delta=0.0001, model_path='deepar_nll.pth'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     criterion = nn.GaussianNLLLoss()
@@ -150,6 +172,9 @@ def train_deepar_nll(model, dataloader, lr=0.00001, patience=100, delta=0.0001, 
     epoch_losses = []
 
     epoch_counter = 0
+
+    #记录时间
+    start = time.time()
 
     while True:
         model.train()
@@ -198,9 +223,15 @@ def train_deepar_nll(model, dataloader, lr=0.00001, patience=100, delta=0.0001, 
             if len(epoch_losses) >= patience:
                 recent_losses = np.diff(epoch_losses[-patience:])
                 mean_recent_loss_change = recent_losses.mean()
-                print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}")
+                print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
+                start = time.time()
+                if (epoch_counter) % 500 == 0:
+                    pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
+                    metrics = calculate_metrics(pred_mu, target, pred_sigma)
 
-                # if np.abs(mean_recent_loss_change) <= delta:
+                    print(metrics)
+
+               # if np.abs(mean_recent_loss_change) <= delta:
                 #     print(f"Early stopping after {len(loss_values)} epochs")
                 #     #torch.save(model.state_dict(), model_path)
                 #     break
@@ -225,7 +256,7 @@ import matplotlib.pyplot as plt
 
 
 # 测试函数
-def test_deepar(model, dataloader, context_length, prediction_length, model_path, num_samples=100):
+def test_deepar(model, dataloader, context_length, prediction_length, model_path, num_samples=100, index = 0):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.load_state_dict(torch.load(model_path))
     model.to(device)
@@ -237,7 +268,83 @@ def test_deepar(model, dataloader, context_length, prediction_length, model_path
     all_samples = []
 
     with torch.no_grad():
-        #Context shape: torch.Size([32, 96, 14]), Target shape: torch.Size([32, 24])
+        #Context shape: torch.Size([32, context_length, 14]), Target shape: torch.Size([32, prediction_length])
+        for context, target in dataloader:
+            context = context.to(device)
+            target = target.to(device)
+
+            mu, sigma = model(context)
+            mu = mu.view(-1, prediction_length)
+            sigma = sigma.view(-1, prediction_length)
+            target = target.view(-1, prediction_length)
+
+            # 蒙特卡洛采样
+            # 设定置信区间
+            confidence_level = 0.8
+            z_value = stats.norm.ppf((1 + confidence_level) / 2)
+            lower_bound = mu - z_value * sigma
+            upper_bound = mu + z_value * sigma
+
+            samples = truncated_normal_sample(mu, sigma, lower_bound, upper_bound, num_samples, device)
+
+            mu = mu.cpu().numpy()
+            sigma = sigma.cpu().numpy()
+            target = target.cpu().numpy()
+            samples = samples.cpu().numpy()
+
+            all_mu.append(mu[:, 0])
+            all_sigma.append(sigma[:, 0])
+            all_target.append(target[:, 0])
+            all_samples.append(samples[:, :, 0])
+
+
+    all_mu = np.concatenate(all_mu, axis=0)
+    all_sigma = np.concatenate(all_sigma, axis=0)
+    all_target = np.concatenate(all_target, axis=0)
+    all_samples = np.concatenate(all_samples, axis=1)
+
+    # 可视化整个序列的预测结果
+    plt.figure(figsize=(12, 6))
+    time_steps = np.arange(len(all_target.flatten()))
+    for i in range(all_samples.shape[0]):
+        if i == 0:
+            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2, label='Wind Power Scenario')
+        else:
+            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2)
+
+    plt.plot(time_steps, all_target.flatten(), label='Measured Wind Power', color='blue')
+    plt.plot(time_steps, all_mu.flatten(), label='Deterministic Forecasts', color='orange')
+
+
+    # 设置X轴刻度和标签
+    ticks = np.arange(0, len(all_target.flatten()), 24)  # 每24个点设置一个刻度（即每6小时一个点）
+    labels = [f'Day {i // 4 + 1}\n{(i % 4) * 6}h' for i in range(len(ticks))]  # 标签显示为 Day X\nYh
+    plt.xticks(ticks, labels, rotation=45)
+
+    # 设置Y轴范围
+    plt.ylim(0, 8)
+
+    plt.title(model_path + "_" + str(index))
+    plt.legend(loc='upper left')
+    plt.show()
+
+    return all_mu, all_sigma, all_target
+
+
+# 测试函数
+def test_deepar_threeToOne(model, dataloader, context_length, prediction_length, model_path, num_samples=100):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.load_state_dict(torch.load(model_path))
+    model.to(device)
+    model.eval()
+
+    all_mu = []
+    all_sigma = []
+    all_target = []
+    all_samples = []
+
+    with torch.no_grad():
+        #Context shape: torch.Size([32, context_length, 14]), Target shape: torch.Size([32, prediction_length])
         for context, target in dataloader:
             context = context.to(device)
             target = target.to(device)
@@ -251,15 +358,16 @@ def test_deepar(model, dataloader, context_length, prediction_length, model_path
             samples = torch.randn(num_samples, *mu.shape).to(device) * sigma.unsqueeze(0) + mu.unsqueeze(0)
             samples_mean = samples.mean(dim=0)
 
-            mu = samples_mean.cpu().numpy()
+            mu = mu.cpu().numpy()
             sigma = sigma.cpu().numpy()
             target = target.cpu().numpy()
             samples = samples.cpu().numpy()
 
-            all_mu.append(mu)
-            all_sigma.append(sigma)
-            all_target.append(target)
-            all_samples.append(samples)
+            all_mu.append(mu[:, 0])
+            all_sigma.append(sigma[:, 0])
+            all_target.append(target[:, 0])
+            all_samples.append(samples[:, :, 0])
+
 
     all_mu = np.concatenate(all_mu, axis=0)
     all_sigma = np.concatenate(all_sigma, axis=0)
@@ -269,25 +377,45 @@ def test_deepar(model, dataloader, context_length, prediction_length, model_path
     # 可视化整个序列的预测结果
     plt.figure(figsize=(12, 6))
     time_steps = np.arange(len(all_target.flatten()))
-    plt.plot(time_steps, all_target.flatten(), label='Measured Wind Power', color='blue')
-    plt.plot(time_steps, all_mu.flatten(), label='Deterministic Forecasts', color='orange')
-    for i in range(all_samples.shape[0]):
-        if i == 0:
-            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.1, label='Wind Power Scenario')
-        else:
-            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.1)
+    # 每一天的数据有 96 个时间步
+    time_steps_per_day = 96
+    num_days = 3
+
+    # 颜色列表，每天一种颜色
+    colors = ['red', 'green', 'blue']
+
+    # 绘制样本数据
+    for day in range(num_days):
+        start_idx = day * time_steps_per_day
+        end_idx = start_idx + time_steps_per_day
+        time_steps = np.arange(time_steps_per_day)
+
+        for i in range(all_samples.shape[0]):
+            if i == 0:
+                plt.plot(time_steps, all_samples[i, start_idx:end_idx], color='gray', alpha=0.01, linewidth=0.2,
+                         label='Wind Power Scenario' if day == 0 else "")
+            else:
+                plt.plot(time_steps, all_samples[i, start_idx:end_idx], color='gray', alpha=0.01, linewidth=0.2)
+
+        plt.plot(time_steps, all_target[start_idx:end_idx], label=f'Measured Wind Power Day {day + 1}',
+                 color=colors[day])
+        plt.plot(time_steps, all_mu[start_idx:end_idx], label=f'Deterministic Forecasts Day {day + 1}',
+                 color=colors[day], linestyle='--')
+
 
     # 设置X轴刻度和标签
-    ticks = np.arange(0, len(all_target.flatten()), 24)  # 每24个点设置一个刻度（即每6小时一个点）
+    ticks = np.arange(0, time_steps_per_day, 24)  # 每24个点设置一个刻度（即每6小时一个点）
     labels = [f'Day {i // 4 + 1}\n{(i % 4) * 6}h' for i in range(len(ticks))]  # 标签显示为 Day X\nYh
     plt.xticks(ticks, labels, rotation=45)
+
+    # 设置Y轴范围
+    plt.ylim(0, 10)
 
     plt.title(model_path)
     plt.legend(loc='upper left')
     plt.show()
 
     return all_mu, all_sigma, all_target
-
 # 示例调用
 # Define model, dataloader and other parameters as required
 # pred_mu, pred_sigma, target = test_deepar(model, dataloader, model_path=model_path)

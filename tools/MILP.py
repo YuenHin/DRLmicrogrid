@@ -19,7 +19,6 @@ class Num:
         np.save(self.path + "bu", self.bu)
 
     def Get_A_bl_bu(self):
-        self.path = "./Data/Result/num/" + "Perfecr-MILP"
         self.A = np.load(self.path +"A.npy")
         self.bl = np.load(self.path +"bl.npy")
         self.bu = np.load(self.path +"bu.npy")

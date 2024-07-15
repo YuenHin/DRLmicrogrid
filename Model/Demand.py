@@ -129,7 +129,7 @@ class D:
             self.p_max = self.p * (1 + self.ramping_rate)
 
         self.total_Demand = np.sum(self.p)
-
+#负荷数据修改
     def __getData2(self):
         if self.type == "e":
             # kw

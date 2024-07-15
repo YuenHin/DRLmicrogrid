@@ -35,15 +35,16 @@ MG02 = MG("MG_D_e", node=np.array([node02]), id=1, type="MG02", time_num=time)
 "创建一个多微网"
 MMGs = MMGs(np.array([MG01,MG02]))
 
-C, intergrality, num = MMGs_logic(MMGs, path)
+C, intergrality, num = MMGs_logic(MMGs, path, flag=True)
 
-for i in range(len(num.params)):
-    print(num.params[i], "  :", np.round(C[i], 2))
-print(num.params)
-PrintBounds(num)
+# for i in range(len(num.params)):
+#     print(num.params[i], "  :", np.round(C[i], 2))
+# print(num.params)
+# PrintBounds(num)
 
 res = EndCount(-C, intergrality, num)
 
+#把各节点的求解数据保存至节点
 x_callBack(res, MMGs, path)
 
 draw(MMGs, np.array([]))

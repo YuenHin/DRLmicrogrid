@@ -324,8 +324,10 @@ class CTP:
         max/min limits
         """
         B = np.array([
+            # 变量名 + 系数
             [self.name + "PI1", 1]
         ])
+        # 创建PI1相关约束，详情见方法内部
         CreatConstraintsByText(self.time_num, B, 0, self.p_max, num)
 
         """

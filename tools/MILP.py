@@ -7,6 +7,7 @@ class Num:
         self.path = "./Data/Result/num/" + path
         self.variableNum = variableNum
         self.params = params
+        # 整个约束的系数矩阵
         self.A = np.zeros(0)
         self.bl = np.zeros(0)
         self.bu = np.zeros(0)

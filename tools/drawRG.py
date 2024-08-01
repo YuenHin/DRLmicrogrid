@@ -40,6 +40,7 @@ def drawRG(y, yMax, yMin, yRamping_up, yRamping_down, type,title=None):
     xS, yS = smooth(x, y, 96)
     xS, yMaxS = smooth(x, yMax, 96)
     xS, yMinS = smooth(x, yMin, 96)
+
     xS, y_Ramping_maxS = smooth(x, y_Ramping_max, 96)
     xS, y_Ramping_minS = smooth(x, y_Ramping_min, 96)
 

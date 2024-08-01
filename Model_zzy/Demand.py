@@ -114,14 +114,14 @@ class D:
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
 
-        if self.type == "th":
+        if self.type == "h":
             self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +100, self.id + 100 + self.research_day) * 365 * (
                         self.p_total / self.research_day)
             self.p = self.p.flatten()
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
 
-        if self.type == "h":
+        if self.type == "c":
             self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +150, self.id + 150 + self.research_day) * 365 * (
                         self.p_total / self.research_day)
             self.p = self.p.flatten()
@@ -144,13 +144,13 @@ class D:
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
 
-        if self.type == "th":
+        if self.type == "h":
             self.p = self.__24to96("./Data/Load/thermal_H.xlsx", 7) * self.p_total
             self.p = self.p.flatten()
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
 
-        if self.type == "h":
+        if self.type == "c":
             self.p = self.__24to96("./Data/Load/hydrogen_H.xlsx", 2) * self.p_total
             self.p = self.p.flatten()
             self.p_min = self.p * (1 - self.ramping_rate)
@@ -170,7 +170,7 @@ class D:
         ramping limits
         """
 
-        if self.type != 'h':
+        if self.type != 'th':
 
             """
             Up ramping limits
@@ -217,7 +217,7 @@ class D:
         return num.A, num.bl, num.bu
 
     def draw(self):
-        drawDemands(self.x, self.p_max, self.p_min, self.ramping, self.type  ,self.name+"_Load")
+        drawDemands(self.x, self.p_max, self.p_min, self.ramping, self.type, self.name+"_Load")
 
     def getdata(self, path, y_index):
         self.p = self.__24to96(path, y_index)
@@ -249,7 +249,7 @@ class D:
 
         #依据当前值得到真实随机出力值,并加入约束控制其值输出为确定性输出值
         #需要控制不确定变化后不会跳出范围
-        self.real_x[step - 1] * (1 + (random.random() * (self.stochastic_value) * 0.01))
+        self.real_x[step - 1] * (1 + (random.random() * self.stochastic_value * 0.01))
         # if (step != 93 and self.type != 'g') and (step != 96 and self.type != 'h'):
         #     self.real_x[step - 1] = self.x[step - 1] * (1 + (random.random() * (self.stochastic_value ) * 0.01))
         # else:

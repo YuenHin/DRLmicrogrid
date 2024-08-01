@@ -373,7 +373,9 @@ class HP:
         self.constraint_num = 0
 
     def __init(self):
-        pass
+        self.__params_name()
+        self.__integrality()
+        self.__set_c()
 
     def __params_name(self):
         temp = np.array([
@@ -387,11 +389,12 @@ class HP:
         self.params = self.params[1:]
 
     def __integrality(self):
-        self.integrality = np.zeros(self.time_num)
+        self.intergrality = np.zeros(self.time_num)
 
-    def __operation_cost(self):
-        self.operation_cost = np.zeros(self.time_num)
-        self.operation_cost = self.operation_cost - self.production_price - 0.01
+    def __set_c(self):
+        self.c = np.zeros(self.time_num)
+
+        self.c = self.c - self.production_price - 0.01
 
     # 拿到可再生能源数据
     def __getdata(self):

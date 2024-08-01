@@ -4,12 +4,12 @@ from tools.MILP import CreatConstraintsByText
 from tools.drawLine import drawLine
 
 class Line:
-    def __init__(self, name, maxTransValue, line_price, Single = False, MG_point = False, from_MG = None, to_MG = None, time_num = 24, type = 'e', Convertion = False):
+    def __init__(self, name, maxTransValue, line_price, Single=False, MG_point=False, from_MG=None, to_MG=None, time_num=24, type ='e', Convertion = False):
         self.name = name
         self.time_num = time_num
         self.className = 'Line'
         self.line_price = line_price
-        self.Single = Single #True表示能量单向流动
+        self.Single = Single  # True表示能量单向流动
         self.MG_point = MG_point
         self.from_MG = from_MG
         self.to_MG = to_MG
@@ -40,7 +40,7 @@ class Line:
             self.name + "P",
             self.name + "E"
         ])
-        self.params  = AddParams(self.params, self.time_num, temp)
+        self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
 
     def __set_C(self):

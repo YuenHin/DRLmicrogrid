@@ -199,6 +199,7 @@ class S:
 class ES:
     def __init__(self, name, type, id, storage_price, storage_limit, storage_limit_min, lifetimes, self_discharging,
                  charging_rate, discharging_rate, time_num, begin=None):
+        self.className = 'S'
         self.name = name
         "string"
         self.id = id

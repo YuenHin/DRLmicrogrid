@@ -7,7 +7,7 @@ from tools.aDataSetting import smooth
 import random
 
 class D:
-    def __init__(self, name, type, p_total, id = 1, MG_id = 1, ramping_rate = 0.25, time_num = 96, stochastic_value = 10):
+    def __init__(self, name, type, p_total, id=1, MG_id=1, ramping_rate=0.25, time_num=24, stochastic_value=10):
         self.name = name
         self.id = id
         self.MG_id = MG_id
@@ -17,7 +17,7 @@ class D:
         self.className = 'D'
 
         self.ramping_rate = ramping_rate
-        self.reseach_day = 1
+        self.research_day = 1
 
         self.p_total = p_total
 
@@ -41,13 +41,13 @@ class D:
 
         self.stochastic_value = stochastic_value
 
-        self.contraint_num = 0
+        self.constraint_num = 0
 
         self.flexible_value = 0
 
     def __init(self):
         self.__params_named()
-        self.__set_intergrality()
+        self.__set_integrality()
         self.__set_C2()
         self.__getData2()
 
@@ -59,42 +59,42 @@ class D:
         self.params = self.params[1:]
         self.length = len(self.params)
 
-    def __set_intergrality(self):
-        self.intergrality = np.zeros(self.time_num)
+    def __set_integrality(self):
+        self.integrality = np.zeros(self.time_num)
 
     def __set_C(self):
         self.c = np.zeros(self.length)
-        Day_price = None
+        day_price = None
         if self.type == "e":
             "获取电力售电价格："
             # GBP / MWh
-            Day_price = getDataFromExcel("Data\power_price.xls", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+            day_price = getDataFromExcel("Data\power_price.xls", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
         if self.type == "g":
             "获取天然气出售价格："
             # GBP / MWh
-            Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+            day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
         if self.type == "th":
             "获取天然气出售价格："
             # GBP / MWh
-            Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+            day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
         if self.type == "h":
             "获取天然气出售价格："
             # GBP / MWh
-            Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+            day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
         tempArray = np.zeros(24)
 
-        for i in range(len(Day_price)):
+        for i in range(len(day_price)):
             tempNum = 10
             temp = 0
-            for j in range(len(Day_price[i][0])):
-                if Day_price[i][0][j] != ',':
-                    temp = temp + float(Day_price[i][0][j]) * tempNum
+            for j in range(len(day_price[i][0])):
+                if day_price[i][0][j] != ',':
+                    temp = temp + float(day_price[i][0][j]) * tempNum
                     tempNum = tempNum / 10
             tempArray[i] = temp
-        Day_price = tempArray
+        day_price = tempArray
         # USD/KWH
-        Day_price = Day_price / 1000 * 1.1125
-        self.c = np.zeros(len(Day_price))
+        day_price = day_price / 1000 * 1.1125
+        self.c = np.zeros(len(day_price))
 
     def __set_C2(self):
         self.c = np.zeros(self.time_num)
@@ -256,10 +256,10 @@ class D:
         #     self.real_x[step - 1] = self.x[step - 1]
 
         if self.real_x[step - 1] > self.p_max[step - 1]:
-            num.bu[self.contraint_num + step - 1] = self.real_x[step - 1]
+            num.bu[self.constraint_num + step - 1] = self.real_x[step - 1]
             self.p_max[step - 1] = self.real_x[step - 1]
         if self.real_x[step - 1] < self.p_min[step - 1]:
-            num.bl[self.contraint_num + step - 1] = self.real_x[step - 1]
+            num.bl[self.constraint_num + step - 1] = self.real_x[step - 1]
             self.p_min[step - 1] = self.real_x[step - 1]
 
         B = np.array([
@@ -269,10 +269,10 @@ class D:
                                         self.real_x[step - 1] * (1 + self.flexible_value), num)
 
     def re_train(self, step, num):
-        num.bu[self.contraint_num + self.time_num + step - 1] = np.inf
-        num.bu[self.contraint_num + self.time_num * 2 + step - 1] = np.inf
-        num.bu[self.contraint_num + self.time_num + step] = np.inf
-        num.bu[self.contraint_num + self.time_num * 2 + step] = np.inf
+        num.bu[self.constraint_num + self.time_num + step - 1] = np.inf
+        num.bu[self.constraint_num + self.time_num * 2 + step - 1] = np.inf
+        num.bu[self.constraint_num + self.time_num + step] = np.inf
+        num.bu[self.constraint_num + self.time_num * 2 + step] = np.inf
 
 
 "柔性负荷"

@@ -2,7 +2,7 @@ import numpy as np
 from tools.MILP import CreatConstraintsByText
 
 class Node:
-    def __init__(self, name, devices, sLine, rLine, time_num, type = 'e'):
+    def __init__(self, name, devices, sLine, rLine, time_num, type):
         self.name = name
         self.time_num = time_num
         self.className = 'Node'
@@ -21,7 +21,7 @@ class Node:
         self.intergrality = np.zeros(0)
         self.__params_named()
         self.__set_C()
-        self.__set_intergrality()
+        self.__set_integrality()
 
     def __params_named(self):
         for i in range(len(self.devices)):
@@ -41,7 +41,7 @@ class Node:
             for i in range(len(self.sLine)):
                 self.c = np.append(self.c, self.sLine[i].c)
 
-    def __set_intergrality(self):
+    def __set_integrality(self):
         for i in range(len(self.devices)):
             self.intergrality = np.append(self.intergrality, self.devices[i].intergrality)
 
@@ -79,7 +79,7 @@ class Node:
             ["Node", 1]
         ])
         "整合balance约束：流向Node的方向视为正方向"
-        if self.type != 'CTP' and self.type != 'EL' and self.type != 'TP':
+        if self.type != 'hp' and self.type != 'cchp' and self.type != 'eb' and self.type != 'er':
             for i in range(len(self.devices)):
                 if self.devices[i].way == 1:
                     B = np.append(B, np.array([
@@ -126,7 +126,7 @@ class Node:
         for device in self.devices:
             device.draw()
 
-    def get_contrainst_num(self):
+    def get_constraint_num(self):
         return self.contraint_num
 
 

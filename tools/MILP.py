@@ -84,8 +84,9 @@ def funcAByParams(B , num, Number):
         # 得到变量名在params中的位置
         temp = StringToNum(B[i][0], Number)
         # print("temp:", temp)
+        # 当temp=-1表示在params中找不到该变量名
         if temp == -1 or int(temp + num) >= len(A):
-            print("编辑条件出错啦！", B[i][0])
+            print("编辑条件出错啦！", B[i][0], temp)
             break
         # 变量系数赋值
         A[int(temp + num)] = B[i][1]

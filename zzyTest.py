@@ -6,7 +6,7 @@ from Model_zzy.GasWell import GW
 from Model_zzy.Demand import D
 from Model_zzy.RenewableProductionUnit import RT, HP
 from Model_zzy.Storage import S, ES, EV
-from Model_zzy.Conversion_units import CCHP, EB, ER
+from Model_zzy.Conversion_units import CCHP, EB, ER, CTP
 from tools.Logic import MMGs_logic, x_callBack, draw
 from tools.MILP import PrintBounds, EndCount
 from Model_zzy.Microgrid import MG
@@ -145,8 +145,9 @@ line_cchp_e_01 = Line("line_cchp_e_01", 4000, line_price=-0.001, Single=True, MG
                       to_MG="bus_e_01", time_num=time)
 line_cchp_h_01 = Line("line_cchp_h_01", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="cchp_01",
                       to_MG="bus_h_01", time_num=time)
-cchp_01 = CCHP("CCHP_01", conversion_rate_e=0.8, conversion_rate_h=0.5, conversion_rate_c=0.4, conversion_limit=1000,
+cchp_01 = CCHP("cchp_01", conversion_rate_e=0.8, conversion_rate_h=0.5, conversion_rate_c=0.4, conversion_limit=1000,
                time_num=time, line_g=line_cchp_g_01, line_e=line_cchp_e_01, line_h=line_cchp_h_01)
+# cchp_01 = CTP("cchp_01", 0.8, 0.5, 1000, time, line_cchp_g_01, line_cchp_e_01, line_cchp_h_01)
 
 line_cchp_g_03 = Line("line_cchp_g_03", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="bus_g_03",
                       to_MG="cchp_03", time_num=time)
@@ -412,15 +413,32 @@ node_01_e = Node("bus_01_e", devices=np.array([load_e_01, engine_e_pv01, engine_
                                                storage_h_01, storage_c_01, ev_01]),
                       rLine=np.array([]), sLine=np.array([]), time_num=time, type='e')
 # 气节点
-# node_01_g_01 = Node("bus_01_g_01", devices=np.array([load_g_01, gs_g_01]),
-#                       rLine=np.array([]), sLine=np.array([]), time_num=time, type='g')
+node_01_g = Node("bus_01_g", devices=np.array([load_g_01, gs_g_01]), rLine=np.array([]), sLine=np.array([]),
+                 time_num=time, type="g")
 # 热节点
+node_01_h = Node("bus_01_h", devices=np.array([load_h_01, storage_h_01]), rLine=np.array([]), sLine=np.array([]),
+                 time_num=time, type="h")
 # 冷节点
+node_01_c = Node("bus_01_c", devices=np.array([load_c_01, storage_c_01]), rLine=np.array([]), sLine=np.array([]),
+                 time_num=time, type="c")
+# 地缘热泵节点
+node_01_hp = Node("bus_01_hp", devices=np.array([engine_h_hp01]), rLine=np.array([line_hp_e_01]),
+                  sLine=np.array([line_hp_h_01]), time_num=time, type="hp")
+# 冷热电联产节点
+node_01_cchp = Node("bus_01_cchp", devices=np.array([cchp_01]), rLine=np.array([line_cchp_g_01]),
+                    sLine=np.array([line_cchp_e_01, line_cchp_h_01]), time_num=time, type="cchp")
+# 电热锅炉节点
+node_01_eb = Node("bus_01_eb", devices=np.array([eb_01]), rLine=np.array([line_eb_e_01]),
+                  sLine=np.array([line_eb_h_01]), time_num=time, type="eb")
+# 电制冷节点
+node_01_er = Node("bus_01_er", devices=np.array([er_01]), rLine=np.array([line_er_e_01]),
+                  sLine=np.array([line_er_c_01]), time_num=time, type="er")
 
 
 
 "创建一个区域，将以上节点放在区域01中"
-area01 = MG("area01", node=np.array([node_01_e]), id=1, type="area01", time_num=time)
+area01 = MG("area01", node=np.array([node_01_e, node_01_g, node_01_cchp,node_01_eb, node_01_er]),
+            id=1, type="area01", time_num=time)
 
 "创建UIES"
 UIES = MMGs(np.array([area01]))

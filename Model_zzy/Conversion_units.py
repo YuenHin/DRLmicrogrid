@@ -415,8 +415,9 @@ class CTP:
 class CCHP:
     def __init__(self, name, conversion_rate_e, conversion_rate_h, conversion_rate_c, conversion_limit, time_num,
                  line_g, line_e, line_h):
+        self.className = "cchp"
         # 设备名
-        self.name = name + "_"
+        self.name = name
 
         # 气转电热冷的转化效率
         self.conversion_rate_e = conversion_rate_e
@@ -474,7 +475,7 @@ class CCHP:
             self.name + "output_e",
             self.name + "output_h",
             self.name + "output_c",
-            self.name + "state_change",
+            self.name + "state",
             self.name + "g_us",
             self.name + "g_ds",
             self.name + "e_us",
@@ -489,19 +490,20 @@ class CCHP:
         # 生成这个设备有关的全时间尺度所需数据的变量名
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
+        # print(self.params)
 
     # 定义整型变量
     def __integrality(self):
-        integrality = np.zeros(len(self.params))
+        self.intergrality = np.zeros(len(self.params))
        # 将所有的状态变量都设置为1
         for i in range(self.time_num):
-            integrality[i + self.time_num * 4] = 1
+            self.intergrality[i + self.time_num * 4] = 1
 
     # 设备的运行成本
     def __operational_cost(self):
-        operational_cost = np.zeros(len(self.params))
+        self.c = np.zeros(len(self.params))
         for i in range(self.time_num):
-            operational_cost[i] = -0.01
+            self.c[i] = -0.01
 
     # 约束条件
     def constraints(self, constraint_information_class):
@@ -616,15 +618,19 @@ class CCHP:
         ramping_up_constraint = np.array([
             [self.name + "input_g2", 1],
             [self.name + "input_g1", -1],
-            [self.name + "state_change2", -self.ramping_up]
+            [self.name + "state2", -self.ramping_up]
         ])
+        print(ramping_up_constraint)
+        print(self.params)
         CreatConstraintsByText(self.time_num-1, ramping_up_constraint, -np.inf, 0, constraint_information_class)
         # 滑坡功率约束
         ramping_down_constraint = np.array([
             [self.name + "input_g2", -1],
             [self.name + "input_g1", 1],
-            [self.name + "state_change2", -self.ramping_down]
+            [self.name + "state2", -self.ramping_down]
         ])
+        print(ramping_down_constraint)
+        print(self.params)
         CreatConstraintsByText(self.time_num-1, ramping_down_constraint, -np.inf, 0, constraint_information_class)
 
         """线路约束"""
@@ -651,7 +657,7 @@ class CCHP:
 
         """时间尺度约束"""
         operation_state = np.array([
-            [self.name + "state_change", 1]
+            [self.name + "state", 1]
         ])
         CreatConstraintsByText(self.time_num, operation_state, 0, 1, constraint_information_class)
 
@@ -671,6 +677,8 @@ class CCHP:
 
 class EB:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h):
+        self.className = "eb"
+
         self.name = name
         self.className = 'EB'
         self.time_num = time_num
@@ -843,6 +851,8 @@ class EB:
 
 class ER:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c):
+        self.className = "er"
+
         self.name = name
         self.className = 'ER'
         self.time_num = time_num

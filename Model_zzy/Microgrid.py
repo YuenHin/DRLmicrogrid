@@ -208,11 +208,11 @@ class MG:
                     self.S_P_e = self.S_P_e - device.x[:self.time_num]
                 if device.className == "DG":
                     self.DG_P = self.DG_P + device.x[:self.time_num]
-                if device.className == "CTP":
+                if device.className == "cchp":
                     self.P_CTP_e += device.x[self.time_num:self.time_num * 2]
-                if device.className == "TP":
+                if device.className == "eb":
                     self.P_TP_e -= device.x[:self.time_num]
-                if device.className == "EL":
+                if device.className == "er":
                     self.P_EL_e -= device.x[:self.time_num]
 
             for rline in node.rLine:
@@ -255,7 +255,7 @@ class MG:
                     self.key_g = True
                 if device.className == "S" and device.type == 'g':
                     self.S_P_g -= device.x[:self.time_num]
-                if device.className == "CTP":
+                if device.className == "cchp":
                     self.P_CTP_g -= device.x[:self.time_num]
 
             for rline in node.rLine:
@@ -283,17 +283,17 @@ class MG:
 
         for node in self.node:
             for device in node.devices:
-                if device.className == "D" and device.type == "th":
+                if device.className == "D" and device.type == "h":
                     self.D_P_th += device.x[:self.time_num]
 
                     self.D_P_max_th += device.p_max
                     self.D_P_min_th += device.p_min
                     self.D_P_ramping_th += device.ramping
                     self.key_th = True
-                if device.className == "CTP":
+                if device.className == "cchp":
                     temp = device.x[self.time_num * 2: self.time_num * 3]
                     self.P_CTP_th += temp
-                if device.className == "TP":
+                if device.className == "eb":
                     self.P_TP_th += device.x[self.time_num: self.time_num * 2]
 
     """

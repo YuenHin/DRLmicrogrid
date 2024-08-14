@@ -5,7 +5,7 @@ from tools.maybeExcel import getDataFromExcel
 from tools.drawRG import drawRG
 
 class RT:
-    def __init__(self, name, type ,id, production_price, production_total,time_num):
+    def __init__(self, name, type, id, production_price, production_total, time_num):
         self.name = name
         self.id = id
 

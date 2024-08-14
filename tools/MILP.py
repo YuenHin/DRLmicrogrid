@@ -7,6 +7,7 @@ class Num:
         self.path = "./Data/Result/num/" + path
         self.variableNum = variableNum
         self.params = params
+        # 整个约束的系数矩阵
         self.A = np.zeros(0)
         self.bl = np.zeros(0)
         self.bu = np.zeros(0)
@@ -19,7 +20,6 @@ class Num:
         np.save(self.path + "bu", self.bu)
 
     def Get_A_bl_bu(self):
-        self.path = "./Data/Result/num/" + "Perfecr-MILP"
         self.A = np.load(self.path +"A.npy")
         self.bl = np.load(self.path +"bl.npy")
         self.bu = np.load(self.path +"bu.npy")
@@ -39,11 +39,22 @@ class Num:
 将字符串转化为下标
 '''
 def StringToNum(text, Number):
+    """
+
+    :param text: 约束条件的变量名
+    :param Number: 包含所有约束信息的类
+    :return:变量名在params中的位置，params为所有时间尺度下的变量的数组
+    """
+    # num=-1为在params中找不到该变量名
     num = -1
     i = 0
+   # 遍历总变量个数，找到变量名在params中的对应位置
     while i < Number.Getting_variableNum():
+        # 找到变量名在params中的对应位置
         if(Number.params[i] == text):
+            # 把这个位置赋值给num
             num = i
+            # 返回位置
             return num
         i = i + 1
     return num
@@ -58,15 +69,28 @@ def funcA(B, num, Number):
     return A
 
 def funcAByParams(B , num, Number):
+    """
+
+    :param B: 变量及其系数
+    :param num: 当前时间尺度
+    :param Number: 存放所有约束信息的类
+    :return: 系数一维数组
+    """
+    # 生成一个数组长度为总变量个数的零数组
     A = np.zeros(int(Number.variableNum))
 
+    # 遍历B的行数，即该约束条件的变量个数
     for i in range(len(B)):
+        # 得到变量名在params中的位置
         temp = StringToNum(B[i][0], Number)
         # print("temp:", temp)
+        # 当temp=-1表示在params中找不到该变量名
         if temp == -1 or int(temp + num) >= len(A):
-            print("编辑条件出错啦！", B[i][0])
+            print("编辑条件出错啦！", B[i][0], temp)
             break
+        # 变量系数赋值
         A[int(temp + num)] = B[i][1]
+    # 系数赋值后的一维数组
     return A
 
 '''
@@ -159,20 +183,40 @@ def CreatConstraintsSpe():
 使用字符串进行创建
 '''
 def CreatConstraintsByText(num, B, down, up, number):
+    """
+
+    :param num:时间尺度
+    :param B:变量及其系数
+    :param down:最小值
+    :param up:最大值
+    :param number:存放所有约束信息的类
+    :return:约束信息的系数矩阵及上下限
+    """
+    # 建立了一个时间尺度×总变量个数的二维数组
+
     A = CreatDoubleArray(num, number)
+
+   # 长度为时间尺度的一维数组
     bl = np.zeros(num)
     bu = np.zeros(num)
+
+   # 遍历时间尺度
     for i in range(num):
         # print(i, end=" ")
+
+        # 时间尺度i下的变量系数一维数组
         A[i] = funcAByParams(B, i, number)
+        # 时间尺度i下的上下限赋值
         bl[i] = down
         bu[i] = up
     # print()
 
+    # 把以上约束信息添加至Number类
     number.A = np.append(number.A, A)
     number.bl = np.append(number.bl, bl)
     number.bu = np.append(number.bu, bu)
 
+    # 返回该变量所有时间尺度的约束信息
     return A, bl, bu
 
 '''

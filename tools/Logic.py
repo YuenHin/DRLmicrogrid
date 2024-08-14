@@ -34,9 +34,11 @@ def MMGs_logic(MMGs, file_name, flag = False):
         start_num = 0
         for MG in MMGs.MG:
             for node in MG.node:
+                #各节点约束位置
                 start_num = node.constraints(num, start_num)
             MG.count_constraints_num()
         MMGs.count_contrainst_num()
+        #本地保存
         MMGs.save_contrainst_num(num)
         num.Save_A_bl_bu()
         print("潮流约束构造完成, 用时：", time.time() - updata_time)

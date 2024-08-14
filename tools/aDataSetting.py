@@ -16,5 +16,6 @@ pad = 20
 def smooth(x, y, num):
     x_smooth = np.linspace(x.min(), x.max(), num)
     y_smooth = make_interp_spline(x, y)(x_smooth)
+    y_smooth = y_smooth.flatten()
     return x_smooth, y_smooth
 

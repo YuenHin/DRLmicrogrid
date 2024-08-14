@@ -4,7 +4,7 @@ from tools.MILP import CreatConstraintsByText
 from tools.drawCPP import drawCPP
 
 class DG:
-    def __init__(self, name, id, total_production, production_price,time_num):
+    def __init__(self, name, id, total_production, production_price, time_num):
         self.name = name
         self.id = id
         self.total_production = total_production

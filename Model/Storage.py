@@ -11,7 +11,7 @@ from tools.drawStorage import drawStorage
 5.存储成本
 """
 class S:
-    def __init__(self, name, type, id, storage_price, storage_limit, lifetimes, self_discharging, charging_rate, discharging_date, time_num, begin = None):
+    def __init__(self, name, type, id, storage_price, storage_limit, lifetimes, self_discharging, charging_rate, discharging_rate, time_num, begin = None):
         self.name = name
         "string"
         self.id = id
@@ -26,9 +26,9 @@ class S:
 
         self.storage_price = storage_price
         "美元/kwh"
-        self.storagr_limit = storage_limit
+        self.storage_limit = storage_limit
         if begin == None:
-            self.begin = self.storagr_limit / 2
+            self.begin = self.storage_limit / 2
         else:
             self.begin = begin
         self.lifetimes = lifetimes
@@ -42,7 +42,7 @@ class S:
         self.discharging_max = None
 
         self.charging_rate = charging_rate
-        self.discharging_rate = discharging_date
+        self.discharging_rate = discharging_rate
 
         self.params = np.array([""])
 
@@ -91,7 +91,7 @@ class S:
             self.c[i + self.time_num * 3] = - 0.083 * 0.001 * 390.885
 
     def __getData(self):
-        self.e = self.e + self.storagr_limit
+        self.e = self.e + self.storage_limit
         self.charging_max = self.e * 0.025
         self.discharging_max = self.e * 0.025
         self.ramping_limit = self.e * 0.025
@@ -193,7 +193,7 @@ class S:
             B = np.array([
                 [self.name + "E" + str(step), 1],
             ])
-            CreatConstraintsByText(1, B, self.real_x[self.time_num +step - 1], self.real_x[self.time_num +step - 1], num)
+            CreatConstraintsByText(1, B, self.real_x[self.time_num + step - 1], self.real_x[self.time_num + step - 1], num)
 
 
 

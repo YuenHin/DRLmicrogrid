@@ -296,7 +296,7 @@ def EndCount(c,integrality,Number):
                bounds=np.array([b1,b2]),
                constraints = LinearConstraint(A, bl, bu)
                )
-    #print(res)
+    print(res)
     return res
 
 

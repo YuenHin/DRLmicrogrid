@@ -204,7 +204,6 @@ class ES:
         "string"
         self.id = id
         "int"
-        self.className = 'ES'
         self.time_num = time_num
         "hours"
 
@@ -427,7 +426,6 @@ class EV:
         "string"
         self.id = id
         "int"
-        self.className = 'ES'
         self.time_num = time_num
         "hours"
 

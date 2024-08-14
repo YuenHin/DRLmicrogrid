@@ -98,10 +98,10 @@ class RT:
 
     def __getWTData(self):
         # 平滑处理后的纵坐标值×production_total
-        self.p = self.__24to96("C:\software\Github\DRLmicrogrid\Data\RE\WT.xlsx", 2)
+        self.p = self.__24to96("D:\project\DRLmicrogrid_git\DRLmicrogrid\Data\RE\WT.xlsx", 2)
 
     def __getPVData(self):
-        self.p = self.__24to96("C:\software\Github\DRLmicrogrid\Data\RE\PV.xlsx", 2)
+        self.p = self.__24to96("D:\project\DRLmicrogrid_git\DRLmicrogrid\Data\RE\PV.xlsx", 2)
 
     def constraints(self, num):
         # production limits:

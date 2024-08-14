@@ -60,7 +60,7 @@ class D:
         self.length = len(self.params)
 
     def __set_integrality(self):
-        self.integrality = np.zeros(self.time_num)
+        self.intergrality = np.zeros(self.time_num)
 
     def __set_C(self):
         self.c = np.zeros(self.length)

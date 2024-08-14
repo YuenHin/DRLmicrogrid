@@ -45,5 +45,5 @@ res = EndCount(-C, intergrality, num)
 
 x_callBack(res, MMGs, path)
 
-draw(MMGs, np.array([]))
+draw(MMGs)
 

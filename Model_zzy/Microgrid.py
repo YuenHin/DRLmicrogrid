@@ -1,7 +1,7 @@
 import numpy as np
 from tools.maybeExcel import getDataFromExcel
 
-from tools.drawMG import drawPrice, drawSource_Load_e, drawSource_Load_g, drawSource_Load_th, drawSource_Load_h, drawInteraction
+from tools.drawMG import drawPrice, drawSource_Load_e, drawSource_Load_g, drawSource_Load_th, drawSource_Load_h, drawInteraction,drawSource_Load_c
 
 from tools.drawDemands import drawDemands
 
@@ -170,9 +170,12 @@ class MG:
         来自天然气的：
         来自热能的：
         来自氢能的：
+        
+        收集某能源系统的各个功率的函数
         """
 
     def P_e_collection(self):
+        #设备
         self.D_P_e = np.zeros(self.time_num)
         self.WT_P = np.zeros(self.time_num)
         self.PV_P = np.zeros(self.time_num)
@@ -184,6 +187,7 @@ class MG:
         self.P_EL_e = np.zeros(self.time_num)
         self.P_e_h = np.zeros(self.time_num)
 
+        #总负荷
         self.D_P_max_e = np.zeros(self.time_num)
         self.D_P_min_e = np.zeros(self.time_num)
         self.D_P_ramping_e = np.zeros(self.time_num)
@@ -192,6 +196,7 @@ class MG:
 
         for node in self.node:
             for device in node.devices:
+                #有一个设备加一个IF 添加进上面的变量中
                 if device.className == "D" and device.type == "e":
                     self.D_P_e = self.D_P_e + device.x[:self.time_num]
 
@@ -274,6 +279,9 @@ class MG:
         self.D_P_th = np.zeros(self.time_num)
         self.P_CTP_th = np.zeros(self.time_num)
         self.P_TP_th = np.zeros(self.time_num)
+        self.P_CCHP_th = np.zeros(self.time_num)
+        self.P_EB_th = np.zeros(self.time_num)
+        self.P_HP_th = np.zeros(self.time_num)
 
         self.D_P_max_th = np.zeros(self.time_num)
         self.D_P_min_th = np.zeros(self.time_num)
@@ -283,18 +291,26 @@ class MG:
 
         for node in self.node:
             for device in node.devices:
-                if device.className == "D" and device.type == "h":
+                if device.className == "D" and device.type == "th":
                     self.D_P_th += device.x[:self.time_num]
 
                     self.D_P_max_th += device.p_max
                     self.D_P_min_th += device.p_min
                     self.D_P_ramping_th += device.ramping
                     self.key_th = True
-                if device.className == "cchp":
+                if device.className == "CTP":
                     temp = device.x[self.time_num * 2: self.time_num * 3]
                     self.P_CTP_th += temp
-                if device.className == "eb":
+                if device.className == "TP":
                     self.P_TP_th += device.x[self.time_num: self.time_num * 2]
+                if device.className == "cchp":
+                    temp = device.x[self.time_num * 2: self.time_num * 3]
+                    self.P_CCHP_th += temp
+                if device.className == "HP":
+                    temp = device.x[self.time_num * 1: self.time_num * 2]
+                    self.P_HP_th += temp
+                if device.className == "eb":
+                    self.P_EB_th += device.x[self.time_num: self.time_num * 2]
 
     """
     1.负荷--H
@@ -332,6 +348,35 @@ class MG:
                 if sline.type == 'he':
                     self.P_h_e -= sline.x[:self.time_num]
 
+    def P_c_collection(self):
+        self.P_D_c = np.zeros(self.time_num)
+        self.P_ER_c = np.zeros(self.time_num)
+        self.S_c = np.zeros(self.time_num)
+
+
+        self.D_P_max_c = np.zeros(self.time_num)
+        self.D_P_min_c = np.zeros(self.time_num)
+        self.D_P_ramping_c = np.zeros(self.time_num)
+        self.key_h = False
+
+        for node in self.node:
+            for device in node.devices:
+                if device.className == "D" and device.type == "c":
+                    self.P_D_c += device.x[:self.time_num]
+
+                    self.D_P_max_c += device.p_max
+                    self.D_P_min_c = device.p_min
+                    self.D_P_ramping_c += device.ramping
+                    self.key_h = True
+                if device.className == "S" and device.type == "c":
+                    self.S_c -= device.x[:self.time_num]
+                if device.className == "ER":
+                    self.P_ER_h += device.x[self.time_num:self.time_num * 2]
+
+            for sline in node.sLine:
+                if sline.type == 'he':
+                    self.P_h_e -= sline.x[:self.time_num]
+
     """
         1.绘制各个设备、线路的数据表格（已完成）
         2.绘制区域总用电曲线（未完成-待数据采集完成）
@@ -360,7 +405,7 @@ class MG:
         self.P_th_collection()
         if self.key_th:
             "热能-供需关系"
-            drawSource_Load_th(np.array([self.P_CTP_th, self.P_TP_th]), self.D_P_th, self.name + "_th_Balance")
+            drawSource_Load_th(np.array([self.P_CTP_th, self.P_TP_th, self.P_HP_th]), self.D_P_th, self.name + "_th_Balance")
             "热能总需求"
             drawDemands(self.D_P_th, self.D_P_max_th, self.D_P_min_th, self.D_P_ramping_th, 'th',
                         self.name + "th_Demand")
@@ -373,6 +418,15 @@ class MG:
             drawSource_Load_h(np.array([self.P_EL_h, self.S_h, self.P_h_e]), self.P_D_h, self.name + "_h_Balance")
             "氢能总需求"
             drawDemands(self.P_D_h, self.D_P_max_h, self.D_P_min_h, self.D_P_ramping_h, 'h', self.name + "h_Demand")
+
+        "c"
+        self.P_c_collection()
+        if self.key_c:
+            "热能-供需关系"
+            drawSource_Load_c(np.array([self.P_S_c, self.P_ER_c]), self.D_P_c, self.name + "_th_Balance")
+            "热能总需求"
+            drawDemands(self.D_P_c, self.D_P_max_c, self.D_P_min_c, self.D_P_ramping_c, 'c',
+                        self.name + "th_Demand")
 
         "价格绘画参数准备，各个设备上的图标"
         # if self.key_e:

@@ -657,7 +657,7 @@ class CCHP:
 
         """时间尺度约束"""
         operation_state = np.array([
-            [self.name + "state", 1]
+            [self.name + "state1", 1]
         ])
         CreatConstraintsByText(self.time_num, operation_state, 0, 1, constraint_information_class)
 
@@ -677,10 +677,9 @@ class CCHP:
 
 class EB:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h):
-        self.className = "eb"
 
         self.name = name
-        self.className = 'EB'
+        self.className = 'eb'
         self.time_num = time_num
         self.line_e = line_e
         self.line_h = line_h
@@ -851,10 +850,9 @@ class EB:
 
 class ER:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c):
-        self.className = "er"
 
         self.name = name
-        self.className = 'ER'
+        self.className = 'er'
         self.time_num = time_num
         self.line_e = line_e
         self.line_c = line_c

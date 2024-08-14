@@ -16,14 +16,14 @@ color_SL_e = np.array([
 ])
 
 color_SL_g = np.array([
-    "#77ac30", "#d5b13e", "#0072bd", "#01AFF0"
+    "#77ac30", "#d5b13e", "#0072bd", "#01AFF0", "#e29baf", "#7e2f8e", "#d95319", "#01aff0", "#fc1408", "#70ad47", "#cbf6e2"
 ])
 
 color_SL_th = np.array([
-    "#77ac30","#ffc200", "#01AFF0"
+    "#77ac30","#ffc200", "#01AFF0", "#e29baf", "#7e2f8e", "#d95319", "#01aff0", "#fc1408", "#70ad47", "#cbf6e2"
 ])
 color_SL_h = np.array([
-    "#77ac30","#ffc200", "#01AFF0"
+    "#77ac30","#ffc200", "#01AFF0", "#e29baf", "#7e2f8e", "#d95319", "#01aff0", "#fc1408", "#70ad47", "#cbf6e2"
 ])
 
 def drawPrice(sell_pirce, sell_label, production_price, production_label, title):
@@ -179,7 +179,7 @@ def drawSource_Load_th(Source, Load, title):
     风力 - 光伏 - DG - S - CPP
     """
     label_Source = np.array([
-        "CTP", "TP"
+        "CTP", "TP", "HP"
     ])
     temp_negative = np.zeros(len(Source) * len(Source[0]))
     temp_positive = np.zeros(len(Source) * len(Source[0]))
@@ -230,6 +230,55 @@ def drawSource_Load_h(Source, Load, title):
     """
     label_Source = np.array([
         "EL", "S", "h_e"
+    ])
+    temp_negative = np.zeros(len(Source) * len(Source[0]))
+    temp_positive = np.zeros(len(Source) * len(Source[0]))
+    temp_negative = temp_negative.reshape((len(Source), len(Source[0])))
+    temp_positive = temp_positive.reshape((len(Source), len(Source[0])))
+
+    for i in range(len(Source)):
+        for j in range(len(Source[i])):
+            if Source[i][j] > 0:
+                temp_positive[i][j] += Source[i][j]
+            else:
+                temp_negative[i][j] += Source[i][j]
+    for i in range(len(Source) - 1):
+        temp_positive[i + 1] += temp_positive[i]
+        temp_negative[i + 1] += temp_negative[i]
+
+    for i in range(len(Source)):
+        plt.bar(x, temp_positive[-1 - i], color=color_SL_h[-1 - i], label=label_Source[-1 - i], width=0.80,
+                edgecolor="#000000", zorder=100)
+        plt.bar(x, temp_negative[-1 - i], color=color_SL_h[-1 - i], width=0.80, edgecolor="#000000", zorder=100)
+
+    plt.plot(x, np.zeros(len(Source[0])), color="#000000", linewidth=2, zorder=100)
+    "最后一个画负荷"
+    xS, LoadS = smooth(x, Load, 96)
+    plt.plot(xS, LoadS, color=color_SL_h[0], label="Load", linestyle="--", linewidth=1.5, zorder=100)
+
+    x_ticks_label = ["{hours}".format(hours=i % 24) for i in range(len(x))]
+    # plt.xticks(rotation=60)
+    plt.xticks(x[::1], x_ticks_label[::1], fontsize=font_size_tick, weight='bold')
+    plt.yticks(fontsize=font_size_tick, weight='bold')
+    # y_major_locator = MultipleLocator(10)
+    # ax.yaxis.set_major_locator(y_major_locator)
+    plt.xlabel("Time(h)", fontsize=font_size_label, weight='bold')
+    plt.ylabel("Power(kW)", fontsize=font_size_label, weight='bold')
+    plt.grid(True, color="#e4e4e4", zorder=0)
+    plt.title(title, fontsize=font_size_title, weight='bold', pad=pad)
+    plt.legend(fontsize=font_size_tick * 0.7, ncol=1, loc="center", bbox_to_anchor=(1.06, 0.7) )
+
+def drawSource_Load_c(Source, Load, title):
+    x = np.zeros(len(Load))
+    for i in range(len(x)):
+        x[i] = x[i] + 1 + i
+    # 图片大小
+    plt.figure(figsize=(pic_weight * 1.5, pic_high))
+    """
+    S - ER
+    """
+    label_Source = np.array([
+        "S", "ER"
     ])
     temp_negative = np.zeros(len(Source) * len(Source[0]))
     temp_positive = np.zeros(len(Source) * len(Source[0]))

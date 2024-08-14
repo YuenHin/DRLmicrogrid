@@ -5,9 +5,15 @@ from maybeExcel import getDataFromExcel
 
 import matplotlib.pyplot as plt
 
+from sklearn.preprocessing import StandardScaler
+
+#循环用的主函数
+from Generation.DeepAR.algorithm import GRUDeepAR, LSTMDeepAR, TransformerDeepAR
+from Generation.DeepAR.DeepAR import train_deepar_nll, test_deepar, calculate_metrics, test_deepar2, train_deepar_mae
+
 ########----------------------------Basic_data-getting------------------------------------##################
 def get_re_narure_data(day):
-    file = "D:\Project\microgrid\DRLmicrogrid\Data\RE\\2024_re_nature_"+ str(day) + ".xlsx"
+    file = "Data\RE\\2024_re_nature_"+ str(day) + ".xlsx"
     data = getDataFromExcel(file, 0, 14, 0, 96)
     #0：全球辐射
     #1：直接辐射
@@ -51,7 +57,7 @@ def get_draw_wind_generation_power(day, power_coefficient, area, draw = False):
 
 ########----------------------------太阳能发电出力数据------------------------------------##################
 def get_draw_solar_nature_ending(day, draw = False):
-    file = "D:\Project\microgrid\DRLmicrogrid\Data\RE\\2024_re_nature_" + str(day) + ".xlsx"
+    file = "Data\RE\\2024_re_nature_" + str(day) + ".xlsx"
     global_radiation = getDataFromExcel(file, 0, 1, 0, 96).flatten()
     direct_radiation = getDataFromExcel(file, 1, 2, 0, 96).flatten()
     diffusion_radiation = getDataFromExcel(file, 2, 3, 0, 96).flatten()
@@ -96,11 +102,12 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-
-#循环用的主函数
-
-from Generation.DeepAR.algorithm import GRUDeepAR, LSTMDeepAR, TransformerDeepAR
-from Generation.DeepAR.DeepAR import train_deepar_nll, test_deepar, calculate_metrics
+# 数据标准化
+def standardize_data(train_data, test_data):
+    scaler = StandardScaler()
+    train_data = scaler.fit_transform(train_data)
+    test_data = scaler.transform(test_data)
+    return train_data, test_data
 
 #最终计算风力出力的概率分布函数
 def count_GS_windPower(wind_speed_mean, wind_speed_std, density_mean, density_std, area, power_coefficient, wind_power_True):
@@ -157,7 +164,36 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         context = self.data[idx:idx + self.context_length]
-        target = self.target[idx + self.context_length:idx + self.context_length + self.prediction_length]
+        target_start_idx = idx + self.context_length
+        target_end_idx = target_start_idx + self.prediction_length
+
+        # 确保target的长度和prediction_length一致
+        if target_end_idx > len(self.target):
+            target_end_idx = len(self.target)
+
+        target = self.target[target_start_idx:target_end_idx]
+
+        # 如果target的长度不足prediction_length，则进行填充
+        if len(target) < self.prediction_length:
+            padding = torch.zeros(self.prediction_length - len(target))
+            target = torch.cat((target, padding))
+
+        return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32)
+
+class CustomDataset_target(Dataset):
+    def __init__(self, data, target, context_length, prediction_length):
+        self.data = data
+        self.target = target
+        self.context_length = context_length
+        self.prediction_length = prediction_length
+
+    #用于定义当对一个数据集对象调用 len() 函数时应该返回的值。
+    def __len__(self):
+        return len(self.data) - self.context_length - self.prediction_length + 1
+
+    def __getitem__(self, idx):
+        context = self.data[idx:idx + self.context_length]
+        target = self.target[idx + self.context_length + 1:idx + self.context_length + self.prediction_length + 1]
         return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32)
 
 # 自定义数据集类
@@ -177,7 +213,7 @@ class TimeSeriesDataset(Dataset):
 
         context = self.data[idx:idx + self.context_length]
         target = self.target[idx + self.context_length:idx + self.context_length + self.prediction_length]
-        return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32), idx
+        return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32)
 
 # 准备数据
 def prepare_data(data, feature_indices, target_feature_index):
@@ -193,13 +229,16 @@ def create_dataloaders(data, target, context_length, prediction_length, batch_si
     test_data = data[96 * 27 - context_length - prediction_length:]
     test_target = target[96 * 27 - context_length - prediction_length:]
 
+    # 标准化数据
+    train_data, test_data = standardize_data(train_data, test_data)
+
     # 创建数据集
     train_dataset = CustomDataset(train_data, train_target, context_length, prediction_length)
-    test_dataset = CustomDataset(test_data, test_target, context_length, prediction_length)
+    test_dataset = CustomDataset_target(test_data, test_target, context_length, prediction_length)
 
     # 创建数据加载器
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=prediction_length, shuffle=False)
 
     return train_loader, test_loader
 
@@ -218,6 +257,9 @@ def main(data,features ,feature_indices, target_feature_index, context_length, p
     #       target:(96*30, target_feature_index)
     data, target = prepare_data(data, feature_indices, target_feature_index)
 
+    # #标准化
+    # data, target = standardize_data(data, target)
+
     #Context shape: torch.Size([32, 96, 14]), Target shape: torch.Size([32, 24])
     train_loader, test_loader = create_dataloaders(data, target, context_length, prediction_length, batch_size)
 
@@ -232,9 +274,10 @@ def main(data,features ,feature_indices, target_feature_index, context_length, p
 
     model_path = f'Data\RE\model\{model_type.lower()}_'+features[target_feature_index]+'.pth'
     if only_test is False:
+        train_deepar_mae(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path)
         train_deepar_nll(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path)
 
-    pred_mu, pred_sigma, target = test_deepar(model, test_loader, context_length, prediction_length, model_path=model_path, index="ending")
+    pred_mu, pred_sigma, target = test_deepar2(model, test_loader, context_length, prediction_length, model_path=model_path, index="ending")
     metrics = calculate_metrics(pred_mu, target, pred_sigma)
 
     print(metrics)

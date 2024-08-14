@@ -89,24 +89,28 @@ def truncated_normal_sample(mu, sigma, lower_bound, upper_bound, num_samples, de
 
     return samples
 
-def train_deepar_mse(model, dataloader, lr=0.00001, patience=100, delta=0.0001, model_path='deepar_mse.pth'):
+
+# 训练函数 - 使用 MAE 作为损失函数
+def train_deepar_mae(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=10, delta=0.0001, model_path='deepar_nll.pth'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     loss_values = []
     best_loss = float('inf')
     epochs_no_improve = 0
-
+    epoch_counter = 0
+    start = time.time()
     # 记录每个epoch的损失
     epoch_losses = []
-
-    epoch_counter = 0
 
     while True:
         model.train()
         epoch_loss = 0
         for context, target in dataloader:
+            # if target.size(0) < 32:
+            #     print(f"Skipping batch due to insufficient target size: {target.size()}")
+            #     continue
             context = context.to(device)
             target = target.to(device)
 
@@ -114,7 +118,6 @@ def train_deepar_mse(model, dataloader, lr=0.00001, patience=100, delta=0.0001, 
             mu = mu.view(-1, model.prediction_length)
             target = target.view(-1, model.prediction_length)
 
-            # 使用 nn.MSELoss
             loss = criterion(mu, target)
 
             optimizer.zero_grad()
@@ -128,38 +131,40 @@ def train_deepar_mse(model, dataloader, lr=0.00001, patience=100, delta=0.0001, 
         epoch_losses.append(epoch_loss)
         epoch_counter += 1
 
-        # Early stopping check
         if epoch_loss < best_loss - delta:
             best_loss = epoch_loss
             epochs_no_improve = 0
-            # Save the best model
             torch.save(model.state_dict(), model_path)
         else:
             epochs_no_improve += 1
 
-        # 打印损失并刷新终端显示
-        print_progress(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}")
-
         # 仅在每 patience 次打印一次损失函数差值的均值
-        if epoch_counter % patience == 0:
-            if len(epoch_losses) >= patience:
-                recent_losses = np.diff(epoch_losses[-patience:])
-                mean_recent_loss_change = recent_losses.mean()
-                print_progress(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.4f}")
+        if (epoch_counter) % 100 == 0:
+            recent_losses = np.diff(epoch_losses[-patience:])
+            mean_recent_loss_change = recent_losses.mean()
+            print(
+                f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
+            start = time.time()
+            if (epoch_counter) % 500 == 0:
+                pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length,
+                                                          model_path, index=len(loss_values))
+                metrics = calculate_metrics(pred_mu, target, pred_sigma)
+
+                print(metrics)
 
         if epochs_no_improve >= patience:
-            print(f"\nEarly stopping after {len(loss_values)} epochs")
+            print(f"Early stopping after {epoch_counter} epochs")
             break
 
     plt.plot(loss_values)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('Training Loss ' + "(" + model_path + ")")
+    plt.title('Training Loss (MAE)')
     plt.show()
 
 
 # 训练函数 - 使用 nn.GaussianNLLLoss
-def train_deepar_nll(model, dataloader, testloader, context_length, prediction_length, lr=0.00001, patience=100, delta=0.0001, model_path='deepar_nll.pth'):
+def train_deepar_nll(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=10, delta=0.0001, model_path='deepar_nll.pth'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     criterion = nn.GaussianNLLLoss()
@@ -183,6 +188,9 @@ def train_deepar_nll(model, dataloader, testloader, context_length, prediction_l
         #target(32, prediction_length)
         # index = 0
         for context, target in dataloader:
+            if target.size(1) < prediction_length:
+                print(f"Skipping batch due to insufficient target size: {target.size()}")
+                continue
             context = context.to(device)
             target = target.to(device)
 
@@ -220,16 +228,15 @@ def train_deepar_nll(model, dataloader, testloader, context_length, prediction_l
 
         # 仅在每 patience 次打印一次损失函数差值的均值
         if (epoch_counter) % 100 == 0:
-            if len(epoch_losses) >= patience:
-                recent_losses = np.diff(epoch_losses[-patience:])
-                mean_recent_loss_change = recent_losses.mean()
-                print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
-                start = time.time()
-                if (epoch_counter) % 500 == 0:
-                    pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
-                    metrics = calculate_metrics(pred_mu, target, pred_sigma)
+            recent_losses = np.diff(epoch_losses[-patience:])
+            mean_recent_loss_change = recent_losses.mean()
+            print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
+            start = time.time()
+            if (epoch_counter) % 500 == 0:
+                pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
+                metrics = calculate_metrics(pred_mu, target, pred_sigma)
 
-                    print(metrics)
+                print(metrics)
 
                # if np.abs(mean_recent_loss_change) <= delta:
                 #     print(f"Early stopping after {len(loss_values)} epochs")
@@ -270,6 +277,9 @@ def test_deepar(model, dataloader, context_length, prediction_length, model_path
     with torch.no_grad():
         #Context shape: torch.Size([32, context_length, 14]), Target shape: torch.Size([32, prediction_length])
         for context, target in dataloader:
+            if target.size(1) < prediction_length:
+                print(f"Skipping batch due to insufficient target size: {target.size()}")
+                continue
             context = context.to(device)
             target = target.to(device)
 
@@ -330,7 +340,85 @@ def test_deepar(model, dataloader, context_length, prediction_length, model_path
 
     return all_mu, all_sigma, all_target
 
+# 测试函数
+def test_deepar2(model, dataloader, context_length, prediction_length, model_path, num_samples=100, index = 0):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.load_state_dict(torch.load(model_path))
+    model.to(device)
+    model.eval()
 
+    all_mu = []
+    all_sigma = []
+    all_target = []
+    all_samples = []
+
+    with torch.no_grad():
+        #Context shape: torch.Size([32, context_length, 14]), Target shape: torch.Size([32, prediction_length])
+        for context, target in dataloader:
+            if target.size(1) < prediction_length:
+                print(f"Skipping batch due to insufficient target size: {target.size()}")
+                continue
+            # 转换 context 形状为 (1, context_length, feature_size)
+            context = context[0].unsqueeze(0).to(device)
+            # 取 target 的最后 prediction_length 个值，形状为 (1, prediction_length)
+            target = target[0, -prediction_length:].unsqueeze(0).to(device)
+
+            mu, sigma = model(context)
+            mu = mu.view(-1, prediction_length)
+            sigma = sigma.view(-1, prediction_length)
+            target = target.view(-1, prediction_length)
+
+            # 蒙特卡洛采样
+            # 设定置信区间
+            confidence_level = 0.8
+            z_value = stats.norm.ppf((1 + confidence_level) / 2)
+            lower_bound = mu - z_value * sigma
+            upper_bound = mu + z_value * sigma
+
+            samples = truncated_normal_sample(mu, sigma, lower_bound, upper_bound, num_samples, device)
+
+            mu = mu.cpu().numpy()
+            sigma = sigma.cpu().numpy()
+            target = target.cpu().numpy()
+            samples = samples.cpu().numpy()
+
+            all_mu.append(mu[0:])
+            all_sigma.append(sigma[0:])
+            all_target.append(target[0:])
+            all_samples.append(samples[:, 0, :])
+
+
+    all_mu = np.concatenate(all_mu, axis=0).flatten()
+    all_sigma = np.concatenate(all_sigma, axis=0).flatten()
+    all_target = np.concatenate(all_target, axis=0).flatten()
+    all_samples = np.concatenate(all_samples, axis=1)
+
+    # 可视化整个序列的预测结果
+    plt.figure(figsize=(12, 6))
+    time_steps = np.arange(len(all_target.flatten()))
+    for i in range(all_samples.shape[0]):
+        if i == 0:
+            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2, label='Wind Power Scenario')
+        else:
+            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2)
+
+    plt.plot(time_steps, all_target.flatten(), label='Measured Wind Power', color='blue')
+    plt.plot(time_steps, all_mu.flatten(), label='Deterministic Forecasts', color='orange')
+
+
+    # 设置X轴刻度和标签
+    ticks = np.arange(0, len(all_target.flatten()), 24)  # 每24个点设置一个刻度（即每6小时一个点）
+    labels = [f'Day {i // 4 + 1}\n{(i % 4) * 6}h' for i in range(len(ticks))]  # 标签显示为 Day X\nYh
+    plt.xticks(ticks, labels, rotation=45)
+
+    # 设置Y轴范围
+    plt.ylim(0, 8)
+
+    plt.title(model_path + "_" + str(index))
+    plt.legend(loc='upper left')
+    plt.show()
+
+    return all_mu, all_sigma, all_target
 # 测试函数
 def test_deepar_threeToOne(model, dataloader, context_length, prediction_length, model_path, num_samples=100):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

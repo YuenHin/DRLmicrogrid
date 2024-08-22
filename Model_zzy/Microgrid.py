@@ -187,6 +187,12 @@ class MG:
         self.P_EL_e = np.zeros(self.time_num)
         self.P_e_h = np.zeros(self.time_num)
 
+        # 添加 地缘热泵
+        self.HP_e = np.zeros(self.time_num)
+        self.CCHP_e = np.zeros(self.time_num)
+        self.EB_e = np.zeros(self.time_num)
+        self.ER_e = np.zeros(self.time_num)
+
         #总负荷
         self.D_P_max_e = np.zeros(self.time_num)
         self.D_P_min_e = np.zeros(self.time_num)
@@ -214,11 +220,15 @@ class MG:
                 if device.className == "DG":
                     self.DG_P = self.DG_P + device.x[:self.time_num]
                 if device.className == "cchp":
-                    self.P_CTP_e += device.x[self.time_num:self.time_num * 2]
+                    self.CCHP_e += device.x[self.time_num:self.time_num * 2]
                 if device.className == "eb":
-                    self.P_TP_e -= device.x[:self.time_num]
+                    self.EB_e -= device.x[:self.time_num]
                 if device.className == "er":
-                    self.P_EL_e -= device.x[:self.time_num]
+                    self.ER_e -= device.x[:self.time_num]
+
+                # 添加 地缘热泵
+                if device.className == "hp":
+                    self.HP_e -= device.x[:self.time_num]
 
             for rline in node.rLine:
                 if rline.MG_point and rline.type == 'e':
@@ -246,6 +256,9 @@ class MG:
         self.D_P_min_g = np.zeros(self.time_num)
         self.D_P_ramping_g = np.zeros(self.time_num)
 
+        # 添加 电热联产
+        self.CCHP_g = np.zeros(self.time_num)
+
         self.key_g = False
 
         "付个值呗"
@@ -261,7 +274,7 @@ class MG:
                 if device.className == "S" and device.type == 'g':
                     self.S_P_g -= device.x[:self.time_num]
                 if device.className == "cchp":
-                    self.P_CTP_g -= device.x[:self.time_num]
+                    self.CCHP_g -= device.x[:self.time_num]
 
             for rline in node.rLine:
                 if rline.MG_point and rline.type == 'g':
@@ -279,13 +292,15 @@ class MG:
         self.D_P_th = np.zeros(self.time_num)
         self.P_CTP_th = np.zeros(self.time_num)
         self.P_TP_th = np.zeros(self.time_num)
-        self.P_CCHP_th = np.zeros(self.time_num)
-        self.P_EB_th = np.zeros(self.time_num)
-        self.P_HP_th = np.zeros(self.time_num)
 
         self.D_P_max_th = np.zeros(self.time_num)
         self.D_P_min_th = np.zeros(self.time_num)
         self.D_P_ramping_th = np.zeros(self.time_num)
+
+        # 添加设备
+        self.CCHP_th = np.zeros(self.time_num)
+        self.EB_th = np.zeros(self.time_num)
+        self.HP_th = np.zeros(self.time_num)
 
         self.key_th = False
 
@@ -305,20 +320,19 @@ class MG:
                     self.P_TP_th += device.x[self.time_num: self.time_num * 2]
                 if device.className == "cchp":
                     temp = device.x[self.time_num * 2: self.time_num * 3]
-                    self.P_CCHP_th += temp
-                if device.className == "HP":
+                    self.CCHP_th += temp
+                if device.className == "hp":
                     temp = device.x[self.time_num * 1: self.time_num * 2]
-                    self.P_HP_th += temp
+                    self.HP_th += temp
                 if device.className == "eb":
-                    self.P_EB_th += device.x[self.time_num: self.time_num * 2]
+                    self.EB_th += device.x[self.time_num: self.time_num * 2]
 
     """
     1.负荷--H
     2.负荷--E
     3.S
     4.EL
-    """
-
+    # 氢负荷 用不到
     def P_h_collection(self):
         self.P_D_h = np.zeros(self.time_num)
         self.P_EL_h = np.zeros(self.time_num)
@@ -347,7 +361,11 @@ class MG:
             for sline in node.sLine:
                 if sline.type == 'he':
                     self.P_h_e -= sline.x[:self.time_num]
+    """
 
+    """
+    添加冷设备
+    """
     def P_c_collection(self):
         self.P_D_c = np.zeros(self.time_num)
         self.P_ER_c = np.zeros(self.time_num)
@@ -370,7 +388,7 @@ class MG:
                     self.key_h = True
                 if device.className == "S" and device.type == "c":
                     self.S_c -= device.x[:self.time_num]
-                if device.className == "ER":
+                if device.className == "er":
                     self.P_ER_h += device.x[self.time_num:self.time_num * 2]
 
             for sline in node.sLine:
@@ -389,7 +407,7 @@ class MG:
             "电能-供需关系"
             drawSource_Load_e(np.array(
                 [self.WT_P, self.PV_P, self.DG_P, self.S_P_e, self.MG_P_e, self.P_CTP_e, self.P_TP_e, self.P_EL_e,
-                 self.P_e_h]), self.D_P_e, self.name + "_e_Balance")
+                 self.P_e_h, self.HP_e, self.CCHP_e, self.EB_e, self.ER_e]), self.D_P_e, self.name + "_e_Balance")
             "电能总需求"
             drawDemands(self.D_P_e, self.D_P_max_e, self.D_P_min_e, self.D_P_ramping_e, 'e', self.name + "e_Demand")
 
@@ -397,7 +415,7 @@ class MG:
         self.P_g_collection()
         if self.key_g:
             "天然气-供需关系"
-            drawSource_Load_g(np.array([self.MG_P_g, self.S_P_g, self.P_CTP_g]), self.D_P_g, self.name + "_g_Balance")
+            drawSource_Load_g(np.array([self.MG_P_g, self.S_P_g, self.P_CTP_g, self.CCHP_g]), self.D_P_g, self.name + "_g_Balance")
             "天然气总需求"
             drawDemands(self.D_P_g, self.D_P_max_g, self.D_P_min_g, self.D_P_ramping_g, 'g', self.name + "g_Demand")
 
@@ -405,11 +423,12 @@ class MG:
         self.P_th_collection()
         if self.key_th:
             "热能-供需关系"
-            drawSource_Load_th(np.array([self.P_CTP_th, self.P_TP_th, self.P_HP_th]), self.D_P_th, self.name + "_th_Balance")
+            drawSource_Load_th(np.array([self.P_CTP_th, self.P_TP_th, self.CCHP_th, self.EB_th, self.HP_th]),
+                               self.D_P_th, self.name + "_th_Balance")
             "热能总需求"
             drawDemands(self.D_P_th, self.D_P_max_th, self.D_P_min_th, self.D_P_ramping_th, 'th',
                         self.name + "th_Demand")
-
+        """
         "h"
         self.P_h_collection()
 
@@ -418,15 +437,16 @@ class MG:
             drawSource_Load_h(np.array([self.P_EL_h, self.S_h, self.P_h_e]), self.P_D_h, self.name + "_h_Balance")
             "氢能总需求"
             drawDemands(self.P_D_h, self.D_P_max_h, self.D_P_min_h, self.D_P_ramping_h, 'h', self.name + "h_Demand")
+        """
 
         "c"
         self.P_c_collection()
         if self.key_c:
-            "热能-供需关系"
-            drawSource_Load_c(np.array([self.P_S_c, self.P_ER_c]), self.D_P_c, self.name + "_th_Balance")
-            "热能总需求"
-            drawDemands(self.D_P_c, self.D_P_max_c, self.D_P_min_c, self.D_P_ramping_c, 'c',
-                        self.name + "th_Demand")
+            "冷能-供需关系"
+            drawSource_Load_c(np.array([self.S_c, self.P_ER_c]), self.P_D_c, self.name + "_c_Balance")
+            "冷能总需求"
+            drawDemands(self.P_D_c, self.D_P_max_c, self.D_P_min_c, self.D_P_ramping_c, 'c',
+                        self.name + "c_Demand")
 
         "价格绘画参数准备，各个设备上的图标"
         # if self.key_e:

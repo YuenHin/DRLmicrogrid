@@ -684,6 +684,8 @@ class EB:
         self.line_e = line_e
         self.line_h = line_h
 
+        self.way = 1
+
         # 爬坡功率与滑坡功率
         self.ramping_up = 0.35
         self.ramping_down = 0.35
@@ -856,6 +858,8 @@ class ER:
         self.time_num = time_num
         self.line_e = line_e
         self.line_c = line_c
+
+        self.way = 1
 
         # 爬坡功率与滑坡功率
         self.ramping_up = 0.25

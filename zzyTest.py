@@ -99,42 +99,42 @@ line_hp_e_01 = Line("line_hp_e_01", 4000, line_price=-0.001, Single=True, MG_poi
                     to_MG="hp_01", time_num=time)
 line_hp_h_01 = Line("line_hp_h_01", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="hp_01",
                     to_MG="bus_h_01", time_num=time)
-engine_h_hp01 = HP("RT_h_hp01", "th", 1, production_price=0.05, production_total=3000, time_num=time, line_e=line_hp_e_01
-                   , line_h=line_hp_h_01)
+engine_h_hp01 = HP("RT_h_hp01", "HP", 1, production_price=0.05, production_total=3000, time_num=time,
+                   line_e=line_hp_e_01, line_h=line_hp_h_01)
 
 line_hp_e_02 = Line("line_hp_e_02", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="bus_e_02",
                     to_MG="hp_02", time_num=time)
 line_hp_h_02 = Line("line_hp_h_02", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="hp_02",
                     to_MG="bus_h_02", time_num=time)
-engine_h_hp02 = HP("RT_h_hp02", "th", 1, production_price=0.05, production_total=3000, time_num=time,
+engine_h_hp02 = HP("RT_h_hp02", "HP", 1, production_price=0.05, production_total=3000, time_num=time,
                    line_e=line_hp_e_02, line_h=line_hp_h_02)
 
 line_hp_e_04 = Line("line_hp_e_04", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="bus_e_04",
                     to_MG="hp_04", time_num=time)
 line_hp_h_04 = Line("line_hp_h_04", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="hp_04",
                     to_MG="bus_h_04", time_num=time)
-engine_h_hp04 = HP("RT_h_hp04", "th", 1, production_price=0.05, production_total=3000, time_num=time,
+engine_h_hp04 = HP("RT_h_hp04", "HP", 1, production_price=0.05, production_total=3000, time_num=time,
                    line_e=line_hp_e_04, line_h=line_hp_h_04)
 
 line_hp_e_05 = Line("line_hp_e_05", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="bus_e_05",
                     to_MG="hp_05", time_num=time)
 line_hp_h_05 = Line("line_hp_h_05", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="hp_05",
                     to_MG="bus_h_05", time_num=time)
-engine_h_hp05 = HP("RT_h_hp05", "th", 1, production_price=0.05, production_total=3000, time_num=time,
+engine_h_hp05 = HP("RT_h_hp05", "HP", 1, production_price=0.05, production_total=3000, time_num=time,
                    line_e=line_hp_e_05, line_h=line_hp_h_05)
 
 line_hp_e_07 = Line("line_hp_e_07", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="bus_e_07",
                     to_MG="hp_07", time_num=time)
 line_hp_h_07 = Line("line_hp_h_07", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="hp_07",
                     to_MG="bus_h_07", time_num=time)
-engine_h_hp07 = HP("RT_h_hp07", "th", 1, production_price=0.05, production_total=3000, time_num=time,
+engine_h_hp07 = HP("RT_h_hp07", "HP", 1, production_price=0.05, production_total=3000, time_num=time,
                    line_e=line_hp_e_07, line_h=line_hp_h_07)
 
 line_hp_e_08 = Line("line_hp_e_08", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="bus_e_08",
                     to_MG="hp_08", time_num=time)
 line_hp_h_08 = Line("line_hp_h_08", 4000, line_price=-0.001, Single=True, MG_point=True, from_MG="hp_08",
                     to_MG="bus_h_08", time_num=time)
-engine_h_hp08 = HP("RT_h_hp08", "th", 1, production_price=0.05, production_total=3000, time_num=time,
+engine_h_hp08 = HP("RT_h_hp08", "HP", 1, production_price=0.05, production_total=3000, time_num=time,
                    line_e=line_hp_e_08, line_h=line_hp_h_08)
 
 "能量转化设备"
@@ -409,21 +409,29 @@ gs_g_08 = GW("GW_g_08", 1, 4500, production_price=-1, time_num=time)
 
 "Bus01"
 # 电节点
-node_01_e = Node("bus_01_e", devices=np.array([load_e_01, engine_e_pv01, engine_e_wt01, cpp_e_01, storage_e_01,
-                                               ev_01]),
-                      rLine=np.array([line_cchp_e_01]), sLine=np.array([]), time_num=time, type='e')
+node_01_e = Node("bus_01_e", devices=np.array([load_e_01, cpp_e_01, engine_e_pv01, engine_e_wt01, storage_e_01]),
+                 rLine=np.array([line_cchp_e_01]), sLine=np.array([line_eb_e_01, line_er_e_01, line_hp_e_01]),
+                 time_num=time, type='e')
+# node_01_e = Node("bus_01_e", devices=np.array([load_e_01, engine_e_pv01, engine_e_wt01, storage_e_01,]),
+#                  rLine=np.array([line_cchp_e_01]), sLine=np.array([line_eb_e_01, line_er_e_01, line_hp_e_01]),
+#                  time_num=time, type='e')
 # 气节点
-node_01_g = Node("bus_01_g", devices=np.array([load_g_01, gs_g_01]), rLine=np.array([]), sLine=np.array([line_cchp_g_01]),
+node_01_g = Node("bus_01_g", devices=np.array([load_g_01, gs_g_01]), rLine=np.array([]),
+                 sLine=np.array([line_cchp_g_01]),
                  time_num=time, type="g")
 # 热节点
-node_01_h = Node("bus_01_h", devices=np.array([load_h_01, storage_h_01]), rLine=np.array([line_cchp_h_01]), sLine=np.array([]),
-                 time_num=time, type="th")
+node_01_h = Node("bus_01_h", devices=np.array([load_h_01, storage_h_01]), rLine=np.array([line_eb_h_01, line_cchp_h_01,
+                                                                                          line_hp_h_01])
+                 , sLine=np.array([]), time_num=time, type="th")
+# node_01_h = Node("bus_01_h", devices=np.array([load_h_01, storage_h_01]), rLine=np.array([line_cchp_h_01, line_eb_h_01,
+#                                                                                           line_hp_h_01])
+#                  , sLine=np.array([]), time_num=time, type="th")
 # 冷节点
-node_01_c = Node("bus_01_c", devices=np.array([load_c_01, storage_c_01]), rLine=np.array([]), sLine=np.array([]),
-                 time_num=time, type="c")
+node_01_c = Node("bus_01_c", devices=np.array([load_c_01, storage_c_01]), rLine=np.array([line_er_c_01]),
+                 sLine=np.array([]), time_num=time, type="c")
 # 地缘热泵节点
 node_01_hp = Node("bus_01_hp", devices=np.array([engine_h_hp01]), rLine=np.array([line_hp_e_01]),
-                  sLine=np.array([line_hp_h_01]), time_num=time, type="hp")
+                  sLine=np.array([line_hp_h_01]), time_num=time, type="HP")
 # 冷热电联产节点
 node_01_cchp = Node("bus_01_cchp", devices=np.array([cchp_01]), rLine=np.array([line_cchp_g_01]),
                     sLine=np.array([line_cchp_e_01, line_cchp_h_01]), time_num=time, type="CCHP")
@@ -437,7 +445,8 @@ node_01_er = Node("bus_01_er", devices=np.array([er_01]), rLine=np.array([line_e
 
 
 "创建一个区域，将以上节点放在区域01中"
-area01 = MG("area01", node=np.array([node_01_e, node_01_g, node_01_h, node_01_cchp]),
+area01 = MG("area01", node=np.array([node_01_e, node_01_h, node_01_eb, node_01_g, node_01_cchp, node_01_c, node_01_er,
+                                     node_01_hp]),
             id=1, type="area01", time_num=time)
 
 "创建UIES"

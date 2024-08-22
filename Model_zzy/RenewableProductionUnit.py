@@ -98,10 +98,10 @@ class RT:
 
     def __getWTData(self):
         # 平滑处理后的纵坐标值×production_total
-        self.p = self.__24to96("D:\project\DRLmicrogrid_git\DRLmicrogrid\Data\RE\WT.xlsx", 2)
+        self.p = self.__24to96("C:\software\Github\DRLmicrogrid\Data\RE\WT.xlsx", 2)
 
     def __getPVData(self):
-        self.p = self.__24to96("D:\project\DRLmicrogrid_git\DRLmicrogrid\Data\RE\PV.xlsx", 2)
+        self.p = self.__24to96("C:\software\Github\DRLmicrogrid\Data\RE\PV.xlsx", 2)
 
     def constraints(self, num):
         # production limits:
@@ -110,7 +110,6 @@ class RT:
                 [self.name + "P" + str(i + 1), 1]
             ])
             CreatConstraintsByText(1, B, self.p_min[i], self.p_max[i], num)
-
         "Ramping limits:"
         B = np.array([
             [self.name + "P1", 1]
@@ -133,6 +132,7 @@ class RT:
                 [self.name + "P" + str(i + 2), -1]
             ])
             CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_down[i+1], num)
+
 
     def draw(self):
         drawRG(self.x, self.p_max, self.p_min, self.p_rampingh_up, self.p_rampingh_down, type="", title=self.name + "RG")
@@ -310,11 +310,13 @@ class RT:
 
 
 class HP:
-    def __init__(self, name, energy_type, id, production_price, production_total, time_num, line_e, line_h):
-        self.className = "HP"
+    def __init__(self, name, type, id, production_price, production_total, time_num, line_e, line_h):
+        self.className = "hp"
 
         self.name = name
         self.id = id
+
+        self.way = 1
 
         self.production_price = production_price
         self.production_total = production_total
@@ -326,7 +328,7 @@ class HP:
 
         self.day = int(self.time_num / 24)
 
-        self.energy_type = energy_type
+        self.type = type
 
         # 线路
         self.line_e = line_e
@@ -416,6 +418,7 @@ class HP:
             self.p_ramping_down = (self.p_max - self.p_min) * 0.4
 
     def constraints(self, constraint_information_class):
+
         # 性能系数约束
         coefficient_constraint_h = np.array([
             [self.name + "input_e1", 1],
@@ -500,6 +503,20 @@ class HP:
             ])
             CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_ramping_down[i + 1],
                                    constraint_information_class)
+        # 线路约束
+        # line_e
+        B = np.array([
+            [self.name + "input_e1", 1],
+            [self.line_e.name + "P1", -1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
+        # line_h
+        B = np.array([
+            [self.name + "output_h1", 1],
+            [self.line_h.name + "P1", -1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
+
 
     def draw(self):
         drawRG(self.x, self.p_max, self.p_min, self.p_ramping_up, self.p_ramping_down, None, title=self.name + "RG")

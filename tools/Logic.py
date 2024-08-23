@@ -13,6 +13,8 @@ def MMGs_logic(MMGs, file_name, flag = False):
 
     for MG in MMGs.MG:
         for node in MG.node:
+            if len(node.params) != len(node.c):
+                print(node.name)
             params = np.append(params, node.params)
             C = np.append(C, node.c)
             intergrality = np.append(intergrality, node.intergrality)

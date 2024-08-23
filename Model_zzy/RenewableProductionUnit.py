@@ -61,7 +61,7 @@ class RT:
         self.intergrality = np.zeros(self.time_num)
 
     def __set_C(self):
-        self.c = np.zeros(self.time_num)
+        self.c = np.zeros(len(self.params))
         "1"
         "产能成本"
         self.c = self.c - self.production_price - 0.09 * 0.001 * 390.885
@@ -391,10 +391,10 @@ class HP:
         self.params = self.params[1:]
 
     def __integrality(self):
-        self.intergrality = np.zeros(self.time_num)
+        self.intergrality = np.zeros(len(self.params))
 
     def __set_c(self):
-        self.c = np.zeros(self.time_num)
+        self.c = np.zeros(len(self.params))
 
         self.c = self.c - self.production_price - 0.01
 

@@ -169,8 +169,9 @@ buffer_size = 100000
 minimal_size = 1000
 batch_size = 64
 target_entropy = -env.action_space.shape[0]
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
-    "cpu")
+# device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
+#     "cpu")
+device = torch.device("cpu")
 
 replay_buffer = tools.rl_utils.ReplayBuffer(buffer_size)
 agent = SACContinuous(state_dim, hidden_dim, action_dim, action_bound,

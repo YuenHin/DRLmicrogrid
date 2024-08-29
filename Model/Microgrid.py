@@ -344,7 +344,7 @@ class MG:
             "电能-供需关系"
             drawSource_Load_e(np.array(
                 [self.WT_P, self.PV_P, self.DG_P, self.S_P_e, self.MG_P_e, self.P_CTP_e, self.P_TP_e, self.P_EL_e,
-                 self.P_e_h]), self.D_P_e, self.name + "_e_Balance")
+                 self.P_e_h]), self.D_P_e, self.name + "_e_Balance", self.time_num)
             "电能总需求"
             drawDemands(self.D_P_e, self.D_P_max_e, self.D_P_min_e, self.D_P_ramping_e, 'e', self.name + "e_Demand")
 

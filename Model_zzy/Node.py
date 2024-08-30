@@ -79,7 +79,7 @@ class Node:
             ["Node", 1]
         ])
         "整合balance约束：流向Node的方向视为正方向"
-        if self.type != 'CTP' and self.type != 'EL' and self.type != 'TP' and self.type != "CCHP" and self.type != "EB" and self.type != "ER" and self.type != "HP":
+        if self.type != "CCHP" and self.type != "EB" and self.type != "ER":
             for i in range(len(self.devices)):
                 if self.devices[i].way == 1:
                     B = np.append(B, np.array([
@@ -100,6 +100,24 @@ class Node:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "sell" + "P1", 1]
                     ]))
+                # 地缘热泵
+                if self.devices[i].way == 3:
+                    B = np.append(B, np.array([
+                        [self.devices[i].name + "input_e1", -1],
+                        [self.devices[i].name + "output_h1", 1]
+                    ]))
+                # 储能设备e
+                if self.devices[i].way == 4:
+                    B = np.append(B, np.array([
+                        [self.devices[i].name + "CP1", -1],
+                        [self.devices[i].name + "DP1", 1]
+                    ]))
+                # 柔性负荷
+                if self.devices[i]. way == 5:
+                    B = np.append(B, np.array([
+                        [self.devices[i].name + "RP1", 1]
+                    ]))
+
             if len(self.sLine) != 0:
                 for i in range(len(self.sLine)):
                     B = np.append(B, np.array([
@@ -119,7 +137,6 @@ class Node:
         self.contraint_num = np.append(self.contraint_num, len(num.bl))
         start_num += length
 
-        # print(self.constraints_num)
         return start_num
 
     def draw(self):

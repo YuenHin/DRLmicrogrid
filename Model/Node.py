@@ -79,7 +79,8 @@ class Node:
             ["Node", 1]
         ])
         "整合balance约束：流向Node的方向视为正方向"
-        if self.type != 'CTP' and self.type != 'EL' and self.type != 'TP' and self.type != "CCHP" and self.type != "EB" and self.type != "ER" and self.type != "HP":
+        if self.type != 'CTP' and self.type != 'EL' and self.type != 'TP' and self.type != "CCHP" and self.type != "EB"\
+                and self.type != "ER":
             for i in range(len(self.devices)):
                 if self.devices[i].way == 1:
                     B = np.append(B, np.array([
@@ -100,6 +101,13 @@ class Node:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "sell" + "P1", 1]
                     ]))
+                # 地缘热泵设备
+                if self.devices[i].way == 3:
+                    B = np.array(B, np.array([
+                        [self.devices[i].name + "input_e1", -1],
+                        [self.devices[i].name + "output_h1", 1]
+                    ]))
+
             if len(self.sLine) != 0:
                 for i in range(len(self.sLine)):
                     B = np.append(B, np.array([

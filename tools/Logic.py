@@ -13,8 +13,8 @@ def MMGs_logic(MMGs, file_name, flag = False):
 
     for MG in MMGs.MG:
         for node in MG.node:
-            if len(node.params) != len(node.c):
-                print(node.name)
+            # if len(node.params) != len(node.c):
+            #     print(node.name)
             params = np.append(params, node.params)
             C = np.append(C, node.c)
             intergrality = np.append(intergrality, node.intergrality)
@@ -61,13 +61,11 @@ def x_callBack(res, MMGs, file_name, flag = True): #作用是？
                 device.x = res.x[start_index:end_index]
                 start_index = end_index
 
-
-
             if len(node.sLine) != 0:
                 for sLine in node.sLine:
                     end_index = start_index + sLine.length
                     sLine.x = res.x[start_index:end_index]
-                    start_index =end_index
+                    start_index = end_index
             # if node.rLine != None:
             #     for rLine in node.rLine:
             #         end_index = start_index + rLine.length

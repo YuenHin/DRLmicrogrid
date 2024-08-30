@@ -55,7 +55,7 @@ node2 = Node("N_e_02", np.array([CPP_e_01]), np.array([line_CPP_D]), np.array([]
 node3 = Node("N_e_03", np.array([PV, WT]), np.array([line_RE_S, line_RE_D]), np.array([]), time)
 
 "创建节点，S"
-node4 = Node("N_e_04", np.array([SE]), np.array([line_S_D]),np.array([line_RE_S]), time)
+node4 = Node("N_e_04", np.array([SE]), np.array([line_S_D]), np.array([line_RE_S]), time)
 
 "创建微网，包含demand+DG+RE+SE所在节点"
 MG1 = MG("Microgrid01", np.array([node1, node3, node4]), 1, "MG", time_num=time)

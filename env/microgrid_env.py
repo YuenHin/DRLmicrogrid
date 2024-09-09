@@ -25,11 +25,11 @@ class microgrid_env:
 
         #第一次执行全流程Perfect_MILP程序
         res = EndCount(-self.C, self.intergrality, self.flash_num)
-        PrintBounds(self.flash_num)
+        # PrintBounds(self.flash_num)
         # self.flash_num.bu[0] = 170
         # self.flash_num.bl[0] = 165
         # res = EndCount(-self.C, self.intergrality, self.flash_num)
-        # PrintBounds(self.flash_num)
+        PrintBounds(self.flash_num)
         os.system("pause")
         self.res = res
         self.x = res.x
@@ -201,6 +201,7 @@ class microgrid_env:
             print("删一个")
             if res.success == True:
                  print("有解了，flag=",flag)
+                 os.system("pause")
 
 
         # if res.success == True:
@@ -251,6 +252,10 @@ class microgrid_env:
         self.x = res.x
         # 记录三级设备的真实控制状态
         self.__remenber_CPPGWECDG()
+
+        if self.step_time == 24:
+            PrintBounds(self.flash_num)
+            os.system("pause")
 
         # 计算奖励
         reward = 20 + self.__count_reward()

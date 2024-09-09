@@ -95,11 +95,11 @@ class S:
         self.each_step_charge = self.e / 25 / each_hour_step # 表示每一步的充电量，4表示可以4个小时充满或放完电量
         self.charging_max = self.each_step_charge
         self.discharging_max = self.each_step_charge
-        self.ramping_limit = self.each_step_charge
+        self.ramping_limit = self.each_step_charge * 1.1
 
 
     def constraints(self, num):
-        "Energy storaed limited"
+        "Energy storage limited"
         B = np.array([
             [self.name + "E1", 1]
         ])
@@ -139,6 +139,7 @@ class S:
             [self.name + "DP1", 1 / self.charging_rate]
         ])
         CreatConstraintsByText(1, B, self.begin, self.begin, num)
+        # CreatConstraintsByText(1, B, self.begin, self.begin+(self.storagr_limit*0.1), num)
         B = np.array([
             [self.name + "E2", 1],
             [self.name + "E1", -(1 - self.self_discharging)],
@@ -149,7 +150,8 @@ class S:
         B = np.array([
             [self.name + "E" + str(self.time_num), 1]
         ])
-        CreatConstraintsByText(1, B, self.begin, self.begin, num)
+        # CreatConstraintsByText(1, B, self.begin, self.begin, num)
+        CreatConstraintsByText(1, B, self.storagr_limit/2, np.inf, num)
 
         B = np.array([
             [self.name + "E1", -1],

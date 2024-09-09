@@ -10,6 +10,7 @@ from tools.Logic import save_data, draw
 from CPP_DG_D_RE_S import MMGs
 from test_CPP_D import CPP_D_MMGs
 from test_CPP_D_RE import CPP_D_PV_MMGs
+from test_CPP_D_PV_S import CPP_D_PV_S_MMGs
 
 class test_DDPG():
     def func(self):
@@ -27,7 +28,8 @@ class test_DDPG():
         device = torch.device("cpu")
         #env = microgrid_env(MMGs, 24)
         #env = microgrid_env(CPP_D_MMGs, 24)
-        env = microgrid_env(CPP_D_PV_MMGs, 24)
+        #env = microgrid_env(CPP_D_PV_MMGs, 24)
+        env = microgrid_env(CPP_D_PV_S_MMGs, 24)
         # random.seed(0)
         # np.random.seed(0)
         # env.seed(0)

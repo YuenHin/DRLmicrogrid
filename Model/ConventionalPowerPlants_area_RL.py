@@ -26,7 +26,7 @@ class CPP:
         self.production_price = self.__24to96(".\Data\PRICE\price_e.xlsx", 13)
         self.sell_price = 0.315
 
-        self.way = -1
+        self.way = 1
         "表示能源从该设备流出又流入，且分开计算"
 
 
@@ -65,9 +65,10 @@ class CPP:
         "4"
         "产能成本"
         for i in range(self.time_num):
-                self.c[i + self.time_num * 1] = - self.production_price[i] - 0.839 * 0.001 * 390.885
+                # self.c[i + self.time_num * 1] = - self.production_price[i] - 0.839 * 0.001 * 390.885
+                self.c[i] = - self.production_price[i] - 0.839 * 0.001 * 390.885
 
-                self.c[i + self.time_num * 2] = self.sell_price
+                # self.c[i + self.time_num * 2] = self.sell_price
 
 
     def __getData(self):
@@ -86,13 +87,8 @@ class CPP:
             [self.name+ "P1", 1],
         ])
         CreatConstraintsByText(self.time_num, B, -self.p_max, self.p_max, num)
+        # CreatConstraintsByText(self.time_num, B, 0, self.p_max, num)
         # CreatConstraintsByText(self.time_num - 18, B, -self.p_max, self.p_max, num)
-        #
-        # B = np.array([
-        #     [self.name + "P7", 1],
-        # ])
-        # # CreatConstraintsByText(self.time_num, B, -self.p_max, self.p_max, num)
-        # CreatConstraintsByText(18, B, 0, 0, num)
 
         B = np.array([
             [self.name + "buy" + "P1", 1],

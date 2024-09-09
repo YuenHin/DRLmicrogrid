@@ -291,13 +291,12 @@ class D:
 
         num.bu[self.contraint_num + step - 1] = self.real_x[step - 1]
         num.bl[self.contraint_num + step - 1] = self.real_x[step - 1]
-        # B = np.array([
-        #     [self.name + "P" + str(step), 1],
-        # ])
+        B = np.array([
+            [self.name + "P" + str(step), 1],
+        ])
         # CreatConstraintsByText(1, B, self.real_x[step - 1] * (1 - self.flexible_value),
         #                                 self.real_x[step - 1] * (1 + self.flexible_value), num)
-        # CreatConstraintsByText(1, B, self.real_x[step - 1] * (1 - self.flexible_value),
-        #                        real_x_flex, num)
+        CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
 
 
 

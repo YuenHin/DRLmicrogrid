@@ -63,7 +63,7 @@ class RT:
         "1"
         "产能成本"
         self.c = self.c - self.production_price - 0.09 * 0.001 * 390.885
-
+        # self.c = self.c
     def __getData(self):
         "导入可再生能源产能"
         if self.type == "WT":
@@ -109,6 +109,7 @@ class RT:
             ])
             CreatConstraintsByText(1, B, self.p_min[i], self.p_max[i], num)
 
+        "可再生能源不设置爬坡约束"
         "Ramping limits:"
         # B = np.array([
         #     [self.name + "P1", 1]

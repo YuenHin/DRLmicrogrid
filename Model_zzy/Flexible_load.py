@@ -8,7 +8,7 @@ class FL:
     def __init__(self, name, type, fl_min, fl_max, time_num):
         self.className = "FL"
 
-        self.way = 5
+        self.way = 9
 
         self.name = name
         self.type = type
@@ -48,11 +48,7 @@ class FL:
             # 响应功率
             self.name + "RP",
             # 响应状态
-            self.name + "S",
-            # 向上灵活性供给
-            self.name + "US",
-            # 向下灵活性供给
-            self.name + "DS"
+            self.name + "S"
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -66,10 +62,9 @@ class FL:
     # 目标函数
     def __set_C(self):
         self.c = np.zeros(len(self.params))
+        # 响应功率
         for i in range(self.time_num):
-            self.c[i] = -0.02 + 0.303
-        for i in range(self.time_num*2, self.time_num*4):
-            self.c[i] = -0.00385
+            self.c[i] = -0.02 + 0.018
 
     # 数据获取
     def __getData(self):
@@ -79,13 +74,7 @@ class FL:
     def constraints(self, num):
         # 最大最小约束
         B = np.array([
-            [self.name + "RP1", 1],
-            [self.name + "US1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, B, self.fl_min, self.fl_max, num)
-        B = np.array([
-            [self.name + "RP1", 1],
-            [self.name + "DS1", -1]
+            [self.name + "RP1", 1]
         ])
         CreatConstraintsByText(self.time_num, B, self.fl_min, self.fl_max, num)
 

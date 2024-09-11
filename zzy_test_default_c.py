@@ -16,11 +16,21 @@ from Model_zzy.Multi_Microgrid import MMGs
 from Model_zzy.Line import Line
 from MILP import PrintBounds
 from Model_zzy.Flexible_load import FL
+from Model_zzy.Flexible_demand import FD
+from Model_zzy.Flexible_analysis import FA
 
 
 "时间尺度"
 time = 24
 path = "zzy_test_defeat_c"
+
+"向上、向下灵活性需求"
+fd_e = FD(name="fd_e", type="e", fluctuation_rate=0.15, time_num=time)
+fd_g = FD(name="fd_g", type="g", fluctuation_rate=0.1, time_num=time)
+fd_h = FD(name="fd_h", type="th", fluctuation_rate=0.1, time_num=time)
+fd_c = FD(name="fd_c", type="c", fluctuation_rate=0.1, time_num=time)
+ud_set = fd_e.ud_set + fd_g.ud_set + fd_h.ud_set + fd_c.ud_set
+dd_set = fd_e.dd_set + fd_g.dd_set + fd_h.dd_set + fd_c.dd_set
 
 """
 所有源网荷储
@@ -50,14 +60,16 @@ line_er_e_01 = Line("line_er_e_01", maxTransValue=4000, line_price=-0.001, Singl
                     from_MG="node_e_01", to_MG="node_er_01", time_num=time, type="e", Convertion=False)
 line_er_c_01 = Line("line_er_c_01", maxTransValue=4000, line_price=-0.001, Single=True, MG_point=True,
                     from_MG="node_er_01", to_MG="node_c_01", time_num=time, type="c", Convertion=False)
-er_01 = ER("er_01", conversion_rate=0.8, conversion_limits=5000, time_num=time, line_e=line_er_e_01, line_c=line_er_c_01)
+er_01 = ER("er_01", conversion_rate=0.8, conversion_limits=5000, time_num=time, line_e=line_er_e_01, line_c=line_er_c_01,
+           ud_set=ud_set, dd_set=dd_set)
 
 # 电转热
 line_eb_e_01 = Line("line_eb_e_01", maxTransValue=4000, line_price=-0.001, Single=True, MG_point=True,
                     from_MG="node_e_01", to_MG="eb_01", time_num=time, type="e", Convertion=False)
 line_eb_h_01 = Line("line_eb_h_01", maxTransValue=4000, line_price=-0.001, Single=True, MG_point=True,
                     from_MG="eb_01", to_MG="node_h_01", time_num=time, type="th", Convertion=False)
-eb_01 = EB("eb_01", conversion_rate=0.85, conversion_limits=5000, time_num=time, line_e=line_eb_e_01, line_h=line_eb_h_01)
+eb_01 = EB("eb_01", conversion_rate=0.85, conversion_limits=5000, time_num=time, line_e=line_eb_e_01, line_h=line_eb_h_01,
+           ud_set=ud_set, dd_set=dd_set)
 
 # 气转电热
 line_cchp_g_01 = Line("line_cchp_g_01", maxTransValue=4000, line_price=-0.001, Single=True, MG_point=True,
@@ -67,20 +79,21 @@ line_cchp_e_01 = Line("line_cchp_e_01", maxTransValue=4000, line_price=-0.001, S
 line_cchp_h_01 = Line("line_cchp_h_01", maxTransValue=4000, line_price=-0.001, Single=True, MG_point=True,
                       from_MG="cchp_01", to_MG="node_h_01", time_num=time, type="th", Convertion=False)
 cchp_01 = CCHP("cchp_01", type="CCHP", conversion_rate_e=0.8, conversion_rate_h=0.5, conversion_limit=2000, time_num=time,
-               line_g=line_cchp_g_01, line_e=line_cchp_e_01, line_h=line_cchp_h_01)
+               line_g=line_cchp_g_01, line_e=line_cchp_e_01, line_h=line_cchp_h_01, ud_set=ud_set, dd_set=dd_set)
 
 "能量存储设备"
 # 电能
 storage_e_01 = ES("storage_e_01", type="e", id=1, storage_price=0.03, storage_limit=5000, storage_limit_min=500,
-                  lifetimes=100000, self_discharging=0.002, charging_rate=0.9, discharging_rate=0.9, time_num=time, begin=None)
+                  lifetimes=100000, self_discharging=0.002, charging_rate=0.9, discharging_rate=0.9, time_num=time,
+                  ud_set=ud_set, dd_set=dd_set, begin=None)
 # 热能
 storage_h_01 = ES("storage_h_01", type="th", id=1, storage_price=0.05, storage_limit=3000, storage_limit_min=200,
                   lifetimes=100000, self_discharging=0.015, charging_rate=0.85, discharging_rate=0.85, time_num=time,
-                  begin=None)
+                  ud_set=ud_set, dd_set=dd_set, begin=None)
 # 冷能
 storage_c_01 = ES("storage_c_01", type="c", id=1, storage_price=0.05, storage_limit=2000, storage_limit_min=150,
                   lifetimes=100000, self_discharging=0.02, charging_rate=0.8, discharging_rate=0.8, time_num=time,
-                  begin=None)
+                  ud_set=ud_set, dd_set=dd_set, begin=None)
 
 "供能端"
 cpp_01 = CPP("cpp_01", id=1, total_production=10000, production_price=-1, time_num=time)
@@ -116,14 +129,12 @@ node_cchp_01 = Node("node_cchp_01", devices=np.array([cchp_01]), sLine=np.array(
 
 bus_01 = np.array([node_e_01, node_c_01, node_er_01, node_h_01, node_eb_01, node_g_01, node_cchp_01, node_hp_01])
 
+
+# "灵活性缺额放入约束"
+# fa = FA("flexible_analysis", bus_01, time, ud_set, dd_set)
+
 area01 = MG("area01", node=bus_01, id=1, type="area01", time_num=time)
 
-# node_e = Node("node_e_01", devices=np.array([load_e_01, cpp_01]),
-#                  sLine=np.array([line_hp_e_01]), rLine=np.array([]), time_num=time, type="e")
-# node_h = Node("node_h_01", devices=np.array([load_h_01, cpp_02]), sLine=np.array([]), rLine=np.array([line_hp_h_01]),
-#                  time_num=time, type="th")
-# area = MG("area", node=np.array([node_e, node_h, node_hp_01]),
-#           id=1, type="area", time_num=time)
 
 "UIES"
 UIES = MMGs(np.array([area01]))
@@ -134,6 +145,13 @@ PrintBounds(num)
 
 "计算结果"
 results = EndCount(-C, integrality, num)
+
+# print("num的A矩阵")
+# print(num.A)
+# print(num.A.shape)
+# print("num的决策变量")
+# print(num.params)
+# print(num.params.shape)
 
 "将求解结果保存至节点"
 x_callBack(results, UIES, path)

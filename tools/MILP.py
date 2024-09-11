@@ -152,7 +152,7 @@ def CreatConstraints(num, B, down, up, number):
     bu = np.zeros(num)
     for i in range(num):
         # print("num:", i)
-        A[i] = funcA(np.array(B) , i, number)
+        A[i] = funcA(np.array(B), i, number)
         bl[i] = down
         bu[i] = up
     return A, bl, bu

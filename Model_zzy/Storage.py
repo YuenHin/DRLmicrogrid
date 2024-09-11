@@ -198,7 +198,7 @@ class S:
 """储能装置"""
 class ES:
     def __init__(self, name, type, id, storage_price, storage_limit, storage_limit_min, lifetimes, self_discharging,
-                 charging_rate, discharging_rate, time_num, begin=None):
+                 charging_rate, discharging_rate, time_num, ud_set, dd_set, begin=None):
         self.className = 'S'
         self.name = name
         "string"
@@ -206,6 +206,10 @@ class ES:
         "int"
         self.time_num = time_num
         "hours"
+
+        # 向上灵活性与向下灵活性需求
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         # 能源类型
         self.type = type
@@ -265,7 +269,8 @@ class ES:
             self.name + "DP",  # 放电功率
             self.name + "S",  # 充放电状态，等于0或1
             self.name + "e_us",  # 储电装置放电的向上灵活性供给能力
-            self.name + "e_ds"  # 储电装置放电的向下灵活性供给能力
+            self.name + "e_ds",  # 储电装置放电的向下灵活性供给能力
+            self.name + "state"  # 为计算方便恒为1
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -279,14 +284,37 @@ class ES:
         self.c = np.zeros(len(self.params))
         "4"
         if self.type == "e":
+            # 运行功率
             for i in range(self.time_num * 2, self.time_num * 4):
-                self.c[i] = -0.05 - 0.008
+                self.c[i] = -0.05 - 0.008 + 0.005
+            # 灵活供给
+            for i in range(self.time_num * 5, self.time_num * 7):
+                self.c[i] = -0.01 - 0.08
+            # 缺额惩罚
+            for i in range(self.time_num * 7, self.time_num * 8):
+                self.c[i] = (self.ud_set[i - self.time_num*7] / 6) * 0.08 + (self.dd_set[i - self.time_num*7] / 6) * 0.08
         if self.type == "th":
+            # 运行功率
             for i in range(self.time_num * 2, self.time_num * 4):
-                self.c[i] = -0.06 - 0.01
+                self.c[i] = -0.06 - 0.01 + 0.005
+            # 灵活供给
+            for i in range(self.time_num * 5, self.time_num * 7):
+                self.c[i] = -0.01 - 0.08
+            # 缺额惩罚
+            for i in range(self.time_num * 7, self.time_num * 8):
+                self.c[i] = (self.ud_set[i - self.time_num*7] / 6) * 0.08 + (self.dd_set[i - self.time_num*7] / 6) * 0.08
         if self.type == "c":
+            # 运行功率
             for i in range(self.time_num * 2, self.time_num * 4):
-                self.c[i] = -0.07 - 0.01
+                self.c[i] = -0.07 - 0.01 + 0.005
+            # 灵活供给
+            for i in range(self.time_num * 5, self.time_num * 7):
+                self.c[i] = -0.01 - 0.08
+            # 缺额惩罚
+            for i in range(self.time_num * 7, self.time_num * 8):
+                self.c[i] = (self.ud_set[i - self.time_num * 7] / 6) * 0.08 + (
+                            self.dd_set[i - self.time_num * 7] / 6) * 0.08
+
 
 
     def __getData(self):
@@ -386,6 +414,11 @@ class ES:
             [self.name + "S1", 1]
         ])
         CreatConstraintsByText(self.time_num, B, 0, 1, num)
+
+        B = np.array([
+            [self.name + "state1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, num)
 
         "P = cP + dp"
         B = np.array([

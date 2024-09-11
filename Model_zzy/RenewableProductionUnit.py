@@ -64,7 +64,7 @@ class RT:
         self.c = np.zeros(len(self.params))
         "1"
         "产能成本"
-        self.c = self.c - self.production_price - 0.09 * 0.001 * 390.885
+        self.c = self.c - self.production_price - 0.0296 - 0.005 + 0.015
 
     def __getData(self):
         "导入可再生能源产能"
@@ -399,7 +399,7 @@ class HP:
     def __set_c(self):
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num, self.time_num * 2):
-            self.c[i] = -self.production_price - 0.02 - 0.003 + 0.3
+            self.c[i] = -self.production_price - 0.02 - 0.003 + 0.015
 
     # 拿到可再生能源数据
     def __getdata(self):

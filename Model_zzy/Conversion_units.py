@@ -415,11 +415,14 @@ class CTP:
 "冷热电联产"
 class CCHP:
     def __init__(self, name, type, conversion_rate_e, conversion_rate_h, conversion_limit, time_num,
-                 line_g, line_e, line_h):
+                 line_g, line_e, line_h, ud_set, dd_set):
         self.className = "cchp"
         # 设备名
         self.name = name
         self.type = type
+
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         # 气转电热冷的转化效率
         self.conversion_rate_e = conversion_rate_e
@@ -458,8 +461,8 @@ class CCHP:
         self.length = len(self.params)
 
         # 强化学习中保存每一步计算的值
-        self.value = np.zeros(self.length)
-        self.real_value = np.array(self.length)
+        self.x = np.zeros(self.length)
+        self.real_x = np.array(self.length)
 
         # 初始化
         self.__init()
@@ -482,7 +485,8 @@ class CCHP:
             self.name + "e_us",
             self.name + "e_ds",
             self.name + "h_us",
-            self.name + "h_ds"
+            self.name + "h_ds",
+            self.name + "S"  # 恒为1的数用于辅助灵活性计算
         ])
         # 生成这个设备有关的全时间尺度所需数据的变量名
         self.params = AddParams(self.params, self.time_num, temp)
@@ -499,11 +503,15 @@ class CCHP:
     # 设备的运行成本
     def __operational_cost(self):
         self.c = np.zeros(len(self.params))
+        # 运行功率
         for i in range(self.time_num):
             self.c[i] = -0.084 - 0.014
         # 灵活性供给成本
         for i in range(self.time_num * 5, self.time_num * 10):
-            self.c[i] = -0.01
+            self.c[i] = -0.01 - 0.08
+        # 缺额惩罚
+        for i in range(self.time_num*10, self.time_num*11):
+            self.c[i] = (self.ud_set[i - self.time_num*10] / 6) * 0.08 + (self.dd_set[i - self.time_num*10] / 6) * 0.08
 
     # 约束条件
     def constraints(self, constraint_information_class):
@@ -644,14 +652,19 @@ class CCHP:
         ])
         CreatConstraintsByText(self.time_num, operation_state, 0, 1, constraint_information_class)
 
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, constraint_information_class)
+
     # 用来记录强化学习中每一步的值
     def remember_one_step_real_value(self, step, constraint_information_class):
         # 保存计算得到的真实值
-        self.real_value[step - 1] = self.value[step - 1]
+        self.real_x[step - 1] = self.x[step - 1]
         remember_real_value = np.array([
             [self.name + "input_g" + str(step), 1]
         ])
-        CreatConstraintsByText(1, remember_real_value,  self.real_value[step - 1],  self.real_value[step - 1],
+        CreatConstraintsByText(1, remember_real_value,  self.x[step - 1],  self.real_x[step - 1],
                                constraint_information_class)
 
     def draw(self):
@@ -659,13 +672,16 @@ class CCHP:
 
 
 class EB:
-    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h):
+    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h, ud_set, dd_set):
 
         self.name = name
         self.className = 'eb'
         self.time_num = time_num
         self.line_e = line_e
         self.line_h = line_h
+
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         self.way = 1
 
@@ -712,7 +728,8 @@ class EB:
             self.name + "e_us",
             self.name + "e_ds",
             self.name + "h_us",
-            self.name + "h_ds"
+            self.name + "h_ds",
+            self.name + "S"  # 辅助变量恒为1
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -728,7 +745,11 @@ class EB:
             self.c[i] = - 0.016 - 0.0026
         # 灵活性供给成本
         for i in range(self.time_num * 4, self.time_num * 7):
-            self.c[i] = -0.01
+            self.c[i] = -0.01 - 0.08
+        # 缺额惩罚
+        for i in range(self.time_num*7, self.time_num*8):
+            self.c[i] = (self.ud_set[i - self.time_num * 7] / 6) * 0.08 + (
+                        self.dd_set[i - self.time_num * 7] / 6) * 0.08
 
     def __getData(self):
         self.p_rampingUp = self.p_max * 0.35
@@ -822,6 +843,11 @@ class EB:
         CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_h, self.max_output_h,
                                constraint_information_class)
 
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, constraint_information_class)
+
 
     def draw(self):
         p = self.x[self.time_num: self.time_num * 2]
@@ -839,13 +865,16 @@ class EB:
 
 
 class ER:
-    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c):
+    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c, ud_set, dd_set):
 
         self.name = name
         self.className = 'er'
         self.time_num = time_num
         self.line_e = line_e
         self.line_c = line_c
+
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         self.way = 1
 
@@ -892,7 +921,8 @@ class ER:
             self.name + "e_us",
             self.name + "e_ds",
             self.name + "c_us",
-            self.name + "c_ds"
+            self.name + "c_ds",
+            self.name + "S"  # 辅助变量恒为1
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -907,7 +937,11 @@ class ER:
         for i in range(self.time_num):
             self.c[i] = - 0.023 - 0.0038
         for i in range(self.time_num * 4, self.time_num * 7):
-            self.c[i] = -0.01
+            self.c[i] = -0.01 - 0.08
+        for i in range(self.time_num*7, self.time_num*8):
+            self.c[i] = (self.ud_set[i - self.time_num * 7] / 6) * 0.08 + (
+                    self.dd_set[i - self.time_num * 7] / 6) * 0.08
+
 
     def __getData(self):
         self.p_rampingUp = self.p_max * 0.25
@@ -1000,6 +1034,11 @@ class ER:
                                constraint_information_class)
         CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_c, self.max_output_c,
                                constraint_information_class)
+
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, constraint_information_class)
 
 
     def draw(self):

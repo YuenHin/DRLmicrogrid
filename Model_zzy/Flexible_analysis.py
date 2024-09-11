@@ -4,12 +4,12 @@ from tools.addParams import AddParams
 from tools.MILP import CreatConstraintsByText
 
 class FA:
-    def __init__(self, name, node, time_num):
+    def __init__(self, name, nodes, time_num, ud_set, dd_set):
         self.className = "FA"
 
         self.name = name
 
-        self.node = node
+        self.nodes = nodes
         self.time_num = time_num
 
         # 向上向下灵活性供给
@@ -17,8 +17,8 @@ class FA:
         self.ds_set = 0
 
         # 向上向下灵活性需求
-        self.ud_set = 0
-        self.dd_set = 0
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         self.params = np.array([""])
 
@@ -41,22 +41,26 @@ class FA:
         self.params = self.params[1:]
 
     def __get_analysis(self):
-        for node in self.node:
+        for node in self.nodes:
             for device in node.devices:
                 if device.className == "cchp":
-                    self.us_set += device.x[self.time_num * 5: self.time_num * 7]
+                    print(device.x)
+                    self.us_set += device.x[self.time_num * 5: self.time_num * 6]
+                    self.us_set += device.x[self.time_num * 6: self.time_num * 7]
                     self.us_set += device.x[self.time_num * 8: self. time_num * 9]
                     self.ds_set += device.x[self.time_num * 4: self.time_num * 5]
                     self.ds_set += device.x[self.time_num * 7: self.time_num * 8]
                     self.ds_set += device.x[self.time_num * 9:]
 
                 if device.className == "eb":
-                    self.us_set += device.x[self.time_num * 4: self.time_num * 6]
+                    self.us_set += device.x[self.time_num * 4: self.time_num * 5]
+                    self.us_set += device.x[self.time_num * 5: self.time_num * 6]
                     self.ds_set += device.x[self.time_num * 3: self.time_num * 4]
                     self.ds_set += device.x[self.time_num * 6:]
 
                 if device.className == "er":
-                    self.us_set += device.x[self.time_num * 4: self.time_num * 6]
+                    self.us_set += device.x[self.time_num * 4: self.time_num * 5]
+                    self.us_set += device.x[self.time_num * 5: self.time_num * 6]
                     self.ds_set += device.x[self.time_num * 3: self.time_num * 4]
                     self.ds_set += device.x[self.time_num * 6: self.time_num * 7]
 
@@ -70,7 +74,10 @@ class FA:
 
     def __set_C(self):
         self.c = np.zeros(len(self.params))
-
+        for i in range(self.time_num):
+            self.c[i] = self.us_set - self.ud_set
+        for i in range(self.time_num, self.time_num * 2):
+            self.c[i] = self.ds_set - self.dd_set
 
     def constraints(self, num):
         # 恒为1约束

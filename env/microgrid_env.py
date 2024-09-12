@@ -29,8 +29,8 @@ class microgrid_env:
         # self.flash_num.bu[0] = 170
         # self.flash_num.bl[0] = 165
         # res = EndCount(-self.C, self.intergrality, self.flash_num)
-        PrintBounds(self.flash_num)
-        os.system("pause")
+        # PrintBounds(self.flash_num)
+        # os.system("pause")
         self.res = res
         self.x = res.x
         # 第一次数据记录
@@ -179,21 +179,22 @@ class microgrid_env:
         # done = self.__get_action_SE(action)
         # if done == True:
         #     return self.x, np.array([0]), True, None
-        # self.__get_action_SE_nocontrol()
+        # self.__get_action_SE_nocontrol() # 储能（g,h）和DG用
 
         # PrintBounds(self.flash_num)
         # for i in range(len(self.flash_num.params)):
         #     print(self.flash_num.params[i], "   :", np.round(self.C[i], 5))
         # print(self.flash_num.params)
         # PrintBounds(self.flash_num)
+
         # 计算该环境下的真实控制值
         res = EndCount(-self.C, self.intergrality, self.flash_num)
         flag = 0
-        done = False
+        # done = False
         while res.success == False:
             PrintBounds(self.flash_num)
             print("无解！！！！！！flag=",flag)
-            done = True
+            # done = True
             os.system("pause")
             self.__de_constrains()
             res = EndCount(-self.C, self.intergrality, self.flash_num)
@@ -210,36 +211,9 @@ class microgrid_env:
         #     os.system("pause")
         # else:
 
-        # if self.step_time == 10:
-        #     PrintBounds(self.flash_num)
-        #     os.system("pause")
-
         done = False
         self.__remember_S()
         self.__get_action_SE_nocontrol()
-
-
-        """
-            flag = 0
-                while res.success == False:
-            # os.system("pause")
-            print("第", self.step_time, "步出错了，调试中....")
-            self.__re_train()
-            res = EndCount(-self.C, self.intergrality, self.flash_num)
-            # PrintBounds(self.flash_num)
-            if flag > 1:
-                # 删除一个约束
-                # print("嘿嘿嘿，删一个")
-                self.__de_constrains()
-                if flag > 1 + self.con_add_num:
-                    for i in range(len(self.flash_num.params)):
-                        print(self.flash_num.params[i], "   :", np.round(self.C[i], 5))
-                    print(self.flash_num.params)
-                    # PrintBounds(self.flash_num)
-                    break
-            flag += 1
-            # os.system("pause")
-        """
 
         # while res.success == False:
         #     print("第", self.step_time, "步无解，重新选动作中....(第", flag+1, "次重选....")
@@ -253,9 +227,9 @@ class microgrid_env:
         # 记录三级设备的真实控制状态
         self.__remenber_CPPGWECDG()
 
-        if self.step_time == 24:
-            PrintBounds(self.flash_num)
-            os.system("pause")
+        # if self.step_time == 24:
+        #     PrintBounds(self.flash_num)
+        #     os.system("pause")
 
         # 计算奖励
         reward = 20 + self.__count_reward()
@@ -268,6 +242,43 @@ class microgrid_env:
 
         return res.x, np.array([reward[0]]), done, None
 
+    def step2(self, action):
+        while True:
+
+            # 增加随机变量
+            self.__stochastic_factor_setting_RED()
+            # 获得动作
+            done = self.__get_action_SE(action)
+            if done == True:
+                return self.x, np.array([0]), True, None
+            # 计算该环境下的真实控制值
+            res = EndCount(-self.C, self.intergrality, self.flash_num)
+            done = False
+            if res.success == False:
+                #PrintBounds(self.flash_num)
+                print("无解了！！！！！！！！！")
+                return res.x, np.array([0]), done, False
+            # self.__remember_S()
+            self.__get_action_SE_nocontrol()
+
+            x_callBack(res, self.env, self.save_name, flag=False)
+            self.x = res.x
+            # 记录三级设备的真实控制状态
+            self.__remenber_CPPGWECDG()
+
+            # if self.step_time == 24:
+            #     PrintBounds(self.flash_num)
+                # os.system("pause")
+
+            # 计算奖励
+            reward = 20 + self.__count_reward()
+            if self.step_time == self.step_all:
+                a, b, c, d, total_cost = self.env.countCost()
+                reward += 2000 - total_cost
+                done = True
+            # 更新步长
+            self.step_time += 1
+            return res.x, np.array([reward[0]]), done, True
 
 
 

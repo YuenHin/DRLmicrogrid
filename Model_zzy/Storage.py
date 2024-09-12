@@ -22,7 +22,7 @@ class S:
         self.time_num = time_num
         "hours"
 
-        self.way = -1
+        self.way = 4
 
         self.storage_price = storage_price
         "美元/kwh"
@@ -198,7 +198,7 @@ class S:
 """储能装置"""
 class ES:
     def __init__(self, name, type, id, storage_price, storage_limit, storage_limit_min, lifetimes, self_discharging,
-                 charging_rate, discharging_rate, time_num, begin=None):
+                 charging_rate, discharging_rate, time_num, ud_set, dd_set, begin=None):
         self.className = 'S'
         self.name = name
         "string"
@@ -207,11 +207,15 @@ class ES:
         self.time_num = time_num
         "hours"
 
+        # 向上灵活性与向下灵活性需求
+        self.ud_set = ud_set
+        self.dd_set = dd_set
+
         # 能源类型
         self.type = type
         "e, h, c"
 
-        self.way = -1
+        self.way = 4
 
         self.storage_price = storage_price
         "美元/kwh"
@@ -265,7 +269,8 @@ class ES:
             self.name + "DP",  # 放电功率
             self.name + "S",  # 充放电状态，等于0或1
             self.name + "e_us",  # 储电装置放电的向上灵活性供给能力
-            self.name + "e_ds"  # 储电装置放电的向下灵活性供给能力
+            self.name + "e_ds",  # 储电装置放电的向下灵活性供给能力
+            self.name + "state"  # 为计算方便恒为1
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -278,12 +283,39 @@ class ES:
     def __set_C(self):
         self.c = np.zeros(len(self.params))
         "4"
-        for i in range(self.time_num):
-            # self.c[i + self.time_num * 4] = -self.storage_price / (self.lifetimes * 365 * 24)
-            self.c[i + self.time_num * 4] = 0
-            self.c[i + self.time_num * 1] = -self.storage_price / (self.lifetimes * 365 * 24) * 0.2
-            self.c[i + self.time_num * 2] = - 0.083 * 0.001 * 390.885
-            self.c[i + self.time_num * 3] = - 0.083 * 0.001 * 390.885
+        if self.type == "e":
+            # 运行功率
+            for i in range(self.time_num * 2, self.time_num * 4):
+                self.c[i] = -0.05 - 0.008 + 0.005
+            # 灵活供给
+            for i in range(self.time_num * 5, self.time_num * 7):
+                self.c[i] = -0.01 - 0.08
+            # 缺额惩罚
+            for i in range(self.time_num * 7, self.time_num * 8):
+                self.c[i] = (self.ud_set[i - self.time_num*7] / 6) * 0.08 + (self.dd_set[i - self.time_num*7] / 6) * 0.08
+        if self.type == "th":
+            # 运行功率
+            for i in range(self.time_num * 2, self.time_num * 4):
+                self.c[i] = -0.06 - 0.01 + 0.005
+            # 灵活供给
+            for i in range(self.time_num * 5, self.time_num * 7):
+                self.c[i] = -0.01 - 0.08
+            # 缺额惩罚
+            for i in range(self.time_num * 7, self.time_num * 8):
+                self.c[i] = (self.ud_set[i - self.time_num*7] / 6) * 0.08 + (self.dd_set[i - self.time_num*7] / 6) * 0.08
+        if self.type == "c":
+            # 运行功率
+            for i in range(self.time_num * 2, self.time_num * 4):
+                self.c[i] = -0.07 - 0.01 + 0.005
+            # 灵活供给
+            for i in range(self.time_num * 5, self.time_num * 7):
+                self.c[i] = -0.01 - 0.08
+            # 缺额惩罚
+            for i in range(self.time_num * 7, self.time_num * 8):
+                self.c[i] = (self.ud_set[i - self.time_num * 7] / 6) * 0.08 + (
+                            self.dd_set[i - self.time_num * 7] / 6) * 0.08
+
+
 
     def __getData(self):
         self.e = self.e + self.storage_limit
@@ -383,6 +415,11 @@ class ES:
         ])
         CreatConstraintsByText(self.time_num, B, 0, 1, num)
 
+        B = np.array([
+            [self.name + "state1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, num)
+
         "P = cP + dp"
         B = np.array([
             [self.name + "P1", 1],
@@ -398,7 +435,7 @@ class ES:
     def draw(self):
         x = self.x[self.time_num:self.time_num * 2]
         p = self.x[:self.time_num]
-        drawStorage(x, p, self.name + "SE")
+        drawStorage(x, p, self.name + self.type)
 
     def get_action(self, step, num):
         # 这里因为没有涉及到强化学习控制，因此只需要将perfect——MILP下未考虑随机的控制结果输出即可，不需要做额外的控制
@@ -418,207 +455,207 @@ class ES:
 
 """蓄冷罐"""
 
-"""新能源汽车"""
-class EV:
-    def __init__(self, name, id, storage_price, storage_limit_max, storage_limit_min, lifetimes, self_discharging,
-                 charging_rate, discharging_rate, time_num, begin=None):
-        self.name = name
-        "string"
-        self.id = id
-        "int"
-        self.time_num = time_num
-        "hours"
-
-        self.way = -1
-
-        self.storage_price = storage_price
-        "美元/kwh"
-        self.storage_limit_max = storage_limit_max
-        self.storage_limit_min = storage_limit_min
-        if begin == None:
-            self.begin = self.storage_limit_max / 2
-        else:
-            self.begin = begin
-        self.lifetimes = lifetimes
-        "year"
-
-        # 自损率
-        self.self_discharging = self_discharging
-        "%/hours"
-
-        self.e = 0
-        self.charging_max = None
-        self.discharging_max = None
-
-        # 充电效率
-        self.charging_rate = charging_rate
-        # 放电效率
-        self.discharging_rate = discharging_rate
-
-        # 最低出行需求
-        self.travel_demand_min = 25
-
-        self.params = np.array([""])
-
-        "4"
-        self.day = int(self.time_num / 24)
-
-        self.__init()
-
-        self.length = len(self.params)
-
-        self.x = np.zeros(self.length)
-        self.real_x = np.zeros(self.length)
-
-        self.constraints_num = 0
-
-    def __init(self):
-        self.__params_named()
-        self.__set_intergrality()
-        self.__set_C()
-        self.__getData()
-
-    def __params_named(self):
-        temp = np.array([
-            self.name + "P",  # 充电-放电
-            self.name + "E",  # 新能源汽车当前的储量
-            self.name + "CP",  # 充电功率
-            self.name + "DP",  # 放电功率
-            self.name + "S",  # 充放电状态，等于0或1
-            #  self.name + "TS"  出行状态
-        ])
-        self.params = AddParams(self.params, self.time_num, temp)
-        self.params = self.params[1:]
-
-    def __set_intergrality(self):
-        self.intergrality = np.ones(len(self.params))
-        for i in range(self.time_num * 4):
-            self.intergrality[i] = 0
-
-    def __set_C(self):
-        self.c = np.zeros(len(self.params))
-        "4"
-        for i in range(self.time_num):
-            # self.c[i + self.time_num * 4] = -self.storage_price / (self.lifetimes * 365 * 24)
-            self.c[i + self.time_num * 4] = 0
-            self.c[i + self.time_num * 1] = -self.storage_price / (self.lifetimes * 365 * 24) * 0.2
-            self.c[i + self.time_num * 2] = - 0.083 * 0.001 * 390.885
-            self.c[i + self.time_num * 3] = - 0.083 * 0.001 * 390.885
-
-    def __getData(self):
-        self.e = self.e + self.storage_limit_max
-        self.charging_max = self.e * 0.025
-        self.discharging_max = self.e * 0.025
-        self.ramping_limit = self.e * 0.025
-
-    def constraints(self, num):
-        "Energy storaed limited"
-        B = np.array([
-            [self.name + "E1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, B, 0, self.e, num)
-
-        # 额定功率最大最小约束
-        B = np.array([
-            [self.name + "E1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, B, self.storage_limit_min, self.storage_limit_max, num)
-
-        "Charging power limits:"
-        for i in range(self.time_num):
-            B = np.array([
-                [self.name + "CP" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, 0, np.inf, num)
-
-        for i in range(self.time_num):
-            B = np.array([
-                [self.name + "CP" + str(i + 1), 1],
-                [self.name + "S" + str(i + 1), -self.charging_max]
-            ])
-            CreatConstraintsByText(1, B, -np.inf, 0, num)
-
-        "Discharging power limits:"
-        for i in range(self.time_num):
-            B = np.array([
-                [self.name + "DP" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, 0, np.inf, num)
-        for i in range(self.time_num):
-            B = np.array([
-                [self.name + "DP" + str(i + 1), 1],
-                [self.name + "S" + str(i + 1), self.discharging_max]
-            ])
-            CreatConstraintsByText(1, B, 0, self.discharging_max, num)
-
-
-        "Energy balance in the storage unit"
-        B = np.array([
-            [self.name + "E1", 1],
-            [self.name + "CP1", -self.charging_rate],
-            [self.name + "DP1", 1 / self.charging_rate]
-        ])
-        CreatConstraintsByText(1, B, self.begin, self.begin, num)
-        B = np.array([
-            [self.name + "E2", 1],
-            [self.name + "E1", -(1 - self.self_discharging)],
-            [self.name + "CP2", -self.charging_rate],
-            [self.name + "DP2", 1 / self.charging_rate]
-        ])
-        CreatConstraintsByText(self.time_num - 1, B, 0, 0, num)
-        B = np.array([
-            [self.name + "E" + str(self.time_num), 1]
-        ])
-        CreatConstraintsByText(1, B, self.begin, self.begin, num)
-
-        B = np.array([
-            [self.name + "E1", -1],
-            [self.name + "E2", 1],
-        ])
-        CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
-
-        B = np.array([
-            [self.name + "E1", 1],
-            [self.name + "E2", -1],
-        ])
-        CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
-
-        "State"
-        B = np.array([
-            [self.name + "S1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, B, 0, 1, num)
-
-        "P = cP - dp"
-        B = np.array([
-            [self.name + "P1", 1],
-            [self.name + "CP1", -1],
-            [self.name + "DP1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, B, 0, 0, num)
-
-        "出行状态约束"
-        B = np.array([
-            [self.name + "E1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, B, self.travel_demand_min, self.storage_limit_max, num)
-
-    def draw(self):
-        x = self.x[self.time_num:self.time_num * 2]
-        p = self.x[:self.time_num]
-        drawStorage(x, p, self.name + "SE")
-
-    def get_action(self, step, num):
-        # 这里因为没有涉及到强化学习控制，因此只需要将perfect——MILP下未考虑随机的控制结果输出即可，不需要做额外的控制
-        # self.real_x[step - 1] = np.maximum(np.minimum(self.x[self.time_num + step - 1], self.e), 0)
-        # 我需要控制不确定变化后不会跳出范围
-        self.real_x[self.time_num + step - 1] = self.x[self.time_num + step - 1]
-        if self.type != 'h' and step != 92:
-            B = np.array([
-                [self.name + "E" + str(step), 1],
-            ])
-            CreatConstraintsByText(1, B, self.real_x[self.time_num + step - 1], self.real_x[self.time_num + step - 1],
-                                   num)
+# """新能源汽车"""
+# class EV:
+#     def __init__(self, name, id, storage_price, storage_limit_max, storage_limit_min, lifetimes, self_discharging,
+#                  charging_rate, discharging_rate, time_num, begin=None):
+#         self.name = name
+#         "string"
+#         self.id = id
+#         "int"
+#         self.time_num = time_num
+#         "hours"
+#
+#         self.way = -1
+#
+#         self.storage_price = storage_price
+#         "美元/kwh"
+#         self.storage_limit_max = storage_limit_max
+#         self.storage_limit_min = storage_limit_min
+#         if begin == None:
+#             self.begin = self.storage_limit_max / 2
+#         else:
+#             self.begin = begin
+#         self.lifetimes = lifetimes
+#         "year"
+#
+#         # 自损率
+#         self.self_discharging = self_discharging
+#         "%/hours"
+#
+#         self.e = 0
+#         self.charging_max = None
+#         self.discharging_max = None
+#
+#         # 充电效率
+#         self.charging_rate = charging_rate
+#         # 放电效率
+#         self.discharging_rate = discharging_rate
+#
+#         # 最低出行需求
+#         self.travel_demand_min = 25
+#
+#         self.params = np.array([""])
+#
+#         "4"
+#         self.day = int(self.time_num / 24)
+#
+#         self.__init()
+#
+#         self.length = len(self.params)
+#
+#         self.x = np.zeros(self.length)
+#         self.real_x = np.zeros(self.length)
+#
+#         self.constraints_num = 0
+#
+#     def __init(self):
+#         self.__params_named()
+#         self.__set_intergrality()
+#         self.__set_C()
+#         self.__getData()
+#
+#     def __params_named(self):
+#         temp = np.array([
+#             self.name + "P",  # 充电-放电
+#             self.name + "E",  # 新能源汽车当前的储量
+#             self.name + "CP",  # 充电功率
+#             self.name + "DP",  # 放电功率
+#             self.name + "S",  # 充放电状态，等于0或1
+#             #  self.name + "TS"  出行状态
+#         ])
+#         self.params = AddParams(self.params, self.time_num, temp)
+#         self.params = self.params[1:]
+#
+#     def __set_intergrality(self):
+#         self.intergrality = np.ones(len(self.params))
+#         for i in range(self.time_num * 4):
+#             self.intergrality[i] = 0
+#
+#     def __set_C(self):
+#         self.c = np.zeros(len(self.params))
+#         "4"
+#         for i in range(self.time_num):
+#             # self.c[i + self.time_num * 4] = -self.storage_price / (self.lifetimes * 365 * 24)
+#             self.c[i + self.time_num * 4] = 0
+#             self.c[i + self.time_num * 1] = -self.storage_price / (self.lifetimes * 365 * 24) * 0.2
+#             self.c[i + self.time_num * 2] = - 0.083 * 0.001 * 390.885
+#             self.c[i + self.time_num * 3] = - 0.083 * 0.001 * 390.885
+#
+#     def __getData(self):
+#         self.e = self.e + self.storage_limit_max
+#         self.charging_max = self.e * 0.025
+#         self.discharging_max = self.e * 0.025
+#         self.ramping_limit = self.e * 0.025
+#
+#     def constraints(self, num):
+#         "Energy storaed limited"
+#         B = np.array([
+#             [self.name + "E1", 1]
+#         ])
+#         CreatConstraintsByText(self.time_num, B, 0, self.e, num)
+#
+#         # 额定功率最大最小约束
+#         B = np.array([
+#             [self.name + "E1", 1]
+#         ])
+#         CreatConstraintsByText(self.time_num, B, self.storage_limit_min, self.storage_limit_max, num)
+#
+#         "Charging power limits:"
+#         for i in range(self.time_num):
+#             B = np.array([
+#                 [self.name + "CP" + str(i + 1), 1]
+#             ])
+#             CreatConstraintsByText(1, B, 0, np.inf, num)
+#
+#         for i in range(self.time_num):
+#             B = np.array([
+#                 [self.name + "CP" + str(i + 1), 1],
+#                 [self.name + "S" + str(i + 1), -self.charging_max]
+#             ])
+#             CreatConstraintsByText(1, B, -np.inf, 0, num)
+#
+#         "Discharging power limits:"
+#         for i in range(self.time_num):
+#             B = np.array([
+#                 [self.name + "DP" + str(i + 1), 1]
+#             ])
+#             CreatConstraintsByText(1, B, 0, np.inf, num)
+#         for i in range(self.time_num):
+#             B = np.array([
+#                 [self.name + "DP" + str(i + 1), 1],
+#                 [self.name + "S" + str(i + 1), self.discharging_max]
+#             ])
+#             CreatConstraintsByText(1, B, 0, self.discharging_max, num)
+#
+#
+#         "Energy balance in the storage unit"
+#         B = np.array([
+#             [self.name + "E1", 1],
+#             [self.name + "CP1", -self.charging_rate],
+#             [self.name + "DP1", 1 / self.charging_rate]
+#         ])
+#         CreatConstraintsByText(1, B, self.begin, self.begin, num)
+#         B = np.array([
+#             [self.name + "E2", 1],
+#             [self.name + "E1", -(1 - self.self_discharging)],
+#             [self.name + "CP2", -self.charging_rate],
+#             [self.name + "DP2", 1 / self.charging_rate]
+#         ])
+#         CreatConstraintsByText(self.time_num - 1, B, 0, 0, num)
+#         B = np.array([
+#             [self.name + "E" + str(self.time_num), 1]
+#         ])
+#         CreatConstraintsByText(1, B, self.begin, self.begin, num)
+#
+#         B = np.array([
+#             [self.name + "E1", -1],
+#             [self.name + "E2", 1],
+#         ])
+#         CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
+#
+#         B = np.array([
+#             [self.name + "E1", 1],
+#             [self.name + "E2", -1],
+#         ])
+#         CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
+#
+#         "State"
+#         B = np.array([
+#             [self.name + "S1", 1]
+#         ])
+#         CreatConstraintsByText(self.time_num, B, 0, 1, num)
+#
+#         "P = cP - dp"
+#         B = np.array([
+#             [self.name + "P1", 1],
+#             [self.name + "CP1", -1],
+#             [self.name + "DP1", 1]
+#         ])
+#         CreatConstraintsByText(self.time_num, B, 0, 0, num)
+#
+#         "出行状态约束"
+#         B = np.array([
+#             [self.name + "E1", 1]
+#         ])
+#         CreatConstraintsByText(self.time_num, B, self.travel_demand_min, self.storage_limit_max, num)
+#
+#     def draw(self):
+#         x = self.x[self.time_num:self.time_num * 2]
+#         p = self.x[:self.time_num]
+#         drawStorage(x, p, self.name + "SE" + self.type)
+#
+#     def get_action(self, step, num):
+#         # 这里因为没有涉及到强化学习控制，因此只需要将perfect——MILP下未考虑随机的控制结果输出即可，不需要做额外的控制
+#         # self.real_x[step - 1] = np.maximum(np.minimum(self.x[self.time_num + step - 1], self.e), 0)
+#         # 我需要控制不确定变化后不会跳出范围
+#         self.real_x[self.time_num + step - 1] = self.x[self.time_num + step - 1]
+#         if self.type != 'h' and step != 92:
+#             B = np.array([
+#                 [self.name + "E" + str(step), 1],
+#             ])
+#             CreatConstraintsByText(1, B, self.real_x[self.time_num + step - 1], self.real_x[self.time_num + step - 1],
+#                                    num)
 
 
 

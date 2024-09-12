@@ -81,7 +81,7 @@ class CPP:
 
     def draw(self):
         p = self.x[0:self.time_num]
-        drawCPP(p, self.p_max, 0, self.p_ramping_up, self.p_ramping_down, None, title= self.name + "Produciton")
+        drawCPP(p, self.p_max, 0, self.p_ramping_up, self.p_ramping_down, None, title=self.name + "Production")
 
 
 

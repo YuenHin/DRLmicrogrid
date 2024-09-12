@@ -100,6 +100,13 @@ class Node:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "sell" + "P1", 1]
                     ]))
+                # 地缘热泵设备
+                if self.devices[i].way == 3:
+                    B = np.array(B, np.array([
+                        [self.devices[i].name + "input_e1", -1],
+                        [self.devices[i].name + "output_h1", 1]
+                    ]))
+
             if len(self.sLine) != 0:
                 for i in range(len(self.sLine)):
                     B = np.append(B, np.array([

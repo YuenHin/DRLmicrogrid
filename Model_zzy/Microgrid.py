@@ -228,7 +228,7 @@ class MG:
 
                 # 添加 地缘热泵
                 if device.className == "hp":
-                    self.HP_e -= device.x[:self.time_num]
+                    self.HP_e += device.x[:self.time_num]
 
             for rline in node.rLine:
                 if rline.MG_point and rline.type == 'e':
@@ -322,7 +322,7 @@ class MG:
                     temp = device.x[self.time_num * 2: self.time_num * 3]
                     self.CCHP_th += temp
                 if device.className == "hp":
-                    temp = device.x[self.time_num * 1: self.time_num * 2]
+                    temp = device.x[self.time_num: self.time_num * 2]
                     self.HP_th += temp
                 if device.className == "eb":
                     self.EB_th += device.x[self.time_num: self.time_num * 2]

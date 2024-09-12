@@ -7,7 +7,7 @@ from tools.aDataSetting import smooth
 import random
 
 class D:
-    def __init__(self, name, type, p_total, id = 1, MG_id = 1, ramping_rate = 0.25, time_num = 96, stochastic_value = 10):
+    def __init__(self, name, type, p_total, id, MG_id, ramping_rate, time_num, stochastic_value=10):
         self.name = name
         self.id = id
         self.MG_id = MG_id
@@ -62,73 +62,73 @@ class D:
     def __set_intergrality(self):
         self.intergrality = np.zeros(self.time_num)
 
-    def __set_C(self):
-        self.c = np.zeros(self.length)
-        Day_price = None
-        if self.type == "e":
-            "获取电力售电价格："
-            # GBP / MWh
-            Day_price = getDataFromExcel("Data\power_price.xls", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
-        if self.type == "g":
-            "获取天然气出售价格："
-            # GBP / MWh
-            Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
-        if self.type == "th":
-            "获取天然气出售价格："
-            # GBP / MWh
-            Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
-        if self.type == "h":
-            "获取天然气出售价格："
-            # GBP / MWh
-            Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
-        tempArray = np.zeros(24)
-
-        for i in range(len(Day_price)):
-            tempNum = 10
-            temp = 0
-            for j in range(len(Day_price[i][0])):
-                if Day_price[i][0][j] != ',':
-                    temp = temp + float(Day_price[i][0][j]) * tempNum
-                    tempNum = tempNum / 10
-            tempArray[i] = temp
-        Day_price = tempArray
-        # USD/KWH
-        Day_price = Day_price / 1000 * 1.1125
-        self.c = np.zeros(len(Day_price))
+    # def __set_C(self):
+    #     self.c = np.zeros(self.length)
+    #     Day_price = None
+    #     if self.type == "e":
+    #         "获取电力售电价格："
+    #         # GBP / MWh
+    #         Day_price = getDataFromExcel("Data\power_price.xls", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+    #     if self.type == "g":
+    #         "获取天然气出售价格："
+    #         # GBP / MWh
+    #         Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+    #     if self.type == "th":
+    #         "获取天然气出售价格："
+    #         # GBP / MWh
+    #         Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+    #     if self.type == "c":
+    #         "获取天然气出售价格："
+    #         # GBP / MWh
+    #         Day_price = getDataFromExcel("Data\gas_price.xlsx", 1 + self.MG_id, 2 + self.MG_id, 2, 2 + 24)
+    #     tempArray = np.zeros(24)
+    #
+    #     for i in range(len(Day_price)):
+    #         tempNum = 10
+    #         temp = 0
+    #         for j in range(len(Day_price[i][0])):
+    #             if Day_price[i][0][j] != ',':
+    #                 temp = temp + float(Day_price[i][0][j]) * tempNum
+    #                 tempNum = tempNum / 10
+    #         tempArray[i] = temp
+    #     Day_price = tempArray
+    #     # USD/KWH
+    #     Day_price = Day_price / 1000 * 1.1125
+    #     self.c = np.zeros(len(Day_price))
 
     def __set_C2(self):
         self.c = np.zeros(self.time_num)
 
-    def __getData(self):
-        if self.type == "e":
-            # kw
-            self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id, self.id + self.research_day) * 365  * (self.p_total / self.research_day)
-            self.p = self.p.flatten()
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
-
-        if self.type == "g":
-            self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +50, self.id + 50 + self.research_day) * 365 * (
-                        self.p_total / self.research_day)
-            self.p = self.p.flatten()
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
-
-        if self.type == "h":
-            self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +100, self.id + 100 + self.research_day) * 365 * (
-                        self.p_total / self.research_day)
-            self.p = self.p.flatten()
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
-
-        if self.type == "c":
-            self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +150, self.id + 150 + self.research_day) * 365 * (
-                        self.p_total / self.research_day)
-            self.p = self.p.flatten()
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
-
-        self.total_Demand = np.sum(self.p)
+    # def __getData(self):
+    #     if self.type == "e":
+    #         # kw
+    #         self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id, self.id + self.research_day) * 365  * (self.p_total / self.research_day)
+    #         self.p = self.p.flatten()
+    #         self.p_min = self.p * (1 - self.ramping_rate)
+    #         self.p_max = self.p * (1 + self.ramping_rate)
+    #
+    #     if self.type == "g":
+    #         self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +50, self.id + 50 + self.research_day) * 365 * (
+    #                     self.p_total / self.research_day)
+    #         self.p = self.p.flatten()
+    #         self.p_min = self.p * (1 - self.ramping_rate)
+    #         self.p_max = self.p * (1 + self.ramping_rate)
+    #
+    #     if self.type == "th":
+    #         self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +100, self.id + 100 + self.research_day) * 365 * (
+    #                     self.p_total / self.research_day)
+    #         self.p = self.p.flatten()
+    #         self.p_min = self.p * (1 - self.ramping_rate)
+    #         self.p_max = self.p * (1 + self.ramping_rate)
+    #
+    #     if self.type == "c":
+    #         self.p = getDataFromExcel("Data\Data_demands.xlsx", 1, 25, self.id +150, self.id + 150 + self.research_day) * 365 * (
+    #                     self.p_total / self.research_day)
+    #         self.p = self.p.flatten()
+    #         self.p_min = self.p * (1 - self.ramping_rate)
+    #         self.p_max = self.p * (1 + self.ramping_rate)
+    #
+    #     self.total_Demand = np.sum(self.p)
 #负荷数据修改
     def __getData2(self):
         if self.type == "e":
@@ -144,17 +144,18 @@ class D:
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
 
-        if self.type == "h":
+        if self.type == "th":
             self.p = self.__24to96("./Data/Load/thermal_H.xlsx", 7) * self.p_total
             self.p = self.p.flatten()
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
 
         if self.type == "c":
-            self.p = self.__24to96("./Data/Load/hydrogen_H.xlsx", 2) * self.p_total
+            self.p = self.__24to96("./Data/Load/thermal_H.xlsx", 7) * self.p_total
             self.p = self.p.flatten()
             self.p_min = self.p * (1 - self.ramping_rate)
             self.p_max = self.p * (1 + self.ramping_rate)
+
         self.ramping = (self.p_max - self.p_min) / 8
 
     def constraints(self, num):
@@ -170,7 +171,7 @@ class D:
         ramping limits
         """
 
-        if self.type != 'th':
+        if self.type != 'th' and self.type != 'c':
 
             """
             Up ramping limits

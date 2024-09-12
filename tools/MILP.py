@@ -152,7 +152,7 @@ def CreatConstraints(num, B, down, up, number):
     bu = np.zeros(num)
     for i in range(num):
         # print("num:", i)
-        A[i] = funcA(np.array(B) , i, number)
+        A[i] = funcA(np.array(B), i, number)
         bl[i] = down
         bu[i] = up
     return A, bl, bu
@@ -291,11 +291,8 @@ def EndCount(c,integrality,Number):
     for i in range(Number.variableNum):
         b1[i] = -np.inf
         b2[i] = np.inf
-    res = milp(c = c,
-               integrality = integrality,
-               bounds=np.array([b1,b2]),
-               constraints = LinearConstraint(A, bl, bu)
-               )
+    res = milp(c=c, integrality=integrality, bounds=np.array([b1,b2]),
+               constraints = LinearConstraint(A, bl, bu))
     print(res)
     return res
 

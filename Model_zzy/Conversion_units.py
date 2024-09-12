@@ -2,6 +2,7 @@ import numpy as np
 from tools.maybeExcel import getDataFromExcel
 from tools.addParams import AddParams
 from tools.MILP import CreatConstraintsByText
+from tools.drawCPP import drawCPP
 
 class TP:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line1, line2):
@@ -413,16 +414,20 @@ class CTP:
 
 "冷热电联产"
 class CCHP:
-    def __init__(self, name, conversion_rate_e, conversion_rate_h, conversion_rate_c, conversion_limit, time_num,
-                 line_g, line_e, line_h):
+    def __init__(self, name, type, conversion_rate_e, conversion_rate_h, conversion_limit, time_num,
+                 line_g, line_e, line_h, ud_set, dd_set):
         self.className = "cchp"
         # 设备名
         self.name = name
+        self.type = type
+
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         # 气转电热冷的转化效率
         self.conversion_rate_e = conversion_rate_e
         self.conversion_rate_h = conversion_rate_h
-        self.conversion_rate_c = conversion_rate_c
+        # self.conversion_rate_c = conversion_rate_c
 
         # 最大最小功率
         self.max_input_g = 1000
@@ -456,8 +461,8 @@ class CCHP:
         self.length = len(self.params)
 
         # 强化学习中保存每一步计算的值
-        self.value = np.zeros(self.length)
-        self.real_value = np.array(self.length)
+        self.x = np.zeros(self.length)
+        self.real_x = np.array(self.length)
 
         # 初始化
         self.__init()
@@ -474,7 +479,6 @@ class CCHP:
             self.name + "input_g",
             self.name + "output_e",
             self.name + "output_h",
-            self.name + "output_c",
             self.name + "state",
             self.name + "g_us",
             self.name + "g_ds",
@@ -482,10 +486,7 @@ class CCHP:
             self.name + "e_ds",
             self.name + "h_us",
             self.name + "h_ds",
-            self.name + "c_us",
-            self.name + "c_ds",
-            self.name + "state_control_h",
-            self.name + "state_control_c"
+            self.name + "S"  # 恒为1的数用于辅助灵活性计算
         ])
         # 生成这个设备有关的全时间尺度所需数据的变量名
         self.params = AddParams(self.params, self.time_num, temp)
@@ -497,13 +498,20 @@ class CCHP:
         self.intergrality = np.zeros(len(self.params))
        # 将所有的状态变量都设置为1
         for i in range(self.time_num):
-            self.intergrality[i + self.time_num * 4] = 1
+            self.intergrality[i + self.time_num * 3] = 1
 
     # 设备的运行成本
     def __operational_cost(self):
         self.c = np.zeros(len(self.params))
+        # 运行功率
         for i in range(self.time_num):
-            self.c[i] = -0.01
+            self.c[i] = -0.084 - 0.014
+        # 灵活性供给成本
+        for i in range(self.time_num * 5, self.time_num * 10):
+            self.c[i] = -0.01 - 0.08
+        # 缺额惩罚
+        for i in range(self.time_num*10, self.time_num*11):
+            self.c[i] = (self.ud_set[i - self.time_num*10] / 6) * 0.08 + (self.dd_set[i - self.time_num*10] / 6) * 0.08
 
     # 约束条件
     def constraints(self, constraint_information_class):
@@ -513,8 +521,7 @@ class CCHP:
         transfer_constraint = np.array([
             [self.name + "input_g1", 1],
             [self.name + "output_e1", -1/self.conversion_rate_e],
-            [self.name + "output_h1", -1/self.conversion_rate_h],
-            [self.name + "output_c1", -1/self.conversion_rate_c]
+            [self.name + "output_h1", -1/self.conversion_rate_h]
         ])
         CreatConstraintsByText(self.time_num, transfer_constraint, 0, 0, constraint_information_class)
 
@@ -547,71 +554,55 @@ class CCHP:
                                constraint_information_class)
         # 热能
         # 最大值约束——向上灵活性
-        h_bound_max_us = np.array([
-            [self.name + "output_h1", 1],
-            [self.name + "h_us1", 1],
-            [self.name + "state_control_h1", -self.max_output_h]
-        ])
-        CreatConstraintsByText(self.time_num, h_bound_max_us, -np.inf, 0,
-                               constraint_information_class)
         # 最小值约束——向上灵活性
-        h_bound_min_us = np.array([
+        h_bound_us = np.array([
             [self.name + "output_h1", 1],
-            [self.name + "h_us1", 1],
-            [self.name + "state_control_h1", -self.min_output_h]
+            [self.name + "h_us1", 1]
         ])
-        CreatConstraintsByText(self.time_num, h_bound_min_us, 0, np.inf,
+        CreatConstraintsByText(self.time_num, h_bound_us, self.min_output_h, self.max_output_h,
                                constraint_information_class)
         # 最大值约束——向下灵活性
+        # 最小值约束——向下灵活性
         h_bound_max_ds = np.array([
             [self.name + "output_h1", 1],
             [self.name + "h_ds1", -1],
-            [self.name + "state_control_h1", -self.max_output_h]
         ])
-        CreatConstraintsByText(self.time_num, h_bound_max_ds, -np.inf, 0,
-                               constraint_information_class)
-        # 最小值约束——向下灵活性
-        h_bound_min_ds = np.array([
-            [self.name + "output_h1", 1],
-            [self.name + "h_ds1", 1],
-            [self.name + "state_control_h1", -self.min_output_h]
-        ])
-        CreatConstraintsByText(self.time_num, h_bound_min_ds, 0, np.inf,
+        CreatConstraintsByText(self.time_num, h_bound_max_ds, self.min_output_h, self.max_output_h,
                                constraint_information_class)
 
-        # 冷能
-        # 最大值约束——向上灵活性
-        c_bound_max_us = np.array([
-            [self.name + "output_c1", 1],
-            [self.name + "c_us1", 1],
-            [self.name + "state_control_c1", -self.max_output_c]
-        ])
-        CreatConstraintsByText(self.time_num, c_bound_max_us, -np.inf, 0,
-                               constraint_information_class)
-        # 最小值约束——向上灵活性
-        c_bound_min_us = np.array([
-            [self.name + "output_c1", 1],
-            [self.name + "c_us1", 1],
-            [self.name + "state_control_c1", -self.min_output_c]
-        ])
-        CreatConstraintsByText(self.time_num, c_bound_min_us, 0, np.inf,
-                               constraint_information_class)
-        # 最大值约束——向下灵活性
-        c_bound_max_ds = np.array([
-            [self.name + "output_c1", 1],
-            [self.name + "c_ds1", -1],
-            [self.name + "state_control_c1", -self.max_output_c]
-        ])
-        CreatConstraintsByText(self.time_num, c_bound_max_ds, -np.inf, 0,
-                               constraint_information_class)
-        # 最小值约束——向下灵活性
-        c_bound_min_ds = np.array([
-            [self.name + "output_c1", 1],
-            [self.name + "c_ds1", 1],
-            [self.name + "state_control_c1", -self.min_output_c]
-        ])
-        CreatConstraintsByText(self.time_num, c_bound_min_ds, 0, np.inf,
-                               constraint_information_class)
+        # # 冷能
+        # # 最大值约束——向上灵活性
+        # c_bound_max_us = np.array([
+        #     [self.name + "output_c1", 1],
+        #     [self.name + "c_us1", 1],
+        #     [self.name + "state_control_c1", -self.max_output_c]
+        # ])
+        # CreatConstraintsByText(self.time_num, c_bound_max_us, -np.inf, 0,
+        #                        constraint_information_class)
+        # # 最小值约束——向上灵活性
+        # c_bound_min_us = np.array([
+        #     [self.name + "output_c1", 1],
+        #     [self.name + "c_us1", 1],
+        #     [self.name + "state_control_c1", -self.min_output_c]
+        # ])
+        # CreatConstraintsByText(self.time_num, c_bound_min_us, 0, np.inf,
+        #                        constraint_information_class)
+        # # 最大值约束——向下灵活性
+        # c_bound_max_ds = np.array([
+        #     [self.name + "output_c1", 1],
+        #     [self.name + "c_ds1", -1],
+        #     [self.name + "state_control_c1", -self.max_output_c]
+        # ])
+        # CreatConstraintsByText(self.time_num, c_bound_max_ds, -np.inf, 0,
+        #                        constraint_information_class)
+        # # 最小值约束——向下灵活性
+        # c_bound_min_ds = np.array([
+        #     [self.name + "output_c1", 1],
+        #     [self.name + "c_ds1", 1],
+        #     [self.name + "state_control_c1", -self.min_output_c]
+        # ])
+        # CreatConstraintsByText(self.time_num, c_bound_min_ds, 0, np.inf,
+        #                        constraint_information_class)
 
         """爬坡和滑坡约束"""
         # 爬坡功率约束
@@ -620,8 +611,8 @@ class CCHP:
             [self.name + "input_g1", -1],
             [self.name + "state2", -self.ramping_up]
         ])
-        print(ramping_up_constraint)
-        print(self.params)
+        # print(ramping_up_constraint)
+        # print(self.params)
         CreatConstraintsByText(self.time_num-1, ramping_up_constraint, -np.inf, 0, constraint_information_class)
         # 滑坡功率约束
         ramping_down_constraint = np.array([
@@ -629,8 +620,8 @@ class CCHP:
             [self.name + "input_g1", 1],
             [self.name + "state2", -self.ramping_down]
         ])
-        print(ramping_down_constraint)
-        print(self.params)
+        # print(ramping_down_constraint)
+        # print(self.params)
         CreatConstraintsByText(self.time_num-1, ramping_down_constraint, -np.inf, 0, constraint_information_class)
 
         """线路约束"""
@@ -661,14 +652,19 @@ class CCHP:
         ])
         CreatConstraintsByText(self.time_num, operation_state, 0, 1, constraint_information_class)
 
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, constraint_information_class)
+
     # 用来记录强化学习中每一步的值
     def remember_one_step_real_value(self, step, constraint_information_class):
         # 保存计算得到的真实值
-        self.real_value[step - 1] = self.value[step - 1]
+        self.real_x[step - 1] = self.x[step - 1]
         remember_real_value = np.array([
             [self.name + "input_g" + str(step), 1]
         ])
-        CreatConstraintsByText(1, remember_real_value,  self.real_value[step - 1],  self.real_value[step - 1],
+        CreatConstraintsByText(1, remember_real_value,  self.x[step - 1],  self.real_x[step - 1],
                                constraint_information_class)
 
     def draw(self):
@@ -676,13 +672,16 @@ class CCHP:
 
 
 class EB:
-    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h):
+    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h, ud_set, dd_set):
 
         self.name = name
         self.className = 'eb'
         self.time_num = time_num
         self.line_e = line_e
         self.line_h = line_h
+
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         self.way = 1
 
@@ -695,10 +694,10 @@ class EB:
         self.p_rampingDown = None
 
         # 最大最小功率
-        self.max_input_e = 320
-        self.min_input_e = 150
-        self.max_output_h = 300
-        self.min_output_h = 80
+        self.max_input_e = 3200
+        self.min_input_e = 0
+        self.max_output_h = 3200
+        self.min_output_h = 0
 
         self.params = np.array([""])
 
@@ -729,7 +728,8 @@ class EB:
             self.name + "e_us",
             self.name + "e_ds",
             self.name + "h_us",
-            self.name + "h_ds"
+            self.name + "h_ds",
+            self.name + "S"  # 辅助变量恒为1
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -742,7 +742,14 @@ class EB:
     def __set_C(self):
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num):
-            self.c[i] = - 0.01
+            self.c[i] = - 0.016 - 0.0026
+        # 灵活性供给成本
+        for i in range(self.time_num * 4, self.time_num * 7):
+            self.c[i] = -0.01 - 0.08
+        # 缺额惩罚
+        for i in range(self.time_num*7, self.time_num*8):
+            self.c[i] = (self.ud_set[i - self.time_num * 7] / 6) * 0.08 + (
+                        self.dd_set[i - self.time_num * 7] / 6) * 0.08
 
     def __getData(self):
         self.p_rampingUp = self.p_max * 0.35
@@ -836,9 +843,16 @@ class EB:
         CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_h, self.max_output_h,
                                constraint_information_class)
 
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, constraint_information_class)
+
 
     def draw(self):
-        print("draw_EB")
+        p = self.x[self.time_num: self.time_num * 2]
+        # drawCPP(p, self.p_max, 0, self.p_rampingUp, self.p_rampingDown, None, title=self.name + "production")
+
 
     def remenber_realValue(self, step, constraint_information_class):
         #这里因为没有涉及到强化学习控制，因此只需要将perfect——MILP下未考虑随机的控制结果输出即可，不需要做额外的控制
@@ -851,13 +865,16 @@ class EB:
 
 
 class ER:
-    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c):
+    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c, ud_set, dd_set):
 
         self.name = name
         self.className = 'er'
         self.time_num = time_num
         self.line_e = line_e
         self.line_c = line_c
+
+        self.ud_set = ud_set
+        self.dd_set = dd_set
 
         self.way = 1
 
@@ -870,10 +887,10 @@ class ER:
         self.p_rampingDown = None
 
         # 最大最小功率
-        self.max_input_e = 300
-        self.min_input_e = 150
-        self.max_output_c = 200
-        self.min_output_c = 100
+        self.max_input_e = 3200
+        self.min_input_e = 0
+        self.max_output_c = 3200
+        self.min_output_c = 0
 
         self.params = np.array([""])
 
@@ -904,7 +921,8 @@ class ER:
             self.name + "e_us",
             self.name + "e_ds",
             self.name + "c_us",
-            self.name + "c_ds"
+            self.name + "c_ds",
+            self.name + "S"  # 辅助变量恒为1
         ])
         self.params = AddParams(self.params, self.time_num, temp)
         self.params = self.params[1:]
@@ -917,7 +935,13 @@ class ER:
     def __set_C(self):
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num):
-            self.c[i] = - 0.01
+            self.c[i] = - 0.023 - 0.0038
+        for i in range(self.time_num * 4, self.time_num * 7):
+            self.c[i] = -0.01 - 0.08
+        for i in range(self.time_num*7, self.time_num*8):
+            self.c[i] = (self.ud_set[i - self.time_num * 7] / 6) * 0.08 + (
+                    self.dd_set[i - self.time_num * 7] / 6) * 0.08
+
 
     def __getData(self):
         self.p_rampingUp = self.p_max * 0.25
@@ -933,18 +957,18 @@ class ER:
 
         # 爬坡功率与滑坡功率约束
         # 固定
-        ramping_up_constraint = np.array([
-            [self.name + "input_e2", 1],
-            [self.name + "input_e1", -1],
-            [self.name + "state_change2", -self.ramping_up]
-        ])
-        CreatConstraintsByText(self.time_num-1, ramping_up_constraint, -np.inf, 0, constraint_information_class)
-        ramping_down_constraint = np.array([
-            [self.name + "input_e2", -1],
-            [self.name + "input_e1", 1],
-            [self.name + "state_change2", -self.ramping_down]
-        ])
-        CreatConstraintsByText(self.time_num-1, ramping_down_constraint, -np.inf, 0, constraint_information_class)
+        # ramping_up_constraint = np.array([
+        #     [self.name + "input_e2", 1],
+        #     [self.name + "input_e1", -1],
+        #     [self.name + "state_change2", -self.ramping_up]
+        # ])
+        # CreatConstraintsByText(self.time_num-1, ramping_up_constraint, -np.inf, 0, constraint_information_class)
+        # ramping_down_constraint = np.array([
+        #     [self.name + "input_e2", -1],
+        #     [self.name + "input_e1", 1],
+        #     [self.name + "state_change2", -self.ramping_down]
+        # ])
+        # CreatConstraintsByText(self.time_num-1, ramping_down_constraint, -np.inf, 0, constraint_information_class)
         # 变动
         B = np.array([
             [self.name + "input_e2", 1],
@@ -1010,6 +1034,11 @@ class ER:
                                constraint_information_class)
         CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_c, self.max_output_c,
                                constraint_information_class)
+
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 1, 1, constraint_information_class)
 
 
     def draw(self):

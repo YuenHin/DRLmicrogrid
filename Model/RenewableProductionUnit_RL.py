@@ -8,7 +8,7 @@ from tools.aDataSetting import smooth
 import random
 
 class RT:
-    def __init__(self, name, type ,id, production_price, production_total, time_num, stochastic_value = 0.1):
+    def __init__(self, name, type ,id, production_price, production_total, time_num, stochastic_value = 10):
         self.name = name
         self.id = id
 

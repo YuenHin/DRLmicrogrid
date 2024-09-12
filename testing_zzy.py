@@ -13,7 +13,8 @@ y = np.sin(X[:, 1] / 24 * 2 * np.pi) * 10 + 50 + np.random.normal(0, 2, X.shape[
 
 # 2. 定义核函数和高斯过程模型
 # 核函数: 常数核 + RBF核
-kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
+# kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
+kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (0.5, 2))
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
 
 # 3. 训练模型

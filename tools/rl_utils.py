@@ -65,10 +65,12 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
             for i_episode in range(int(num_episodes / 10)):
                 episode_return = 0
                 state = env.reset()
+                state = state[0] # Pendulum-v1环境用
                 done = False
                 while not done:
                     action = agent.take_action(state)
-                    next_state, reward, done, _ = env.step(action)
+                    # next_state, reward, done, _ = env.step(action)
+                    next_state, reward, truncated, done, _ = env.step(action)
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
                     episode_return += reward
@@ -84,6 +86,28 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                 pbar.update(1)
     return return_list
 
+def my_train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size):
+    return_list = []
+    for i in range(int(num_episodes)):
+        with tqdm(total=int(num_episodes), desc='Iteration %d' % i) as pbar:
+            episode_return = 0
+            state = env.reset()
+            state = state[0]  # Pendulum-v1环境用
+            done = False
+            while not done:
+                action = agent.take_action(state)
+                next_state, reward, truncated, done, _ = env.step(action)
+                replay_buffer.add(state, action, reward, next_state, done)
+                state = next_state
+                episode_return += reward
+                if replay_buffer.size() > minimal_size:
+                    b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
+                    transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
+                                       'dones': b_d}
+                    agent.update(transition_dict)
+            return_list.append(episode_return)
+            pbar.update(1)
+    return return_list
 
 def compute_advantage(gamma, lmbda, td_delta):
     td_delta = td_delta.detach().numpy()

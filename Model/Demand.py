@@ -45,6 +45,8 @@ class D:
 
         self.flexible_value = 0 # 取值0-1
 
+        self.stochas_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率（除了第一步）
+
     def __init(self):
         self.__params_named()
         self.__set_intergrality()
@@ -297,6 +299,8 @@ class D:
         # CreatConstraintsByText(1, B, self.real_x[step - 1] * (1 - self.flexible_value),
         #                                 self.real_x[step - 1] * (1 + self.flexible_value), num)
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
+
+        self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录当前时间步增加随机性后的功率
 
 
 

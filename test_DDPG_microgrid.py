@@ -9,7 +9,7 @@ import torch
 from tools.maybeExcel import writeDatatoExcel
 from tools.Logic import save_data, draw
 
-from CPP_DG_D_RE_S import MMGs
+# from CPP_DG_D_RE_S import MMGs
 from test_CPP_D import CPP_D_MMGs
 from test_CPP_D_RE import CPP_D_PV_MMGs
 from test_CPP_D_PV_S import CPP_D_PV_S_MMGs

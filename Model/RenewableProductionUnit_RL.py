@@ -42,6 +42,8 @@ class RT:
         #用来记录每一个
         self.contraint_num = 0
 
+        self.stochas_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率（除了第一步）
+
     def __init(self):
         self.__params_named()
         self.__set_intergrality()
@@ -182,6 +184,8 @@ class RT:
             [self.name + "P" + str(step), 1],
         ])
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
+
+        self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录这一步增加随机性后的功率
 
         if step > 1 :
             if (self.real_x[step - 1] - self.real_x[step - 2]) > self.p_rampingh_up[step - 1]:

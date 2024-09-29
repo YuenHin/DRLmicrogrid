@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import collections
 import random
+import pandas as pd
 
 
 class ReplayBuffer:
@@ -19,6 +20,42 @@ class ReplayBuffer:
 
     def size(self):
         return len(self.buffer)
+
+    def save_to_excel(self, file_name):
+        # 创建一个空的列表来存储每个 transition 的数据
+        data = []
+
+        for state, action, reward, next_state, done in self.buffer:
+            # 将state和next_state展开成列表，action是一个list，reward和done是单个值
+            row = list(state) + action + [reward] + list(next_state) + [done]
+            data.append(row)
+
+        # 定义列名（根据state和next_state的形状为3，action为1，reward为1，done为1）
+        columns = ['state1', 'state2', 'state3', 'action', 'reward', 'next_state1', 'next_state2', 'next_state3',
+                   'done']
+
+        # 使用 pandas 将数据保存为 DataFrame
+        df = pd.DataFrame(data, columns=columns)
+
+        # 将 DataFrame 写入 Excel
+        df.to_excel('..\hyx_experiment\save_buffer\exp_' + file_name + '.xlsx', index=False)
+
+    def load_from_excel(self, file_name):
+        """从 Excel 文件加载数据到 ReplayBuffer"""
+        # 读取 Excel 文件
+        df = pd.read_excel('..\hyx_experiment\save_buffer\exp_' + file_name + '.xlsx')
+
+        # 遍历每一行，将数据加入 ReplayBuffer
+        for _, row in df.iterrows():
+            # 提取 state、action、reward、next_state 和 done
+            state = np.array([row['state1'], row['state2'], row['state3']])
+            action = [row['action']]  # action 是一个列表
+            reward = row['reward']
+            next_state = np.array([row['next_state1'], row['next_state2'], row['next_state3']])
+            done = row['done']
+
+            # 添加到 ReplayBuffer 中
+            self.add(state, action, reward, next_state, done)
 
 
 def moving_average(a, window_size):

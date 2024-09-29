@@ -8,6 +8,14 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 import matplotlib.pyplot as plt
 import tools.rl_utils
+from maybeExcel import writeDatatoExcel
+
+import torch.optim as optim
+import torch.nn as nn
+from hyx_experiment.diffusion_hyx.DDPM_exp import *
+from hyx_experiment.diffusion_hyx.ReplayBuffer import *
+from hyx_experiment.diffusion_hyx.preprocess_exp import *
+
 
 class PolicyNetContinuous(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim, action_bound):
@@ -149,9 +157,27 @@ class SACContinuous:
         self.soft_update(self.critic_1, self.target_critic_1)
         self.soft_update(self.critic_2, self.target_critic_2)
 
+    def save_network(self, name='test'):
+        #保存模型参数
+        torch.save(agent.actor.state_dict(), '.\save_model\SAC_actor_network_' + str(name) + '.pkl')
+        torch.save(agent.critic_1.state_dict(), '.\save_model\SAC_critic_1_network_' + str(name) + '.pkl')
+        torch.save(agent.critic_2.state_dict(),'.\save_model\SAC_critic_2_network_' + str(name) + '.pkl')
+
+    def load_network(self, name='test'):
+        agent.actor.load_state_dict(torch.load('.\save_model\SAC_actor_network_' + str(name) + '.pkl'))
+
+        agent.critic_1.load_state_dict(torch.load('.\save_model\SAC_critic_1_network_' + str(name) + '.pkl'))
+        agent.target_critic_1.load_state_dict(torch.load('.\save_model\SAC_critic_1_network_' + str(name) + '.pkl'))
+
+        agent.critic_2.load_state_dict(torch.load('.\save_model\SAC_critic_2_network_' + str(name) + '.pkl'))
+        agent.target_critic_2.load_state_dict(torch.load('.\save_model\SAC_critic_2_network_' + str(name) + '.pkl'))
+
+    def save_returnlist(self, file_name, return_list):
+        writeDatatoExcel(".\save_return\data_" + file_name + ".xlsx", 0, 0, return_list)
+
 # env_name = 'Pendulum-v0'
 env_name = 'Pendulum-v1'
-env = gym.make(env_name)
+env = gym.make(env_name, g=10.5)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 action_bound = env.action_space.high[0]  # 动作最大值
@@ -167,7 +193,7 @@ num_episodes = 500
 hidden_dim = 128
 gamma = 0.99
 tau = 0.005  # 软更新参数
-buffer_size = 100000
+buffer_size = 10000
 minimal_size = 1000
 batch_size = 64
 target_entropy = -env.action_space.shape[0]
@@ -175,25 +201,102 @@ target_entropy = -env.action_space.shape[0]
 #     "cpu")
 device = torch.device("cpu")
 
+use_Model = True #True or False
+save_Model = False #True or False
+
 replay_buffer = tools.rl_utils.ReplayBuffer(buffer_size)
+# replay_buffer.load_from_excel('test')
+
 agent = SACContinuous(state_dim, hidden_dim, action_dim, action_bound,
                       actor_lr, critic_lr, alpha_lr, target_entropy, tau,
                       gamma, device)
 
+# 读取已训练的模型参数
+if use_Model is True:
+    agent.load_network('500')
+
 return_list = tools.rl_utils.train_off_policy_agent(env, agent, num_episodes,
                                               replay_buffer, minimal_size,
                                               batch_size)
+
+replay_buffer.save_to_excel('g10_500')
+###############################################################################################
+"""
+# 初始化参数
+timesteps = 1000
+beta_schedule = linear_beta_schedule(timesteps)
+epochs = 10
+learning_rate = 1e-3
+training_steps = 1000  # 每个epoch中的训练步数
+
+# batch_size = replay_buffer.size()
+batch_size = 1000
+
+# 获取状态和动作维度
+states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
+state_dim = states.shape[1]  # 状态的特征数量
+#action_dim = actions.shape[1]  # 动作的特征数量（假设动作是一个向量）
+action_dim = 1
+
+# 初始化 UNet 模型
+unet = ExperienceUNet(c_in=state_dim + action_dim + state_dim, c_out=state_dim + action_dim + state_dim)
+optimizer = optim.Adam(unet.parameters(), lr=learning_rate)
+mse_loss = nn.MSELoss()
+
+# 训练循环
+for epoch in range(epochs):
+    for step in range(training_steps):
+        # 从经验池中随机采样
+        states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
+
+        # 预处理经验数据
+        experience_tensor = preprocess_experience_np(states, actions, rewards, next_states)
+
+        # 随机选择时间步
+        t = torch.randint(0, timesteps, (experience_tensor.size(0),)).long()
+
+        # 扩散过程中的噪声添加
+        noisy_experience = forward_diffusion_experience(experience_tensor, t, beta_schedule[t])
+
+        noisy_experience = noisy_experience.unsqueeze(1)  # 从 [batch_size, feature_dim] -> [batch_size, 1, feature_dim]
+
+        # 通过 U-Net 去噪
+        predicted_noise = unet(noisy_experience)
+
+        predicted_noise = predicted_noise.squeeze(1)
+
+        # 计算损失
+        loss = mse_loss(predicted_noise, experience_tensor)
+
+        # 反向传播并更新模型参数
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+    print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item()}")
+
+###############################################################################################
+
+#保存训练的模型参数
+if save_Model is True:
+    agent.save_network(name=str(num_episodes)+'ori10.5')
 
 episodes_list = list(range(len(return_list)))
 plt.plot(episodes_list, return_list)
 plt.xlabel('Episodes')
 plt.ylabel('Returns')
 plt.title('SAC on {}'.format(env_name))
-plt.show()
+# plt.show()
 
 mv_return = tools.rl_utils.moving_average(return_list, 9)
 plt.plot(episodes_list, mv_return)
 plt.xlabel('Episodes')
 plt.ylabel('Returns')
 plt.title('SAC on {}'.format(env_name))
-plt.show()
+# plt.show()
+
+# plt.savefig('.\savefig\SAC on {}'.format(str(num_episodes)+'_ori10.5')+'.png')
+#
+# agent.save_returnlist(str(num_episodes)+'_SACori10.5', return_list)
+
+"""

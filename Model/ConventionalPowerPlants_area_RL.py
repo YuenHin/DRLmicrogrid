@@ -39,6 +39,7 @@ class CPP:
 
         self.contraint_num = 0
 
+
     def __init(self):
         self.__params_named()
         self.__getData()

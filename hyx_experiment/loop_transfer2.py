@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 import matplotlib.pyplot as plt
 import tools.rl_utils
+from maybeExcel import writeDatatoExcel
+
 
 class PolicyNetContinuous(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim, action_bound):
@@ -149,51 +151,83 @@ class SACContinuous:
         self.soft_update(self.critic_1, self.target_critic_1)
         self.soft_update(self.critic_2, self.target_critic_2)
 
+    def save_network(self, name='test'):
+        #保存模型参数
+        torch.save(agent.actor.state_dict(), '.\save_model\SAC_actor_network_' + str(name) + '.pkl')
+        torch.save(agent.critic_1.state_dict(), '.\save_model\SAC_critic_1_network_' + str(name) + '.pkl')
+        torch.save(agent.critic_2.state_dict(),'.\save_model\SAC_critic_2_network_' + str(name) + '.pkl')
+
+    def load_network(self, name='test'):
+        agent.actor.load_state_dict(torch.load('.\save_model\SAC_actor_network_' + str(name) + '.pkl'))
+
+        agent.critic_1.load_state_dict(torch.load('.\save_model\SAC_critic_1_network_' + str(name) + '.pkl'))
+        agent.target_critic_1.load_state_dict(torch.load('.\save_model\SAC_critic_1_network_' + str(name) + '.pkl'))
+
+        agent.critic_2.load_state_dict(torch.load('.\save_model\SAC_critic_2_network_' + str(name) + '.pkl'))
+        agent.target_critic_2.load_state_dict(torch.load('.\save_model\SAC_critic_2_network_' + str(name) + '.pkl'))
+
+    def save_returnlist(self, file_name, return_list):
+        writeDatatoExcel(".\save_return\data_" + file_name + ".xlsx", 0, 0, return_list)
+
 # env_name = 'Pendulum-v0'
 env_name = 'Pendulum-v1'
-env = gym.make(env_name)
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.shape[0]
-action_bound = env.action_space.high[0]  # 动作最大值
-# random.seed(0)
-# np.random.seed(0)
-# env.seed(0)
-# torch.manual_seed(0)
+g = 10
+for i in range(10):
+    g = 10 + 5 * (i+1)
+    env = gym.make(env_name, g = g)
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    action_bound = env.action_space.high[0]  # 动作最大值
+    actor_lr = 3e-4
+    critic_lr = 3e-3
+    alpha_lr = 3e-4
+    num_episodes = 500
+    hidden_dim = 128
+    gamma = 0.99
+    tau = 0.005  # 软更新参数
+    buffer_size = 10000
+    minimal_size = 1000
+    batch_size = 64
+    target_entropy = -env.action_space.shape[0]
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
+        "cpu")
+    # device = torch.device("cpu")
 
-actor_lr = 3e-4
-critic_lr = 3e-3
-alpha_lr = 3e-4
-num_episodes = 500
-hidden_dim = 128
-gamma = 0.99
-tau = 0.005  # 软更新参数
-buffer_size = 100000
-minimal_size = 1000
-batch_size = 64
-target_entropy = -env.action_space.shape[0]
-# device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
-#     "cpu")
-device = torch.device("cpu")
+    use_Model = True  # True or False
+    save_Model = False  # True or False
 
-replay_buffer = tools.rl_utils.ReplayBuffer(buffer_size)
-agent = SACContinuous(state_dim, hidden_dim, action_dim, action_bound,
-                      actor_lr, critic_lr, alpha_lr, target_entropy, tau,
-                      gamma, device)
+    replay_buffer = tools.rl_utils.ReplayBuffer(buffer_size)
+    agent = SACContinuous(state_dim, hidden_dim, action_dim, action_bound,
+                          actor_lr, critic_lr, alpha_lr, target_entropy, tau,
+                          gamma, device)
 
-return_list = tools.rl_utils.train_off_policy_agent(env, agent, num_episodes,
-                                              replay_buffer, minimal_size,
-                                              batch_size)
+    # 读取已训练的模型参数
+    if use_Model is True:
+        agent.load_network('500')
 
-episodes_list = list(range(len(return_list)))
-plt.plot(episodes_list, return_list)
-plt.xlabel('Episodes')
-plt.ylabel('Returns')
-plt.title('SAC on {}'.format(env_name))
-plt.show()
+    return_list = tools.rl_utils.train_off_policy_agent(env, agent, num_episodes,
+                                                        replay_buffer, minimal_size,
+                                                        batch_size)
+    # 保存训练的模型参数
+    # if save_Model is True:
+    #     agent.save_network(name=str(num_episodes) + 'ori10.5')
 
-mv_return = tools.rl_utils.moving_average(return_list, 9)
-plt.plot(episodes_list, mv_return)
-plt.xlabel('Episodes')
-plt.ylabel('Returns')
-plt.title('SAC on {}'.format(env_name))
-plt.show()
+    episodes_list = list(range(len(return_list)))
+    plt.plot(episodes_list, return_list)
+    plt.xlabel('Episodes')
+    plt.ylabel('Returns')
+    plt.title('SAC on {}'.format(env_name))
+    # plt.show()
+
+    mv_return = tools.rl_utils.moving_average(return_list, 9)
+    plt.plot(episodes_list, mv_return)
+    plt.xlabel('Episodes')
+    plt.ylabel('Returns')
+    plt.title('SAC on {}'.format(env_name))
+    # plt.show()
+
+    # plt.savefig('.\savefig\SAC on {}'.format(str(num_episodes)+'_ori10.5')+'.png')
+    plt.savefig('.\savefig\SAC on {}'.format(str(num_episodes) + '_' + str(g)) + '.png')
+    plt.clf()
+
+    agent.save_returnlist(str(num_episodes) + '_SAC' + str(g), return_list)

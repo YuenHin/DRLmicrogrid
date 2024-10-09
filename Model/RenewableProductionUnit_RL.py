@@ -186,7 +186,7 @@ class RT:
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
 
         self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录这一步增加随机性后的功率
-
+        '''
         if step > 1 :
             if (self.real_x[step - 1] - self.real_x[step - 2]) > self.p_rampingh_up[step - 1]:
                 a = self.real_x[step - 1]
@@ -207,6 +207,7 @@ class RT:
             if ( - self.real_x[step - 1]) > self.p_rampingh_down[step - 1]:
                 self.real_x[step - 1] = self.p_rampingh_down[step - 1]
                 # num.bu[self.contraint_num + self.time_num * 2 + step - 1] = np.inf
+        '''
 
     def retrain(self, step, num):
         num.bu[self.contraint_num + self.time_num + step - 1] = np.inf

@@ -252,6 +252,7 @@ class D:
         #需要控制不确定变化后不会跳出范围
         #self.real_x[step - 1] = self.x[step - 1] * (1 + (random.random() * (self.stochastic_value) * 0.01))
 
+
         ran = random.choice([1, -1])
         # ran=1，真实值向上波动
         if ran == 1:

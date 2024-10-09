@@ -124,6 +124,10 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                 episode_return = 0
                 epsidoe_action_list = []
                 # state = env.reset()
+                for MG in env.env.MG:
+                    for node in MG.node:
+                        for device in node.devices:
+                            print(device.name)
                 state = env.reset2()
                 done = False
                 j = 1
@@ -138,9 +142,15 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                         if actionSuccess == False:
                             # state = env.reset()
                             state = env.reset2()
+                            epsidoe_action_list = []
+                            # 对Demand和RT在t=1的功率添加随机性
+                            state = env.first_stochastic_factor_setting_RED()
+                            state_1 = state
                         action = agent.take_action(state, time = env.step_time, i_episode = i_episode)
                         # next_state, reward, done, going = env.step2(action)
                         next_state, reward, done, going, action_ = env.step3(action, cur_episode)
+                        if next_state == None:
+                            next_state = state_1
                         action = action_
                         if going == True:
                             actionSuccess = True
@@ -158,12 +168,7 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                     if replay_buffer.size() > minimal_size:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
                         transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
-                        for parameters in agent.actor.parameters():
-                            print(parameters)
                         agent.update(transition_dict)
-                        for parameters in agent.actor.parameters():
-                            print(parameters)
-
                 operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost = env.env.countCost()
                 return_buffer.add(operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost)
                 if (i_episode+1) % ave_num == 0:

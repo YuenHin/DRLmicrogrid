@@ -3,3 +3,4 @@ D:/HeYuanxing/BaiduSyncdisk/DRLmicrogrid/Data/Result/num/MILP_microgridA.npy fil
 D:/HeYuanxing/BaiduSyncdisk/DRLmicrogrid/Data/Result/num/Perfect-MILPA.npy filter=lfs diff=lfs merge=lfs -text
 D:/HeYuanxing/BaiduSyncdisk/DRLmicrogrid/Data/Result/num/Perfecr-MILPA.npy filter=lfs diff=lfs merge=lfs -text
 D:/HeYuanxing/BaiduSyncdisk/DRLmicrogrid/Data/Result/num/Stochastic-MILPA.npy filter=lfs diff=lfs merge=lfs -text
+*.npy filter=lfs diff=lfs merge=lfs -text

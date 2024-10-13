@@ -1,5 +1,6 @@
 import random
-import gym
+# import gym
+import gymnasium as gym
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -148,20 +149,21 @@ class SACContinuous:
         self.soft_update(self.critic_1, self.target_critic_1)
         self.soft_update(self.critic_2, self.target_critic_2)
 
-env_name = 'Pendulum-v0'
+# env_name = 'Pendulum-v0'
+env_name = 'Pendulum-v1'
 env = gym.make(env_name)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 action_bound = env.action_space.high[0]  # 动作最大值
-random.seed(0)
-np.random.seed(0)
-env.seed(0)
-torch.manual_seed(0)
+# random.seed(0)
+# np.random.seed(0)
+# env.seed(0)
+# torch.manual_seed(0)
 
 actor_lr = 3e-4
 critic_lr = 3e-3
 alpha_lr = 3e-4
-num_episodes = 100
+num_episodes = 500
 hidden_dim = 128
 gamma = 0.99
 tau = 0.005  # 软更新参数

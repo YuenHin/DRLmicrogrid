@@ -8,8 +8,15 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
 #循环用的主函数
-from Generation.DeepAR.algorithm import GRUDeepAR, LSTMDeepAR, TransformerDeepAR
-from Generation.DeepAR.DeepAR import train_deepar_nll, test_deepar, calculate_metrics, test_deepar2, train_deepar_mae
+from Generation.DeepAR.algorithm import GRUDeepAR, LSTMDeepAR, TransformerDeepAR, GRUDeterministic, DeepAR
+from Generation.DeepAR.DeepAR import train_shared_method, test_deepar2, calculate_deterministic_metrics, train_deterministic, test_deterministic
+
+from tools.RE.Calculate_Metrics import calculate_metrics
+
+#traditonal methods
+from Generation.Traditional.ARIMA import ARIMAGARCH, arima_garch_train_test
+
+from Generation.VAE import VAEDeepAR
 
 ########----------------------------Basic_data-getting------------------------------------##################
 def get_re_narure_data(day):
@@ -103,11 +110,12 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 # 数据标准化
-def standardize_data(train_data, test_data):
+def standardize_data(train_data, test_data, train_test_data):
     scaler = StandardScaler()
     train_data = scaler.fit_transform(train_data)
     test_data = scaler.transform(test_data)
-    return train_data, test_data
+    train_test_data = scaler.transform(train_test_data)
+    return train_data, test_data, train_test_data
 
 #最终计算风力出力的概率分布函数
 def count_GS_windPower(wind_speed_mean, wind_speed_std, density_mean, density_std, area, power_coefficient, wind_power_True):
@@ -151,6 +159,7 @@ def count_GS_windPower(wind_speed_mean, wind_speed_std, density_mean, density_st
     plt.legend()
     plt.show()
 
+# 自定义训练数据集
 class CustomDataset(Dataset):
     def __init__(self, data, target, context_length, prediction_length):
         self.data = data
@@ -158,28 +167,15 @@ class CustomDataset(Dataset):
         self.context_length = context_length
         self.prediction_length = prediction_length
 
-    #用于定义当对一个数据集对象调用 len() 函数时应该返回的值。
     def __len__(self):
-        return len(self.data) - self.context_length - self.prediction_length + 1
+        return len(self.data) - self.context_length - self.prediction_length
 
     def __getitem__(self, idx):
-        context = self.data[idx:idx + self.context_length]
-        target_start_idx = idx + self.context_length
-        target_end_idx = target_start_idx + self.prediction_length
+        x = self.data[idx:idx + self.context_length]
+        y = self.target[idx + self.context_length:idx + self.context_length + self.prediction_length]
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
-        # 确保target的长度和prediction_length一致
-        if target_end_idx > len(self.target):
-            target_end_idx = len(self.target)
-
-        target = self.target[target_start_idx:target_end_idx]
-
-        # 如果target的长度不足prediction_length，则进行填充
-        if len(target) < self.prediction_length:
-            padding = torch.zeros(self.prediction_length - len(target))
-            target = torch.cat((target, padding))
-
-        return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32)
-
+# 自定义测试数据集
 class CustomDataset_target(Dataset):
     def __init__(self, data, target, context_length, prediction_length):
         self.data = data
@@ -187,14 +183,13 @@ class CustomDataset_target(Dataset):
         self.context_length = context_length
         self.prediction_length = prediction_length
 
-    #用于定义当对一个数据集对象调用 len() 函数时应该返回的值。
     def __len__(self):
-        return len(self.data) - self.context_length - self.prediction_length + 1
+        return len(self.data) - self.context_length - self.prediction_length
 
     def __getitem__(self, idx):
-        context = self.data[idx:idx + self.context_length]
-        target = self.target[idx + self.context_length + 1:idx + self.context_length + self.prediction_length + 1]
-        return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32)
+        x = self.data[idx:idx + self.context_length]
+        y = self.target[idx + self.context_length:idx + self.context_length + self.prediction_length]
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
 # 自定义数据集类
 class TimeSeriesDataset(Dataset):
@@ -216,31 +211,43 @@ class TimeSeriesDataset(Dataset):
         return torch.tensor(context, dtype=torch.float32), torch.tensor(target, dtype=torch.float32)
 
 # 准备数据
+# 数据准备函数
 def prepare_data(data, feature_indices, target_feature_index):
+    # 选择特定的特征作为输入
     selected_features = data[:, feature_indices]
+    # 提取目标变量
     target = data[:, target_feature_index]
     return selected_features, target
 
-def create_dataloaders(data, target, context_length, prediction_length, batch_size):
-    # 确定训练集和测试集的大小
-    train_data = data[:96 * 27]
-    train_target = target[:96 * 27]
-    # 确保测试数据足够大，以满足后续处理需求
-    test_data = data[96 * 27 - context_length - prediction_length:]
-    test_target = target[96 * 27 - context_length - prediction_length:]
+
+# 数据加载器创建函数
+def create_dataloaders(data, target, context_length, prediction_length, batch_size, train_day, test_day):
+    # 划分训练集和测试集（确保没有重叠）
+    train_data = data[:96 * train_day]
+    train_target = target[:96 * train_day]
+
+    # 这里我们确保训练集和测试集不重叠
+    test_data = data[96 * train_day - context_length:]
+    test_target = target[96 * train_day - context_length:]
+
+    #训练测试效果的数据
+    train_test_data = train_data[96 * train_day - context_length - len(test_data):]
+    train_test_target = train_target[96 * train_day - context_length - len(test_target):]
 
     # 标准化数据
-    train_data, test_data = standardize_data(train_data, test_data)
+    train_data, test_data, train_test_data = standardize_data(train_data, test_data, train_test_data)
 
-    # 创建数据集
+    # 创建自定义的数据集
     train_dataset = CustomDataset(train_data, train_target, context_length, prediction_length)
     test_dataset = CustomDataset_target(test_data, test_target, context_length, prediction_length)
+    train_test_dataset = CustomDataset_target(train_test_data, train_test_target, context_length, prediction_length)
 
     # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=prediction_length, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=prediction_length, shuffle=False)
+    train_test_loader = DataLoader(train_test_dataset, batch_size=prediction_length, shuffle=False)
 
-    return train_loader, test_loader
+    return train_loader, test_loader, train_test_loader
 
 
 def extract_targets(dataloader):
@@ -250,18 +257,22 @@ def extract_targets(dataloader):
     return np.concatenate(targets, axis=0)
 
 # 主函数
-def main(data,features ,feature_indices, target_feature_index, context_length, prediction_length, batch_size, hidden_size, num_layers, model_type, only_test = False):
+def main(data,features ,feature_indices, target_feature_index, context_length, prediction_length, batch_size, hidden_size, num_layers, model_type, train_day, test_day, only_test = False, is_train_ag = True):
+    # get the feature size
     input_size = len(feature_indices)
     #input:data:(96*30, 14)
     #output:data:(96*30, feature_indices)
     #       target:(96*30, target_feature_index)
+
+    #获取依靠数据以及目标数据的数组
     data, target = prepare_data(data, feature_indices, target_feature_index)
 
     # #标准化
     # data, target = standardize_data(data, target)
 
     #Context shape: torch.Size([32, 96, 14]), Target shape: torch.Size([32, 24])
-    train_loader, test_loader = create_dataloaders(data, target, context_length, prediction_length, batch_size)
+    #获得训练数据集与测试数据集
+    train_loader, test_loader, train_test_loader = create_dataloaders(data, target, context_length, prediction_length, batch_size, train_day, test_day)
 
     if model_type == 'DeepAR_GRU':
         model = GRUDeepAR(input_size, hidden_size, num_layers, prediction_length)
@@ -269,18 +280,67 @@ def main(data,features ,feature_indices, target_feature_index, context_length, p
         model = LSTMDeepAR(input_size, hidden_size, num_layers, prediction_length)
     elif model_type == 'DeepAR_Transformer':
         model = TransformerDeepAR(input_size, hidden_size, num_layers, prediction_length)
+    elif model_type == 'GRUDeterministic':
+        model = GRUDeterministic(input_size, hidden_size, num_layers, prediction_length)
+    elif model_type == 'DeepAR':
+        model = DeepAR(input_size, hidden_size, num_layers, prediction_length)
+    elif model_type == 'ARIMAGARCH':
+        model = ARIMAGARCH(input_size, hidden_size, num_layers, prediction_length)
+    elif model_type == 'VAE':
+        model = VAEDeepAR(input_size, hidden_size, num_layers, prediction_length)
     else:
         raise ValueError("Invalid model type")
 
-    model_path = f'Data\RE\model\{model_type.lower()}_'+features[target_feature_index]+'.pth'
-    if only_test is False:
-        train_deepar_mae(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path)
-        train_deepar_nll(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path)
+    print("----------------------------------" + model_type + "----------------------------------")
 
-    pred_mu, pred_sigma, target = test_deepar2(model, test_loader, context_length, prediction_length, model_path=model_path, index="ending")
-    metrics = calculate_metrics(pred_mu, target, pred_sigma)
+    model_path = f'Data\RE\model\\{model_type.lower()}_'+features[target_feature_index]+'_GL.pth'
 
-    print(metrics)
+    if is_train_ag == False:
+        #不需要训练的
+        if model_type == 'ARIMAGARCH':
+            pred_mu, pred_sigma, target = arima_garch_train_test(model, train_loader, context_length, prediction_length,
+                                                                 test_loader, model_path=model_path)  # 暂定
+            metrics = calculate_metrics(pred_mu, target, pred_sigma)
+            print(metrics)
+
+    else:
+        # 需要训练的
+        if only_test is False:
+            #训练过程
+            if model_type == 'GRUDeterministic':
+                train_deterministic(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path)
+            elif model_type == 'VAE':
+                train_shared_method(model, train_loader, test_loader, context_length, prediction_length,
+                                    model_path=model_path, loss_method=4)
+            else:
+                #train_shared_method(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path, loss_method=1)
+                train_shared_method(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path, loss_method=2)
+                #train_shared_method(model, train_loader, test_loader, context_length, prediction_length, model_path=model_path, loss_method=3)
+
+        #测试过程
+        if model_type == 'GRUDeterministic':
+            #确定性的
+            prediction_data, target = test_deterministic(model, train_loader, context_length, prediction_length,
+                                                         model_path=model_path, index="ending_train")
+            metrics = calculate_deterministic_metrics(prediction_data, target)
+            print(metrics)
+            prediction_data, target = test_deterministic(model, test_loader, context_length, prediction_length,
+                                                         model_path=model_path, index="ending")
+            metrics = calculate_deterministic_metrics(prediction_data, target)
+            print(metrics)
+        else:
+            #不确定性的
+            pred_mu, pred_sigma, target = test_deepar2(model, train_test_loader, context_length, prediction_length,
+                                                       model_path=model_path, index="ending_train")
+            metrics = calculate_metrics(pred_mu, target, pred_sigma)
+            print(metrics)
+
+            pred_mu, pred_sigma, target = test_deepar2(model, test_loader, context_length, prediction_length,
+                                                       model_path=model_path, index="ending")
+            metrics = calculate_metrics(pred_mu, target, pred_sigma)
+            print(metrics)
+
+
 
 # 示例调用
 if __name__ == '__main__':

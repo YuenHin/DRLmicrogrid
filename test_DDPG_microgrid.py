@@ -1,3 +1,5 @@
+import time
+
 import gym
 from algorithm.DDPG import DDPG
 from algorithm.alTools.rl_starting import *
@@ -7,16 +9,17 @@ import torch
 from tools.maybeExcel import writeDatatoExcel
 from tools.Logic import save_data, draw
 
-from CPP_DG_D_RE_S import MMGs
+# from CPP_DG_D_RE_S import MMGs
 from test_CPP_D import CPP_D_MMGs
 from test_CPP_D_RE import CPP_D_PV_MMGs
 from test_CPP_D_PV_S import CPP_D_PV_S_MMGs
 
 class test_DDPG():
     def func(self):
+        start_time = time.time()
         actor_lr = 3e-4
         critic_lr = 3e-3
-        num_episodes = 1000
+        num_episodes = 100
         hidden_dim = 128
         gamma = 0.98
         tau = 0.005  # 软更新参数
@@ -48,6 +51,8 @@ class test_DDPG():
         title = np.array(["operation_cost", "carbon_emission", "carbon_emission_cost", "profit", "total_cost"])
         # writeDatatoExcel(".\Data\Result\DDPG_actor.xlsx", 0, 0, np.array([episodes_list]))
 
+        print("训练1000次用时：", time.time() - start_time)
+
         for i in range(5):
             plt.plot(episodes_list, return_list[i])
             plt.xlabel('Episodes')
@@ -55,7 +60,9 @@ class test_DDPG():
             plt.title('DDPG on {}'.format(title[i]))
             plt.show()
 
-            mv_return = moving_average(np.array([return_list[i]]), 9)
+            a = np.squeeze(return_list[i])
+            mv_return = moving_average(a, 9)
+            # mv_return = moving_average(np.array([return_list[i]]), 9)
             plt.plot(episodes_list, mv_return)
             plt.xlabel('Episodes')
             plt.ylabel('Returns')
@@ -68,7 +75,7 @@ class test_DDPG():
 
         torch.save(agent.actor.state_dict(), '.\Data\Result\DDPG_actor_network.pkl')
         save_data(env.save_name, env.x, 1)
-        draw(env.env.MG)
+        #draw(env.env.MG)
 
 
 a =test_DDPG()

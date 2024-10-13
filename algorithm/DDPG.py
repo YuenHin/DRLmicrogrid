@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+from random import random
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim, action_bound):
@@ -34,6 +35,8 @@ class DDPG:
         self.critic = QValueNet(state_dim, hidden_dim, action_dim).to(device)
         self.target_actor = PolicyNet(state_dim, hidden_dim, action_dim, action_bound).to(device)
         self.target_critic = QValueNet(state_dim, hidden_dim, action_dim).to(device)
+
+        self.action_bound = action_bound
         # 初始化目标价值网络并设置和价值网络相同的参数
         self.target_critic.load_state_dict(self.critic.state_dict())
         # 初始化目标策略网络并设置和策略相同的参数
@@ -46,12 +49,38 @@ class DDPG:
         self.action_dim = action_dim
         self.device = device
 
-    def take_action(self, state):
+        self.start_sigma = self.sigma * 50  # 高斯噪声的标准差, 增加一个初始探索领域
+
+    def take_action(self, state, time = 1000, i_episode = 1000):
+        # state = torch.tensor([state], dtype=torch.float).to(self.device)
+        # action = self.actor(state).item()
+        # if time < 90:
+        #     a = (random() * 2 - 1)
+        #     b = action + self.actor(state).item()
+        #     action = np.minimum(np.maximum(b, -self.action_bound), self.action_bound)
+        # else:
+        #     # 给动作添加噪声，增加探索
+        #     if i_episode >= 5:
+        #         self.start_sigma = np.maximum(self.start_sigma * 0.95, self.sigma)
+        #     action = np.minimum(np.maximum(action + (self.sigma * (random() * 2 - 1)), -self.action_bound), self.action_bound)
+        # if i_episode < 5:
+        #     action = random() * 2 - 1
+        # return action
+        # test_array = np.zeros_like(state)
+        # test_tensor = test_array + np.random.random()
+        # test_tensor = torch.tensor([test_tensor], dtype=torch.float).to(self.device)
+        # action_test = self.actor(test_tensor).item()
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         action = self.actor(state).item()
-        # 给动作添加噪声，增加探索
+        #给动作添加噪声，增加探索
+        # action = action + self.start_sigma * np.random.randn(self.action_dim) #这里后续需要修改sigma
         action = action + self.sigma * np.random.randn(self.action_dim)
+        if action > 1:
+            action = action - 2
+        if action < -1:
+            action = action + 2
         return action
+
 
     def soft_update(self, net, target_net):
         for param_target, param in zip(target_net.parameters(), net.parameters()):

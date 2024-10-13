@@ -58,6 +58,8 @@ class S:
 
         self.constraint_num = 0
 
+        self.real_E = np.zeros(self.time_num)  # 记录执行每一步动作后的储能容量
+
     def __init(self):
         self.__params_named()
         self.__set_intergrality()
@@ -97,7 +99,7 @@ class S:
         self.discharging_max = self.each_step_charge
         self.ramping_limit = self.each_step_charge * 1.1
 
-
+    '''
     def constraints(self, num):
         "Energy storage limited"
         B = np.array([
@@ -182,6 +184,99 @@ class S:
         #     [self.name + "DP1", 1],
         # ])
         # CreatConstraintsByText(1, B, 200, np.inf, num)
+    '''
+
+    def constraints(self, num):
+        # 这里放开了储能的充放电约束
+        "Energy storage limited"
+        B = np.array([
+            [self.name + "E1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 0, self.e, num)
+
+        "Charging power limits:"
+        for i in range(self.time_num):
+            B = np.array([
+                [self.name + "CP" + str(i + 1), 1]
+            ])
+            CreatConstraintsByText(1, B, 0, np.inf, num)
+
+        for i in range(self.time_num):
+            B = np.array([
+                [self.name + "CP" + str(i + 1), 1],
+                # [self.name + "S" + str(i + 1), -self.charging_max]
+                [self.name + "S" + str(i + 1), -self.e]
+            ])
+            CreatConstraintsByText(1, B, -np.inf, 0, num)
+
+        "Discharging power limits:"
+        for i in range(self.time_num):
+            B = np.array([
+                [self.name + "DP" + str(i + 1), 1]
+            ])
+            CreatConstraintsByText(1, B, 0, np.inf, num)
+        for i in range(self.time_num):
+            B = np.array([
+                [self.name + "DP" + str(i + 1), 1],
+                # [self.name + "S" + str(i + 1), self.discharging_max]
+                [self.name + "S" + str(i + 1), self.e]
+            ])
+            # CreatConstraintsByText(1, B, 0, self.discharging_max, num)
+            CreatConstraintsByText(1, B, 0, self.e, num)
+
+        "Energy balance in the storage unit"
+        B = np.array([
+            [self.name + "E1", 1],
+            [self.name + "CP1", -self.charging_rate],
+            [self.name + "DP1", 1 / self.charging_rate]
+        ])
+        CreatConstraintsByText(1, B, self.begin, self.begin, num)
+        # CreatConstraintsByText(1, B, self.begin, self.begin+(self.storagr_limit*0.1), num)
+        B = np.array([
+            [self.name + "E2", 1],
+            [self.name + "E1", -(1 - self.self_discharging)],
+            [self.name + "CP2", -self.charging_rate],
+            [self.name + "DP2", 1 / self.charging_rate]
+        ])
+        CreatConstraintsByText(self.time_num - 1, B, 0, 0, num)
+        B = np.array([
+            [self.name + "E" + str(self.time_num), 1]
+        ])
+        # CreatConstraintsByText(1, B, self.begin, self.begin, num)
+        # CreatConstraintsByText(1, B, self.storagr_limit/2, np.inf, num)
+        CreatConstraintsByText(1, B, 0, np.inf, num)
+
+        B = np.array([
+            [self.name + "E1", -1],
+            [self.name + "E2", 1],
+        ])
+        # CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
+        CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.e, num)
+
+        B = np.array([
+            [self.name + "E1", 1],
+            [self.name + "E2", -1],
+        ])
+        # CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
+        CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.e, num)
+
+        "State"
+        B = np.array([
+            [self.name + "S1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 0, 1, num)
+
+        "P = cP + dp"
+        B = np.array([
+            [self.name + "P1", 1],
+            [self.name + "CP1", -1],
+            [self.name + "DP1", 1]
+        ])
+        CreatConstraintsByText(self.time_num, B, 0, 0, num)
+        # B = np.array([
+        #     [self.name + "DP1", 1],
+        # ])
+        # CreatConstraintsByText(1, B, 200, np.inf, num)
 
     def draw(self):
         x = self.x[self.time_num:self.time_num*2]
@@ -207,26 +302,43 @@ class S:
             ])
             CreatConstraintsByText(1, B, self.real_x[self.time_num +step - 1], self.real_x[self.time_num +step - 1], num)
 
-    def get_action(self, step, num, action):
+    def get_action(self, step, num, action, cur_episode):
         #这里因为没有涉及到强化学习控制，因此只需要将perfect——MILP下未考虑随机的控制结果输出即可，不需要做额外的控制
         #self.real_x[step - 1] = np.maximum(np.minimum(self.x[self.time_num + step - 1], self.e), 0)
         #这里输入进来的action是一个[-1,1]的数字
+        if cur_episode >= 0:  # 训练的后半段再用智能体给的动作
+            action_ = action
+            if step == 1:
+                self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
+            else:
+                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
 
-        if step == 1:
-            self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
-        else:
-            self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
-        if self.real_x[self.time_num + step - 1] > self.e or self.real_x[self.time_num + step - 1] < 0:
-            return True
+            # if self.real_x[self.time_num + step - 1] > self.e or self.real_x[self.time_num + step - 1] < 0:
+            #     return True, action_
 
+            if self.real_x[self.time_num + step - 1] > self.e:
+                self.real_x[self.time_num + step - 1] = self.e
+            if self.real_x[self.time_num + step - 1] < 0:
+                self.real_x[self.time_num + step - 1] = 0
+
+        if cur_episode < -1:  # 训练的前半段用MILP求解的值，将最优解放进经验池
         # 我需要控制不确定变化后不会跳出范围
-        #self.real_x[self.time_num + step - 1] = self.x[self.time_num + step - 1]
+            self.real_x[self.time_num + step - 1] = self.x[self.time_num + step - 1]  # 直接拿MILP的求解结果，反过来求action
+            if step == 1:
+                action_ = (self.real_x[self.time_num + step - 1] - self.begin) / self.ramping_limit
+                action_ = np.array([action_])
+            else:
+                action_ = (self.real_x[self.time_num + step - 1] - self.real_x[self.time_num + step - 2]) / self.ramping_limit
+                action_ = np.array([action_])
 
         B = np.array([
             [self.name + "E" + str(step), 1],
         ])
         CreatConstraintsByText(1, B, self.real_x[self.time_num +step - 1], self.real_x[self.time_num +step - 1], num)
-        return False
+
+        self.real_E[step - 1] = self.real_x[self.time_num +step - 1]  # 记录执行这一步的action后的储能容量，之后用于添加到state中
+
+        return False, action_
 
     def fix(self, num):
 

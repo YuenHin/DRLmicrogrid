@@ -126,12 +126,23 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                 state = env.reset()
                 done = False
                 j = 1
+                going = False
+                actionSuccess = False
                 while not done:
                     # for k in range(500):
                     #     action = agent.take_action(state, time = env.step_time, i_episode = i_episode)
                     #     print(action)
-                    action = agent.take_action(state, time = env.step_time, i_episode = i_episode)
-                    next_state, reward, done, _ = env.step(action)
+                    while not going:
+                        if actionSuccess == False:
+                            state = env.reset()
+                        action = agent.take_action(state, time = env.step_time, i_episode = i_episode)
+                        next_state, reward, done, going = env.step2(action)
+                        if going == True:
+                            actionSuccess = True
+                        else:
+                            actionSuccess = False
+                        a = 1
+                    going = False
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
                     episode_return += reward

@@ -15,7 +15,8 @@ class CPP:
 
         self.time_num = time_num
         self.p = np.zeros(time_num)
-        self.p_max = (self.total_production / self.time_num) * 0.2
+        #self.p_max = (self.total_production / self.time_num) * 0.2
+        self.p_max = 10000
         self.p_min = 0
 
         self.c_emission = np.zeros(time_num)
@@ -27,7 +28,6 @@ class CPP:
         self.sell_price = 0.315
 
         self.way = 1
-        "表示能源从该设备流出又流入，且分开计算"
 
 
         self.__init()
@@ -38,6 +38,7 @@ class CPP:
         self.real_x = np.zeros(self.length)
 
         self.contraint_num = 0
+
 
     def __init(self):
         self.__params_named()
@@ -88,7 +89,6 @@ class CPP:
         ])
         CreatConstraintsByText(self.time_num, B, -self.p_max, self.p_max, num)
         # CreatConstraintsByText(self.time_num, B, 0, self.p_max, num)
-        # CreatConstraintsByText(self.time_num - 18, B, -self.p_max, self.p_max, num)
 
         B = np.array([
             [self.name + "buy" + "P1", 1],

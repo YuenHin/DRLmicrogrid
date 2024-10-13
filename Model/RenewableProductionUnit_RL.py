@@ -8,7 +8,7 @@ from tools.aDataSetting import smooth
 import random
 
 class RT:
-    def __init__(self, name, type ,id, production_price, production_total, time_num, stochastic_value = 0.1):
+    def __init__(self, name, type ,id, production_price, production_total, time_num, stochastic_value = 10):
         self.name = name
         self.id = id
 
@@ -41,6 +41,8 @@ class RT:
         self.stochastic_value = stochastic_value
         #用来记录每一个
         self.contraint_num = 0
+
+        self.stochas_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率（除了第一步）
 
     def __init(self):
         self.__params_named()
@@ -155,7 +157,7 @@ class RT:
         return p
 
     #依据当前值得到真实随机出力值,并加入约束控制其值输出为确定性输出值
-    def stochastic(self, step, num):
+    def stochastic(self, step, num, mpc_num):
 
         # 我需要控制不确定变化后不会跳出范围
         #self.real_x[step - 1] = self.x[step - 1] * (1 + (random.random() * self.stochastic_value * 0.01))
@@ -182,7 +184,10 @@ class RT:
             [self.name + "P" + str(step), 1],
         ])
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
+        CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], mpc_num)
 
+        self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录这一步增加随机性后的功率
+        '''
         if step > 1 :
             if (self.real_x[step - 1] - self.real_x[step - 2]) > self.p_rampingh_up[step - 1]:
                 a = self.real_x[step - 1]
@@ -203,6 +208,7 @@ class RT:
             if ( - self.real_x[step - 1]) > self.p_rampingh_down[step - 1]:
                 self.real_x[step - 1] = self.p_rampingh_down[step - 1]
                 # num.bu[self.contraint_num + self.time_num * 2 + step - 1] = np.inf
+        '''
 
     def retrain(self, step, num):
         num.bu[self.contraint_num + self.time_num + step - 1] = np.inf

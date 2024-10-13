@@ -17,6 +17,7 @@ class RT:
         self.name = name
         self.id = id
 
+        self.stage = 2
         self.way = 1
 
         # 生产成本
@@ -69,12 +70,12 @@ class RT:
         if self.type == "WT":
             self.c = np.zeros(len(self.params))
             for i in range(len(self.c)):
-                self.c[i] = self.production_price + 0.0896 - 0.05
+                self.c[i] = -(self.production_price + 0.0896 - 0.05)
 
         if self.type == "PV":
             self.c = np.zeros(len(self.params))
             for i in range(len(self.c)):
-                self.c[i] = self.production_price + 0.0896 - 0.05
+                self.c[i] = -(self.production_price + 0.0896 - 0.05)
 
     def __getData(self):
         "导入可再生能源产能"
@@ -96,8 +97,8 @@ class RT:
                 self.p[i] = 0
         # 将处理过后的p数组赋值给p_max
         print(f"可再生能源出力值：{self.p}")
-        self.p_max = self.p
-        self.p_min = np.zeros_like(self.p_max)
+        # self.p_max = self.p
+        # self.p_min = np.zeros_like(self.p_max)
 
         if self.type == "PV":
             # 光伏的爬坡功率与滑坡功率是最大功率的一半
@@ -116,16 +117,28 @@ class RT:
         dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\wt.xlsx")
         self.p = dataset['real_value'].values
         self.p = self.p[:self.time_num]
+        self.p_min = dataset['min'].values
+        self.p_min = self.p_min[:self.time_num]
+        self.p_max = dataset['max'].values
+        self.p_max = self.p_max[:self.time_num]
 
     def __getPVData(self):
         dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\pv.xlsx")
         self.p = dataset['real_value'].values
         self.p = self.p[:self.time_num]
+        self.p_min = dataset['min'].values
+        self.p_min = self.p_min[:self.time_num]
+        self.p_max = dataset['max'].values
+        self.p_max = self.p_max[:self.time_num]
 
     def __getHPData(self):
         dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\hp.xlsx")
         self.p = dataset['real_value'].values
         self.p = self.p[:self.time_num]
+        self.p_min = dataset['min'].values
+        self.p_min = self.p_min[:self.time_num]
+        self.p_max = dataset['max'].values
+        self.p_max = self.p_max[:self.time_num]
 
     def constraints(self, num):
         # 起始位置
@@ -140,27 +153,27 @@ class RT:
             CreatConstraintsByText(1, B, self.p_min[i], self.p_max[i], num)
 
         "Ramping limits:"
-        B = np.array([
-            [self.name + "P1", 1]
-        ])
-        CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_up[0], num)
-        for i in range(self.time_num - 1):
-            B = np.array([
-                [self.name + "P" + str(i + 1), -1],
-                [self.name + "P" + str(i + 2), 1]
-            ])
-            CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_up[i+1], num)
-
-        B = np.array([
-            [self.name + "P1", 1]
-        ])
-        CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_down[0], num)
-        for i in range(self.time_num - 1):
-            B = np.array([
-                [self.name + "P" + str(i + 1), 1],
-                [self.name + "P" + str(i + 2), -1]
-            ])
-            CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_down[i+1], num)
+        # B = np.array([
+        #     [self.name + "P1", 1]
+        # ])
+        # CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_up[0], num)
+        # for i in range(self.time_num - 1):
+        #     B = np.array([
+        #         [self.name + "P" + str(i + 1), -1],
+        #         [self.name + "P" + str(i + 2), 1]
+        #     ])
+        #     CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_up[i+1], num)
+        #
+        # B = np.array([
+        #     [self.name + "P1", 1]
+        # ])
+        # CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_down[0], num)
+        # for i in range(self.time_num - 1):
+        #     B = np.array([
+        #         [self.name + "P" + str(i + 1), 1],
+        #         [self.name + "P" + str(i + 2), -1]
+        #     ])
+        #     CreatConstraintsByText(1, B, -np.inf, self.p_rampingh_down[i+1], num)
 
         # 起始位置
         self.end_location = len(num.A)
@@ -354,6 +367,7 @@ class HP:
         self.name = name
         self.id = id
 
+        self.stage = 2
         self.way = 3
 
         self.production_price = production_price
@@ -433,7 +447,7 @@ class HP:
     def __set_c(self):
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num, self.time_num * 2):
-            self.c[i] = self.production_price + 0.04 - 0.02
+            self.c[i] = -(self.production_price + 0.04 - 0.02)
 
     # 拿到可再生能源数据
     def __getdata(self):
@@ -441,41 +455,23 @@ class HP:
         dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\hp.xlsx")
         self.p = dataset['real_value'].values
         self.p = self.p[:self.time_num]
+        self.p_min = dataset['min'].values
+        self.p_min = self.p_min[:self.time_num]
+        self.p_max = dataset['max'].values
+        self.p_max = self.p_max[:self.time_num]
 
         # 数据清洗
         for i in range(len(self.p)):
             if self.p[i] < 0:
                 self.p[i] = 0
         # 将处理后的p数组赋值给p_max
-        self.p_max = self.p
+        # self.p_max = self.p
         self.p_rampingh_up = (self.p_max - self.p_min) * 0.8
         self.p_rampingh_down = (self.p_max - self.p_min) * 0.8
 
-    def __24to96(self, path, y_index):
-        # 得到y_idex列的数据
-        p = self.__downLoad_load(path, y_index)
-        # 将以上操作得到的出力数据进行平滑处理,得到平滑处理后的纵坐标
-        p = self.__creatY_96(p)
-        # 返回平滑处理后的纵坐标
-        return p * self.production_total
-
-        # 顺滑Y轴24->96
-
-    def __creatY_96(self, p):
-        # arange函数返回有起点，有终点，有固定步长的数组
-        x = np.arange(1, len(p) + 1, 1)
-
-        x, p = smooth(x, p, self.time_num)
-        # smooth内部为利用np.linspace生成从1至24的24个数
-        # make_interp_spline是一种插值法，是一种折线平滑处理的方法
-        return p
-
-        # 加载Y轴数据
-
-    def __downLoad_load(self, path, y_index):
-        # 得到第三列的数据，由第2行至24行
-        p = getDataFromExcel(path, y_index, y_index + 1, 1, 25)
-        return p
+        for i in range(len(self.p_min)):
+            self.min[i] = self.p_min[i] / self.coefficient_h
+            self.max[i] = self.p_max[i] / self.coefficient_h
 
 
     def constraints(self, constraint_information_class):
@@ -485,19 +481,10 @@ class HP:
 
         # 性能系数约束
         coefficient_constraint_h = np.array([
-            [self.name + "input_e1", -self.coefficient_h],
-            [self.name + "output_h1", 1]
+            [self.name + "input_e1", 1],
+            [self.name + "output_h1", -1/self.coefficient_h]
         ])
         CreatConstraintsByText(self.time_num, coefficient_constraint_h, 0, 0, constraint_information_class)
-        # coefficient_constraint_c = np.array([
-        #     [self.name + "input_e1", 1],
-        #     [self.name + "output_c1", -self.coefficient_c]
-        # ])
-        # CreatConstraintsByText(self.time_num, coefficient_constraint_c, 0, 0, constraint_information_class)
-
-        for i in range(len(self.p_min)):
-            self.min[i] = self.p_min[i] / self.coefficient_h
-            self.max[i] = self.p_max[i] / self.coefficient_h
 
         # 最大/最小功率约束
         for i in range(self.time_num):
@@ -534,28 +521,29 @@ class HP:
         #     CreatConstraintsByText(1, power_constraint, self.p_min[i], self.p_max[i], constraint_information_class)
         # 爬坡与滑坡攻略约束
         # 爬坡
-        ramping_constraint = np.array([
-            [self.name + "output_h1", 1]
-        ])
-        CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_up[0], constraint_information_class)
-        for i in range(self.time_num - 1):
-            ramping_constraint = np.array([
-                [self.name + "output_h" + str(i + 1), -1],
-                [self.name + "output_h" + str(i + 2), 1]
-            ])
-            CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_up[i+1], constraint_information_class)
-        # 滑坡
-        ramping_constraint = np.array([
-            [self.name + "output_h1", 1]
-        ])
-        CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_down[0], constraint_information_class)
-        for i in range(self.time_num - 1):
-            ramping_constraint = np.array([
-                [self.name + "output_h" + str(i + 1), 1],
-                [self.name + "output_h" + str(i + 2), -1]
-            ])
-            CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_down[i + 1],
-                                   constraint_information_class)
+        """ramping"""
+        # ramping_constraint = np.array([
+        #     [self.name + "output_h1", 1]
+        # ])
+        # CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_up[0], constraint_information_class)
+        # for i in range(self.time_num - 1):
+        #     ramping_constraint = np.array([
+        #         [self.name + "output_h" + str(i + 1), -1],
+        #         [self.name + "output_h" + str(i + 2), 1]
+        #     ])
+        #     CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_up[i+1], constraint_information_class)
+        # # 滑坡
+        # ramping_constraint = np.array([
+        #     [self.name + "output_h1", 1]
+        # ])
+        # CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_down[0], constraint_information_class)
+        # for i in range(self.time_num - 1):
+        #     ramping_constraint = np.array([
+        #         [self.name + "output_h" + str(i + 1), 1],
+        #         [self.name + "output_h" + str(i + 2), -1]
+        #     ])
+        #     CreatConstraintsByText(1, ramping_constraint, -np.inf, self.p_rampingh_down[i + 1],
+        #                            constraint_information_class)
         # 线路约束
         # line_e
         B = np.array([

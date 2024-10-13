@@ -47,17 +47,17 @@ from sklearn.metrics.pairwise import rbf_kernel
 """
 热负荷
 """
-# training_days = 7
-# testing_days = 7
-# total_time_num = 96
-# time_period = 15
-# confidence_level = 0.95
-# file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\load_h.xlsx'
-# training_column_name = 'training_power'
-# testing_column_name = 'testing_power'
-# column_name = "testing_power"
-# n_samples = training_days * total_time_num
-# name = "load_h"
+training_days = 7
+testing_days = 7
+total_time_num = 96
+time_period = 15
+confidence_level = 0.95
+file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\load_h.xlsx'
+training_column_name = 'training_power'
+testing_column_name = 'testing_power'
+column_name = "testing_power"
+n_samples = training_days * total_time_num
+name = "load_h"
 
 """
 冷负荷
@@ -77,17 +77,17 @@ from sklearn.metrics.pairwise import rbf_kernel
 """
 光伏
 """
-training_days = 15
-testing_days = 15
-total_time_num = 96
-time_period = 15
-confidence_level = 0.95
-file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\pv.xlsx'
-training_column_name = 'training_power'
-testing_column_name = 'testing_power'
-column_name = "testing_power"
-n_samples = training_days * total_time_num
-name = "pv"
+# training_days = 8
+# testing_days = 8
+# total_time_num = 96
+# time_period = 15
+# confidence_level = 0.95
+# file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\pv.xlsx'
+# training_column_name = 'training_power'
+# testing_column_name = 'testing_power'
+# column_name = "testing_power"
+# n_samples = training_days * total_time_num
+# name = "pv"
 
 """
 风电
@@ -96,7 +96,7 @@ name = "pv"
 # testing_days = 3
 # total_time_num = 96
 # time_period = 15
-# confidence_level = 0.9
+# confidence_level = 0.8
 # file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\wt.xlsx'
 # training_column_name = 'training_power'
 # testing_column_name = 'testing_power'
@@ -244,9 +244,8 @@ y_pred_std = np.sqrt(y_pred_var)
 
 # 计算置信区间
 t_value = t.ppf(confidence_level, testing_days-1)
-print(t_value)
+print(f"t_value:{t_value}")
 length = len(y_pred_mu)
-print(y_pred_std.shape)
 y_pred_min = np.zeros(length)
 y_pred_max = np.zeros(length)
 
@@ -274,3 +273,24 @@ plt.fill_between(X_draw,
 plt.legend(ncol=4, fontsize=12)
 plt.show()
 print("finished!")
+
+df = pd.DataFrame({
+    'predict_mu': y_pred_mu,
+    'predict_min': y_pred_min,
+    'predict_max': y_pred_max
+})
+
+# if name == "load_e":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\load_e.xlsx', index=False)
+# if name == "load_g":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\load_g.xlsx', index=False)
+# if name == "load_h":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\load_h.xlsx', index=False)
+# if name == "load_c":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\load_c.xlsx', index=False)
+# if name == "pv":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\pv.xlsx', index=False)
+# if name == "wt":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\wt.xlsx', index=False)
+# if name == "hp":
+#     df.to_excel('C:\\software\\Github\\DRLmicrogrid\\Data\\uncertainty\\hp.xlsx', index=False)

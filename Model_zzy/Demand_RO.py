@@ -32,6 +32,7 @@ class D:
         "1"
 
         "1"
+        self.stage = 2
         self.way = -1
         "表示能源流向该设备"
 
@@ -69,14 +70,14 @@ class D:
     def __set_C2(self):
         self.c = np.zeros(len(self.params))
         for i in range(len(self.params)):
-            self.c[i] = 0.0001
+            self.c[i] = - (0.0001)
 
     #负荷数据修改
     def __getData2(self):
         if self.type == "e":
             # kw
             dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\load_e.xlsx")
-            self.p = dataset['mu'].values
+            self.p = dataset['real_value'].values
             # 移除数组中的nan
             # 使用 pandas 将数组转换为 Series
             series_array = pd.Series(self.p)
@@ -84,12 +85,14 @@ class D:
             self.p = series_array[~series_array.isna() & (series_array != '')].values
             print(f"电力负荷值:{self.p}")
             self.p = self.p[:self.time_num]
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
+            self.p_min = dataset['min'].values
+            self.p_max = dataset['max'].values
+            self.p_min = self.p_min[:self.time_num]
+            self.p_max = self.p_max[:self.time_num]
 
         if self.type == "g":
             dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\load_g.xlsx")
-            self.p = dataset['mu'].values
+            self.p = dataset['real_value'].values
             # 移除数组中的nan
             # 使用 pandas 将数组转换为 Series
             series_array = pd.Series(self.p)
@@ -97,12 +100,14 @@ class D:
             self.p = series_array[~series_array.isna() & (series_array != '')].values
             print(f"天然气负荷值:{self.p}")
             self.p = self.p[:self.time_num]
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
+            self.p_min = dataset['min'].values
+            self.p_max = dataset['max'].values
+            self.p_min = self.p_min[:self.time_num]
+            self.p_max = self.p_max[:self.time_num]
 
         if self.type == "th":
             dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\load_h.xlsx")
-            self.p = dataset['mu'].values
+            self.p = dataset['real_value'].values
             # 移除数组中的nan
             # 使用 pandas 将数组转换为 Series
             series_array = pd.Series(self.p)
@@ -110,12 +115,14 @@ class D:
             self.p = series_array[~series_array.isna() & (series_array != '')].values
             print(f"热能负荷值:{self.p}")
             self.p = self.p[:self.time_num]
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
+            self.p_min = dataset['min'].values
+            self.p_max = dataset['max'].values
+            self.p_min = self.p_min[:self.time_num]
+            self.p_max = self.p_max[:self.time_num]
 
         if self.type == "c":
             dataset = pd.read_excel(r"C:\software\Github\DRLmicrogrid\Data\uncertainty\load_c.xlsx")
-            self.p = dataset['mu'].values
+            self.p = dataset['real_value'].values
             # 移除数组中的nan
             # 使用 pandas 将数组转换为 Series
             series_array = pd.Series(self.p)
@@ -123,8 +130,10 @@ class D:
             self.p = series_array[~series_array.isna() & (series_array != '')].values
             print(f"冷能负荷值:{self.p}")
             self.p = self.p[:self.time_num]
-            self.p_min = self.p * (1 - self.ramping_rate)
-            self.p_max = self.p * (1 + self.ramping_rate)
+            self.p_min = dataset['min'].values
+            self.p_max = dataset['max'].values
+            self.p_min = self.p_min[:self.time_num]
+            self.p_max = self.p_max[:self.time_num]
 
         self.ramping = (self.p_max - self.p_min) / 8
 
@@ -187,7 +196,7 @@ class D:
         #     ]))
         # B = B[2:]
         # B = B.reshape((int(len(B) / 2), 2))
-        # CreatConstraintsByText(1, B, self.p_total, np.inf, num)
+        # CreatConstraintsByText(1, B, self.p_total * (self.time_num / 24), np.inf, num)
 
         # 结束位置
         self.end_location = len(num.A)

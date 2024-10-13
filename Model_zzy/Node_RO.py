@@ -79,21 +79,21 @@ class Node:
             ["Node", 1]
         ])
         "整合balance约束：流向Node的方向视为正方向"
-        if self.type != "CCHP" and self.type != "EB" and self.type != "ER" and self.type != "HP" and self.type != "PG":
+        if self.type != "CCHP" and self.type != "EB" and self.type != "ER" and self.type != "HP":
             for i in range(len(self.devices)):
-                if self.devices[i].way == 1:
+                if self.devices[i].way == 1 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "P1", 1]
                     ]))
-                if self.devices[i].way == -1:
+                if self.devices[i].way == -1 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "P1", -1]
                     ]))
-                if self.devices[i].way == 0:
+                if self.devices[i].way == 0 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "P1", 1]
                     ]))
-                if self.devices[i].way == -2:
+                if self.devices[i].way == -2 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "buy" + "P1", 1]
                     ]))
@@ -101,22 +101,22 @@ class Node:
                         [self.devices[i].name + "sell" + "P1", 1]
                     ]))
                 # 储能设备e
-                if self.devices[i].way == 4:
+                if self.devices[i].way == 4 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "CP1", -1],
                         [self.devices[i].name + "DP1", 1]
                     ]))
                 # 柔性负荷
-                if self.devices[i]. way == 5:
+                if self.devices[i]. way == 5 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "RP1", 1]
                     ]))
-                if self.devices[i].way == 10:
+                if self.devices[i].way == 10 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "UD1", 0],
                         [self.devices[i].name + "DD1", 0]
                     ]))
-                if self.devices[i].way == 999:
+                if self.devices[i].way == 999 and self.devices[i].stage == 2:
                     B = np.append(B, np.array([
                         [self.devices[i].name + "fm_u_e1", 0]
                     ]))

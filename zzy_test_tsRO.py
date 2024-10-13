@@ -10,8 +10,8 @@ from gurobipy import GRB
 from Model_zzy.Node import Node
 from Model_zzy.ConventionalPowerPlants_area import CPP
 from Model_zzy.GasWell import GW
-from Model_zzy.Demand import D
-from Model_zzy.RenewableProductionUnit import RT, HP
+from Model_zzy.Demand_RO import D
+from Model_zzy.RenewableProductionUnit_RO import RT, HP
 from Model_zzy.Storage import ES
 from Model_zzy.Conversion_units import CCHP, EB, ER, PG
 from Tools.two_stage_robust import two_stage_RO
@@ -44,7 +44,7 @@ path = "zzy_test_defeat_c"
 load_e_01 = D("load_e_01", "e", p_total=65000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 load_c_01 = D("load_c_01", "c", p_total=1100, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 load_h_01 = D("load_h_01", "th", p_total=20000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
-load_g_01 = D("load_g_01", "g", p_total=15000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
+load_g_01 = D("load_g_01", "g", p_total=48000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 
 "可再生能源"
 pv_01 = RT("pv_01", type="PV", id=1, production_price=0.005, production_total=2000, time_num=time)
@@ -180,19 +180,58 @@ area01 = MG("area01", node=bus, id=1, type="area01", time_num=time)
 UIES = MMGs(np.array([area01]))
 
 
+
 # print(f"num.params的长度：{len(num.params)}")
 # print(f"num.A的长度：{len(num.A)}")
 
 
 """
+两阶段鲁棒优化求解
+"""
+"求解所需参数"
+# 第一阶段
+# C1, integrality1, num1 = MMGs_logic(UIES, path, flag=False)
+# # 第二阶段
+# C2, integrality2, num2 = MMGs_logic(UIES, path, flag=False)
+#
+# # 运用到第一阶段中的设备
+# first_stage_device = np.array([er_01, eb_01, cchp_01, fl_e_01, fl_h_01, fl_g_01, storage_e_01, storage_h_01,
+#                                storage_c_01, cpp_01, gw_01])
+#
+# # 得到第一阶段num
+# num = DivideNum(num1, num2, C1, C2, first_stage_device, time)
+#
+# # 打印约束
+# # 第一阶段
+# print("第一阶段的约束")
+# PrintBounds(num.num)
+# # 第二阶段
+# print("第二阶段的约束")
+# PrintBounds(num.num_2)
+#
+# # print(f"first_stage_num.params的长度：{len(first_stage_num.num.params)}")
+# # print(f"first_stage_num.A的长度：{len(first_stage_num.num.A)}")
+#
+# two_stage_RO(num)
+#
+#
+# # 记录结束时间
+# end_time = datetime.now()
+#
+# # 计算并打印执行时间
+# execution_time = end_time - start_time
+# print(f"执行时间：{execution_time}")
+
+
+"""
 Gurobi求解
 """
-# # "求解所需参数"
+# "求解所需参数"
 # C, integrality, num = MMGs_logic(UIES, path, flag=False)
-# #
-# # "打印约束"
+#
+# "打印约束"
 # PrintBounds(num)
-# #
+#
 # A = num.A
 # params = num.params
 # A = A.reshape((int(len(A) / len(params)), len(params)))
@@ -220,7 +259,7 @@ Gurobi求解
 #
 # if model.status != gp.GRB.OPTIMAL:
 #     model.computeIIS()
-#     model.write("model_so.ilp")
+#     model.write("model_ro.ilp")
 # # 记录结束时间
 # end_time = datetime.now()
 #
@@ -247,8 +286,9 @@ Gurobi求解
 #     'params': num.params,
 #     'value': var_values
 # })
-# path = "C:\\software\\Github\\DRLmicrogrid\\Model_zzy\\results_milp.xlsx"
+# path = "C:\\software\\Github\\DRLmicrogrid\\Model_zzy\\results_ro.xlsx"
 # df.to_excel(path, index=False)
+
 
 
 """
@@ -256,8 +296,6 @@ MILP求解
 """
 "求解所需参数"
 C, integrality, num = MMGs_logic(UIES, path, flag=False)
-print(f"C的形状：{C.shape}")
-print(f"intergrality的形状：{integrality.shape}")
 
 "打印约束"
 PrintBounds(num)
@@ -272,23 +310,12 @@ end_time = datetime.now()
 execution_time = end_time - start_time
 print(f"执行时间：{execution_time}")
 
-# # 打印结果
-# for i in range(len(num.params)):
-#     print(f"{num.params[i]}的值：{results.x[i]}")
-
-"将求解结果保存至节点"
-# x_callBack(results, UIES, path)
-
-"画图"
-# draw(UIES, np.array([]))
-
 df = pd.DataFrame({
     'params': num.params,
     'value': results.x
 })
-path = "C:\\software\\Github\\DRLmicrogrid\\Model_zzy\\results_milp.xlsx"
+path = "C:\\software\\Github\\DRLmicrogrid\\Model_zzy\\results_ro.xlsx"
 df.to_excel(path, index=False)
-
 
 
 

@@ -5,6 +5,8 @@ from tools.drawLine import drawLine
 
 class Line:
     def __init__(self, name, maxTransValue, line_price, Single=False, MG_point=False, from_MG=None, to_MG=None, time_num=24, type ='e', Convertion = False):
+        self.begin_location = None
+        self.end_location = None
         self.name = name
         self.time_num = time_num
         self.className = 'Line'
@@ -52,6 +54,8 @@ class Line:
         self.intergrality = np.zeros(len(self.params))
 
     def constraints(self, num):
+        # 起始位置
+        self.begin_location = len(num.A)
         """
         Limits on power flows through lines
         """
@@ -93,6 +97,8 @@ class Line:
         """
         Ramping_Down  漏了？
         """
+        # 起始位置
+        self.end_location = len(num.A)
 
     def draw(self):
         x = self.x[:self.time_num]

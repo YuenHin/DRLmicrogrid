@@ -9,6 +9,8 @@ import time
 import scipy.stats as stats
 from algorithm import GRUDeepAR, TransformerDeepAR, LSTMDeepAR
 
+from Generation.VAE import create_loass_VAE
+
 # 解决 OMP 问题
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
@@ -90,84 +92,300 @@ def truncated_normal_sample(mu, sigma, lower_bound, upper_bound, num_samples, de
     return samples
 
 
+def create_combined_loss():
+    def combined_loss(mu, target, sigma, alpha=0.05):
+        # Gaussian NLL Loss
+        nll_loss = nn.GaussianNLLLoss()(mu, target, sigma)
+
+        # Pinball Loss (用于优化分位数预测)
+        pinball_loss = torch.mean(torch.maximum(alpha * (target - mu), (alpha - 1) * (target - mu)))
+
+        # 返回两者的加权和
+        return nll_loss + 0.1 * pinball_loss  # 可以根据需要调整权重
+    return combined_loss
+
 # 训练函数 - 使用 MAE 作为损失函数
-def train_deepar_mae(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=10, delta=0.0001, model_path='deepar_nll.pth'):
+# def train_deepar_mae(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=100, delta=0.0001, model_path='deepar_nll.pth'):
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#     model.to(device)
+#     criterion = nn.L1Loss()
+#     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
+#     loss_values = []
+#     best_loss = float('inf')
+#     epochs_no_improve = 0
+#     epoch_counter = 0
+#     start = time.time()
+#     # 记录每个epoch的损失
+#     epoch_losses = []
+#
+#     limit_min_eposide = 2000
+#     eposide_time = 0
+#
+#     while True:
+#         model.train()
+#         epoch_loss = 0
+#         eposide_time += 1
+#         for context, target in dataloader:
+#
+#
+#             # if target.size(0) < 32:
+#             #     print(f"Skipping batch due to insufficient target size: {target.size()}")
+#             #     continue
+#             context = context.to(device)
+#             target = target.to(device)
+#
+#             mu, _ = model(context)
+#             mu = mu.view(-1, model.prediction_length)
+#             target = target.view(-1, model.prediction_length)
+#
+#             loss = criterion(mu, target)
+#
+#             optimizer.zero_grad()
+#             loss.backward()
+#             optimizer.step()
+#
+#             epoch_loss += loss.item()
+#
+#         epoch_loss /= len(dataloader)
+#         loss_values.append(epoch_loss)
+#         epoch_losses.append(epoch_loss)
+#         epoch_counter += 1
+#
+#         if epoch_loss < best_loss - delta:
+#             best_loss = epoch_loss
+#             epochs_no_improve = 0
+#             torch.save(model.state_dict(), model_path)
+#         else:
+#             epochs_no_improve += 1
+#
+#
+#
+#         # 仅在每 patience 次打印一次损失函数差值的均值
+#         if (epoch_counter) % 100 == 0:
+#             recent_losses = np.diff(epoch_losses[-patience:])
+#             mean_recent_loss_change = recent_losses.mean()
+#             print(
+#                 f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}", end='')
+#             start = time.time()
+#             if (epoch_counter) % 500 == 0:
+#                 pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length,
+#                                                           model_path, index=len(loss_values))
+#                 metrics = calculate_metrics(pred_mu, target, pred_sigma)
+#
+#                 print(metrics)
+#
+#         if epochs_no_improve >= patience and (mean_recent_loss_change > limit_min_eposide):
+#             print(f"Stopping after {epoch_counter} epochs")
+#             break
+#
+#     plt.plot(loss_values)
+#     plt.xlabel('Epoch')
+#     plt.ylabel('Loss')
+#     plt.title('Training Loss ' + "(" + model_path + ")")
+#     plt.show()
+#
+#
+# # 训练函数 - 使用 nn.GaussianNLLLoss
+# def train_deepar_nll(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=100, delta=0.0001, model_path='deepar_nll.pth'):
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#     model.to(device)
+#     criterion = nn.GaussianNLLLoss()
+#     optimizer = optim.Adam(model.parameters(), lr=lr)
+#     loss_values = []
+#     best_loss = float('inf')
+#     epochs_no_improve = 0
+#
+#     # 记录每个epoch的损失
+#     epoch_losses = []
+#
+#     epoch_counter = 0
+#
+#     #记录时间
+#     start = time.time()
+#
+#     limit_min_eposide = 2000
+#     eposide_time = 0
+#
+#     while True:
+#         model.train()
+#         epoch_loss = 0
+#         #context(32, context_length, 14)
+#         #target(32, prediction_length)
+#         # index = 0
+#         eposide_time += 1
+#         for context, target in dataloader:
+#
+#
+#             if target.size(1) < prediction_length:
+#                 print(f"Skipping batch due to insufficient target size: {target.size()}")
+#                 continue
+#             context = context.to(device)
+#             target = target.to(device)
+#
+#             # mu(32, 24)
+#             # sigma(32, 24)
+#             mu, sigma = model.forward(context)
+#             mu = mu.view(-1, model.prediction_length)
+#             sigma = sigma.view(-1, model.prediction_length)
+#             target = target.view(-1, model.prediction_length)
+#
+#             # 使用 nn.GaussianNLLLoss
+#             loss = criterion(mu, target, sigma)
+#
+#             optimizer.zero_grad()
+#             loss.backward()
+#             optimizer.step()
+#
+#             epoch_loss += loss.item()
+#
+#             # index += mu.size(0)
+#         # print(index)
+#         epoch_loss /= len(dataloader)
+#         loss_values.append(epoch_loss)
+#         epoch_losses.append(epoch_loss)
+#         epoch_counter += 1
+#
+#         # Early stopping check
+#         if epoch_loss < best_loss - delta:
+#             best_loss = epoch_loss
+#             epochs_no_improve = 0
+#             # Save the best model
+#             torch.save(model.state_dict(), model_path)
+#         else:
+#             epochs_no_improve += 1
+#
+#         # 仅在每 patience 次打印一次损失函数差值的均值
+#         if (epoch_counter) % 100 == 0:
+#             recent_losses = np.diff(epoch_losses[-patience:])
+#             mean_recent_loss_change = recent_losses.mean()
+#             print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
+#             start = time.time()
+#             if (epoch_counter) % 500 == 0:
+#                 pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
+#                 metrics = calculate_metrics(pred_mu, target, pred_sigma)
+#
+#                 print(metrics)
+#
+#                # if np.abs(mean_recent_loss_change) <= delta:
+#                 #     print(f"Early stopping after {len(loss_values)} epochs")
+#                 #     #torch.save(model.state_dict(), model_path)
+#                 #     break
+#
+#         if epochs_no_improve >= patience  and (mean_recent_loss_change > limit_min_eposide):
+#             print(f"Stopping after {epoch_counter} epochs")
+#             break
+#
+#
+#     plt.plot(loss_values)
+#     plt.xlabel('Epoch')
+#     plt.ylabel('Loss')
+#     plt.title('Training Loss ' + "(" + model_path + ")")
+#     plt.show()
+#
+#
+# def train_deepar_combined(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=10, delta=0.0001, model_path='deepar_combined.pth'):
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#     model.to(device)
+#     optimizer = optim.Adam(model.parameters(), lr=lr)
+#     loss_values = []
+#     best_loss = float('inf')
+#     epochs_no_improve = 0
+#
+#     # 记录每个epoch的损失
+#     epoch_losses = []
+#
+#     epoch_counter = 0
+#
+#     #记录时间
+#     start = time.time()
+#
+#     while True:
+#         model.train()
+#         epoch_loss = 0
+#         #context(32, context_length, 14)
+#         #target(32, prediction_length)
+#         # index = 0
+#         for context, target in dataloader:
+#             if target.size(1) < prediction_length:
+#                 print(f"Skipping batch due to insufficient target size: {target.size()}")
+#                 continue
+#             context = context.to(device)
+#             target = target.to(device)
+#
+#             # mu(32, 24)
+#             # sigma(32, 24)
+#             mu, sigma = model.forward(context)
+#             mu = mu.view(-1, model.prediction_length)
+#             sigma = sigma.view(-1, model.prediction_length)
+#             target = target.view(-1, model.prediction_length)
+#
+#             # 使用 nn.GaussianNLLLoss
+#             loss = combined_loss(mu, target, sigma)
+#
+#             optimizer.zero_grad()
+#             loss.backward()
+#             optimizer.step()
+#
+#             epoch_loss += loss.item()
+#
+#             # index += mu.size(0)
+#         # print(index)
+#         epoch_loss /= len(dataloader)
+#         loss_values.append(epoch_loss)
+#         epoch_losses.append(epoch_loss)
+#         epoch_counter += 1
+#
+#         # Early stopping check
+#         if epoch_loss < best_loss - delta:
+#             best_loss = epoch_loss
+#             epochs_no_improve = 0
+#             # Save the best model
+#             torch.save(model.state_dict(), model_path)
+#         else:
+#             epochs_no_improve += 1
+#
+#         # 仅在每 patience 次打印一次损失函数差值的均值
+#         if (epoch_counter) % 100 == 0:
+#             recent_losses = np.diff(epoch_losses[-patience:])
+#             mean_recent_loss_change = recent_losses.mean()
+#             print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
+#             start = time.time()
+#             if (epoch_counter) % 500 == 0:
+#                 pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
+#                 metrics = calculate_metrics(pred_mu, target, pred_sigma)
+#
+#                 print(metrics)
+#
+#                # if np.abs(mean_recent_loss_change) <= delta:
+#                 #     print(f"Early stopping after {len(loss_values)} epochs")
+#                 #     #torch.save(model.state_dict(), model_path)
+#                 #     break
+#
+#         if epochs_no_improve >= patience:
+#             print(f"Early stopping after {len(loss_values)} epochs")
+#             break
+#
+#
+#     plt.plot(loss_values)
+#     plt.xlabel('Epoch')
+#     plt.ylabel('Loss')
+#     plt.title('Training Loss ' + "(" + model_path + ")")
+#     plt.show()
+
+
+
+def train_shared_method(model, dataloader, testloader, context_length, prediction_length, lr=0.0001, patience=233, delta=0.0001, model_path='deepar_combined.pth', loss_method = 1):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
-    criterion = nn.L1Loss()
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
-    loss_values = []
-    best_loss = float('inf')
-    epochs_no_improve = 0
-    epoch_counter = 0
-    start = time.time()
-    # 记录每个epoch的损失
-    epoch_losses = []
+    if loss_method == 1:
+        criterion = nn.MSELoss()
+    elif loss_method == 2:
+        criterion = nn.GaussianNLLLoss()
+    elif loss_method == 3:
+        criterion = create_combined_loss()
+    elif loss_method == 4:
+        criterion = create_loass_VAE()
 
-    while True:
-        model.train()
-        epoch_loss = 0
-        for context, target in dataloader:
-            # if target.size(0) < 32:
-            #     print(f"Skipping batch due to insufficient target size: {target.size()}")
-            #     continue
-            context = context.to(device)
-            target = target.to(device)
-
-            mu, _ = model(context)
-            mu = mu.view(-1, model.prediction_length)
-            target = target.view(-1, model.prediction_length)
-
-            loss = criterion(mu, target)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            epoch_loss += loss.item()
-
-        epoch_loss /= len(dataloader)
-        loss_values.append(epoch_loss)
-        epoch_losses.append(epoch_loss)
-        epoch_counter += 1
-
-        if epoch_loss < best_loss - delta:
-            best_loss = epoch_loss
-            epochs_no_improve = 0
-            torch.save(model.state_dict(), model_path)
-        else:
-            epochs_no_improve += 1
-
-        # 仅在每 patience 次打印一次损失函数差值的均值
-        if (epoch_counter) % 100 == 0:
-            recent_losses = np.diff(epoch_losses[-patience:])
-            mean_recent_loss_change = recent_losses.mean()
-            print(
-                f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
-            start = time.time()
-            if (epoch_counter) % 500 == 0:
-                pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length,
-                                                          model_path, index=len(loss_values))
-                metrics = calculate_metrics(pred_mu, target, pred_sigma)
-
-                print(metrics)
-
-        if epochs_no_improve >= patience:
-            print(f"Early stopping after {epoch_counter} epochs")
-            break
-
-    plt.plot(loss_values)
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Training Loss (MAE)')
-    plt.show()
-
-
-# 训练函数 - 使用 nn.GaussianNLLLoss
-def train_deepar_nll(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=10, delta=0.0001, model_path='deepar_nll.pth'):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
-    criterion = nn.GaussianNLLLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_values = []
     best_loss = float('inf')
@@ -196,13 +414,21 @@ def train_deepar_nll(model, dataloader, testloader, context_length, prediction_l
 
             # mu(32, 24)
             # sigma(32, 24)
-            mu, sigma = model.forward(context)
-            mu = mu.view(-1, model.prediction_length)
-            sigma = sigma.view(-1, model.prediction_length)
+            if loss_method != 4:
+                mu, sigma = model.forward(context)
+                mu = mu.view(-1, model.prediction_length)
+                sigma = sigma.view(-1, model.prediction_length)
+            else:
+                recon_mu, recon_sigma, mu, logvar = model.forward(context)
             target = target.view(-1, model.prediction_length)
 
             # 使用 nn.GaussianNLLLoss
-            loss = criterion(mu, target, sigma)
+            if loss_method == 1:
+                loss = criterion(mu, target)
+            elif loss_method == 4:
+                loss = criterion(recon_mu, recon_sigma, target, mu, logvar)
+            else:
+                loss = criterion(mu, target, sigma)
 
             optimizer.zero_grad()
             loss.backward()
@@ -226,25 +452,29 @@ def train_deepar_nll(model, dataloader, testloader, context_length, prediction_l
         else:
             epochs_no_improve += 1
 
-        # 仅在每 patience 次打印一次损失函数差值的均值
-        if (epoch_counter) % 100 == 0:
-            recent_losses = np.diff(epoch_losses[-patience:])
-            mean_recent_loss_change = recent_losses.mean()
-            print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
-            start = time.time()
-            if (epoch_counter) % 500 == 0:
-                pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
-                metrics = calculate_metrics(pred_mu, target, pred_sigma)
+        #这里我希望打印我的累积册数和最大次数差， 最后100次的计算时间
+        print('\r',{'Method':'%s' % model_path[17:-4], 'Total_epoch':'%d'%epoch_counter, 'Finish':'%d / %s' % (epochs_no_improve, patience), 'Time':'%.3f' % (time.time() - start)}, end = "", flush = True)
 
-                print(metrics)
 
-               # if np.abs(mean_recent_loss_change) <= delta:
-                #     print(f"Early stopping after {len(loss_values)} epochs")
-                #     #torch.save(model.state_dict(), model_path)
-                #     break
+        # # 仅在每 patience 次打印一次损失函数差值的均值
+        # if (epoch_counter) % 100 == 0:
+        #     recent_losses = np.diff(epoch_losses[-patience:])
+        #     mean_recent_loss_change = recent_losses.mean()
+        #     print(f"Epoch {len(loss_values)}, Loss: {epoch_loss:.4f}, Mean Change in Last {patience} Epochs: {mean_recent_loss_change:.8f}, Time:{time.time() - start:.4f}")
+        #     start = time.time()
+        #     if (epoch_counter) % 500 == 0:
+        #         pred_mu, pred_sigma, target = test_deepar(model, testloader, context_length, prediction_length, model_path, index = len(loss_values))
+        #         metrics = calculate_metrics(pred_mu, target, pred_sigma)
+        #
+        #         print(metrics)
+        #
+        #        # if np.abs(mean_recent_loss_change) <= delta:
+        #         #     print(f"Early stopping after {len(loss_values)} epochs")
+        #         #     #torch.save(model.state_dict(), model_path)
+        #         #     break
 
         if epochs_no_improve >= patience:
-            print(f"Early stopping after {len(loss_values)} epochs")
+            print(f"stopping after {len(loss_values)} epochs")
             break
 
 
@@ -253,7 +483,6 @@ def train_deepar_nll(model, dataloader, testloader, context_length, prediction_l
     plt.ylabel('Loss')
     plt.title('Training Loss ' + "(" + model_path + ")")
     plt.show()
-
 
 import numpy as np
 import torch
@@ -314,33 +543,34 @@ def test_deepar(model, dataloader, context_length, prediction_length, model_path
     all_samples = np.concatenate(all_samples, axis=1)
 
     # 可视化整个序列的预测结果
-    plt.figure(figsize=(12, 6))
-    time_steps = np.arange(len(all_target.flatten()))
-    for i in range(all_samples.shape[0]):
-        if i == 0:
-            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2, label='Wind Power Scenario')
-        else:
-            plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2)
-
-    plt.plot(time_steps, all_target.flatten(), label='Measured Wind Power', color='blue')
-    plt.plot(time_steps, all_mu.flatten(), label='Deterministic Forecasts', color='orange')
-
-
-    # 设置X轴刻度和标签
-    ticks = np.arange(0, len(all_target.flatten()), 24)  # 每24个点设置一个刻度（即每6小时一个点）
-    labels = [f'Day {i // 4 + 1}\n{(i % 4) * 6}h' for i in range(len(ticks))]  # 标签显示为 Day X\nYh
-    plt.xticks(ticks, labels, rotation=45)
-
-    # 设置Y轴范围
-    plt.ylim(0, 8)
-
-    plt.title(model_path + "_" + str(index))
-    plt.legend(loc='upper left')
-    plt.show()
+    # plt.figure(figsize=(12, 6))
+    # time_steps = np.arange(len(all_target.flatten()))
+    # for i in range(all_samples.shape[0]):
+    #     if i == 0:
+    #         plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2, label='Wind Power Scenario')
+    #     else:
+    #         plt.plot(time_steps, all_samples[i].flatten(), color='gray', alpha=0.2, linewidth=0.2)
+    #
+    # plt.plot(time_steps, all_target.flatten(), label='Measured Wind Power', color='blue')
+    # plt.plot(time_steps, all_mu.flatten(), label='Deterministic Forecasts', color='orange')
+    #
+    #
+    # # 设置X轴刻度和标签
+    # ticks = np.arange(0, len(all_target.flatten()), 24)  # 每24个点设置一个刻度（即每6小时一个点）
+    # labels = [f'Day {i // 4 + 1}\n{(i % 4) * 6}h' for i in range(len(ticks))]  # 标签显示为 Day X\nYh
+    # plt.xticks(ticks, labels, rotation=45)
+    #
+    # # 设置Y轴范围
+    # plt.ylim(0, 8)
+    #
+    # plt.title(model_path + "_" + str(index))
+    # plt.legend(loc='upper left')
+    #plt.show()
 
     return all_mu, all_sigma, all_target
 
 # 测试函数
+#通过神经网络计算得到mu和sigma，然后通过蒙特卡洛采样计算得到样本
 def test_deepar2(model, dataloader, context_length, prediction_length, model_path, num_samples=100, index = 0):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.load_state_dict(torch.load(model_path))
@@ -419,6 +649,78 @@ def test_deepar2(model, dataloader, context_length, prediction_length, model_pat
     plt.show()
 
     return all_mu, all_sigma, all_target
+
+
+def train_deterministic(model, dataloader, testloader, context_length, prediction_length, lr=0.001, patience=100,
+                        delta=0.0001, model_path='deterministic.pth'):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    # 使用 MSE 或 MAE 损失函数
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    loss_values = []
+    best_loss = float('inf')
+    epochs_no_improve = 0
+    epoch_counter = 0
+    start = time.time()
+    epoch_losses = []
+
+    limit_min_eposide = 2000
+    eposide_time = 0
+
+    while True:
+        model.train()
+        epoch_loss = 0
+        eposide_time += 1
+        for context, target in dataloader:
+
+
+
+            if target.size(1) < prediction_length:
+                continue
+            context = context.to(device)
+            target = target.to(device)
+
+            # 直接获取预测值
+            predictions = model.forward(context)
+            predictions = predictions.view(-1, model.prediction_length)
+            target = target.view(-1, model.prediction_length)
+
+            # 使用 MSE 或 MAE 损失
+            loss = criterion(predictions, target)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            epoch_loss += loss.item()
+
+        epoch_loss /= len(dataloader)
+        loss_values.append(epoch_loss)
+        epoch_losses.append(epoch_loss)
+        epoch_counter += 1
+
+        if epoch_loss < best_loss - delta:
+            best_loss = epoch_loss
+            epochs_no_improve = 0
+            torch.save(model.state_dict(), model_path)
+        else:
+            epochs_no_improve += 1
+
+        if epochs_no_improve >= patience and eposide_time > limit_min_eposide:
+            print(f"Early stopping after {epoch_counter} epochs")
+            break
+
+    # 绘制损失曲线
+    plt.plot(loss_values)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training Loss (Deterministic)')
+    plt.show()
+
+
+
 # 测试函数
 def test_deepar_threeToOne(model, dataloader, context_length, prediction_length, model_path, num_samples=100):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -509,12 +811,72 @@ def test_deepar_threeToOne(model, dataloader, context_length, prediction_length,
 # pred_mu, pred_sigma, target = test_deepar(model, dataloader, model_path=model_path)
 
 
+def test_deterministic(model, dataloader, context_length, prediction_length, model_path, index=0):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.load_state_dict(torch.load(model_path))
+    model.to(device)
+    model.eval()
+
+    all_predictions = []
+    all_target = []
+
+    with torch.no_grad():
+        # 遍历dataloader中的每个batch，进行预测
+        for context, target in dataloader:
+            if target.size(1) < prediction_length:
+                print(f"Skipping batch due to insufficient target size: {target.size()}")
+                continue
+
+            # 将context和target放到设备上
+            context = context[0].unsqueeze(0).to(device)
+            target = target[0, -prediction_length:].unsqueeze(0).to(device)
+
+            # 进行前向传播，仅获得确定性预测值
+            predictions = model(context)
+            predictions = predictions.view(-1, prediction_length)
+            target = target.view(-1, prediction_length)
+
+            # 将结果存储为numpy格式，方便后续处理
+            predictions = predictions.cpu().numpy()
+            target = target.cpu().numpy()
+
+            all_predictions.append(predictions[0:])  # 保存预测结果
+            all_target.append(target[0:])  # 保存真实值
+
+    # 将结果拼接为完整的序列
+    all_predictions = np.concatenate(all_predictions, axis=0).flatten()
+    all_target = np.concatenate(all_target, axis=0).flatten()
+
+    # 可视化整个序列的预测结果
+    plt.figure(figsize=(12, 6))
+    time_steps = np.arange(len(all_target.flatten()))
+
+    # 绘制预测值和真实值
+    plt.plot(time_steps, all_target.flatten(), label='Measured Wind Power', color='blue')
+    plt.plot(time_steps, all_predictions.flatten(), label='Deterministic Forecasts', color='orange')
+
+    # 设置X轴刻度和标签
+    ticks = np.arange(0, len(all_target.flatten()), 24)  # 每24个点设置一个刻度（即每6小时一个点）
+    labels = [f'Day {i // 4 + 1}\n{(i % 4) * 6}h' for i in range(len(ticks))]  # 标签显示为 Day X\nYh
+    plt.xticks(ticks, labels, rotation=45)
+
+    # 设置Y轴范围
+    plt.ylim(0, 8)
+
+    plt.title(model_path + "_" + str(index))
+    plt.legend(loc='upper left')
+    plt.show()
+
+    return all_predictions, all_target
+
+
 # 计算指标
-def calculate_metrics(predictions, targets, sigma, alpha=0.05):
+def calculate_metrics(predictions, targets, sigma, alpha=0.05, ):
     # 检查并调整形状
     if predictions.shape != targets.shape:
         targets = targets.reshape(predictions.shape)
 
+    ev = np.abs((predictions - targets) / targets).mean()
     mae = np.abs(predictions - targets).mean()
     rmse = np.sqrt(((predictions - targets) ** 2).mean())
 
@@ -527,7 +889,22 @@ def calculate_metrics(predictions, targets, sigma, alpha=0.05):
     es = (predictions - targets).mean() / np.sqrt(sigma.var())
     vs = np.var(targets - predictions) / sigma.var()
 
+    # CRPS 计算
+    M = 100  # 采样数量
+    u_values = np.arange(0.05, 1, 0.05)  # 从 0.05 到 0.95 的 CDF 值，间隔 0.05
+    crps_total = 0
+    for i in range(len(predictions)):  # 遍历所有预测点
+        crps_sum = 0
+        for u in u_values:  # 对每个 u 值进行计算
+            # 计算 phi 函数，表示不同区间内的损失值
+            phi_u = np.where(targets[i] >= predictions[i], u * (targets[i] - predictions[i]),
+                             (u - 1) * (targets[i] - predictions[i]))
+            crps_sum += np.mean(phi_u)  # 累积所有 u 值的 CRPS
+        crps_total += crps_sum
+    crps = crps_total / len(predictions)  # 平均 CRPS
+
     return {
+        'EV': ev,
         'MAE': mae,
         'RMSE': rmse,
         'Coverage': coverage,
@@ -535,7 +912,24 @@ def calculate_metrics(predictions, targets, sigma, alpha=0.05):
         'Sharpness': sharpness,
         'Interval Width': interval_width,
         'ES': es,
-        'VS': vs
+        'VS': vs,
+        'CRPS': crps  # 返回 CRPS
+    }
+
+def calculate_deterministic_metrics(predictions, targets):
+    # 检查并调整形状
+    if predictions.shape != targets.shape:
+        targets = targets.reshape(predictions.shape)
+
+    ev = np.abs((predictions - targets) / targets).mean()
+    mae = np.abs(predictions - targets).mean()
+    rmse = np.sqrt(((predictions - targets) ** 2).mean())
+
+    # 仅返回常见的回归指标
+    return {
+        'EV': ev,
+        'MAE': mae,
+        'RMSE': rmse
     }
 
 #

@@ -16,6 +16,7 @@ class microgrid_env:
         self.save_name = "microgrid"
         self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name)
         self.flash_num = deepcopy(self.start_num)
+        self.mpc_num = deepcopy(self.start_num)
         # self.start_num_ =self.start_num
         # self.flash_num = self.start_num_
         # for i in range(len(self.flash_num.params)):
@@ -57,6 +58,7 @@ class microgrid_env:
         S_e_t = 0  # 储能设备在第t步的剩余容量
         current_e_price = 0  # 第t步的电价
         self.flash_num = deepcopy(self.start_num)  # 深拷贝
+        self.mpc_num = deepcopy(self.start_num)
         self.step_time = 1
         for MG in self.env.MG:
             for node in MG.node:
@@ -93,7 +95,7 @@ class microgrid_env:
                 for device in node.devices:
                     if device.className == "RT" or (device.className == "D" and (
                             device.type == "e" or device.type == "g" or device.type == "th" or device.type == "h")):
-                        device.stochastic(self.step_time, self.flash_num)
+                        device.stochastic(self.step_time, self.flash_num, self.mpc_num)
 
     def first_stochastic_factor_setting_RED(self):
         #  只会在每次reset之后从外部调用一次
@@ -102,7 +104,7 @@ class microgrid_env:
                 for device in node.devices:
                     if device.className == "RT" or (device.className == "D" and (
                             device.type == "e" or device.type == "g" or device.type == "th" or device.type == "h")):
-                        device.stochastic(self.step_time, self.flash_num)
+                        device.stochastic(self.step_time, self.flash_num, self.mpc_num)
         demand_P_total_t = 0  # 所有Demand设备在第t步的功率需求总和
         RT_P_total_t = 0  # 所有可再生能源在第t步的出力功率总和
         S_e_t = 0  # 储能设备在第t步的剩余容量
@@ -205,6 +207,7 @@ class microgrid_env:
         ramping_punishment = 0
         punishment2 = 0
         punishment3 = 0
+        punishment4 = 0
 
         for MG in self.env.MG:
             for node in MG.node:
@@ -246,6 +249,7 @@ class microgrid_env:
                         if ramping_p > 0:
                             ramping_punishment = ramping_p * 10
                         punishment2 = ( device.real_E[self.step_time - 1] <= 0 or device.real_E[self.step_time - 1] >= 3000 ) * 100
+                        punishment4 = (device.real_E[self.step_time - 1] >= 3000) * 150
                         punishment3 = ( self.step_time == self.step_all and device.real_E[self.step_time - 1] < 1500) * 50
                     # tp碳排放
                     if device.className == "TP":
@@ -256,9 +260,14 @@ class microgrid_env:
 
         carbon_emission = carbon_emission * 0.001
         carbom_emission_cost = carbon_emission * 390.885
-        reward = -(operation_cost + carbom_emission_cost - profit + punishment2 + punishment3 + ramping_punishment)
+        reward = -(operation_cost + carbom_emission_cost - profit + punishment2 + punishment3 + ramping_punishment + punishment4)
+        # sp_max = 600
+        # reward = -( 2*(punishment2 + punishment3 + ramping_punishment) +
+        #             (operation_cost + carbom_emission_cost - profit) +
+        #             (operation_cost + carbom_emission_cost - profit)*(punishment2 + punishment3 + ramping_punishment)/sp_max
+        # )
 
-        return reward
+        return reward, ramping_punishment, punishment2, punishment3
 
     # 三级设备：DG、CPP、GW、EC 我这里的动作、名称和状态应该是一个数组（多个智能体）
     # 先使用单智能体控制SE_e试试
@@ -370,7 +379,7 @@ class microgrid_env:
             # return res.x, np.array([reward[0]]), done, True
             return res.x, reward, done, True
 
-    def step3(self, action, cur_episode):
+    def step3(self, action, cur_episode, storage_punishment_buffer):
         while True:
 
             # 增加随机变量 # 感觉不应该放在这里
@@ -443,11 +452,17 @@ class microgrid_env:
             self.step_time -= 1  #######################################################################################
 
             # 计算奖励
-            reward = 20 + self.__count_reward()
+            reward, ramping_punishment, punishment2, punishment3 = self.__count_reward()
+            reward += 20
+            ramping_punishment +=ramping_punishment
+            punishment2 += punishment2
+            punishment3 += punishment3
             if self.step_time == self.step_all:
                 a, b, c, d, total_cost = self.env.countCost()
                 reward += 2000 - total_cost
                 done = True
+                storage_punishment_buffer.add(ramping_punishment, punishment2, punishment3)
+                #计算MILP的结果
             # 更新步长
             self.step_time += 1
 

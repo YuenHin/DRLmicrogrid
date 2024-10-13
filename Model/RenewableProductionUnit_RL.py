@@ -157,7 +157,7 @@ class RT:
         return p
 
     #依据当前值得到真实随机出力值,并加入约束控制其值输出为确定性输出值
-    def stochastic(self, step, num):
+    def stochastic(self, step, num, mpc_num):
 
         # 我需要控制不确定变化后不会跳出范围
         #self.real_x[step - 1] = self.x[step - 1] * (1 + (random.random() * self.stochastic_value * 0.01))
@@ -184,6 +184,7 @@ class RT:
             [self.name + "P" + str(step), 1],
         ])
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
+        CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], mpc_num)
 
         self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录这一步增加随机性后的功率
         '''

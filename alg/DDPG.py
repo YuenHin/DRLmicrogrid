@@ -14,6 +14,58 @@ class PolicyNet(torch.nn.Module):
         x = F.relu(self.fc1(x))
         return torch.tanh(self.fc2(x)) * self.action_bound
 
+class PolicyNet2(torch.nn.Module):
+    def __init__(self, state_dim, hidden_dim, action_dim, action_bound):
+        super(PolicyNet2, self).__init__()
+        # 第一个隐藏层
+        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
+        # 第二个隐藏层
+        self.fc2 = torch.nn.Linear(hidden_dim, 8)
+        # 第三个隐藏层，将第一个和第二个隐藏层的输出拼接
+        self.fc3 = torch.nn.Linear(hidden_dim + 8, hidden_dim)
+        # 输出层
+        self.output_layer = torch.nn.Linear(hidden_dim, 1)  # 输出一个一维值
+        self.action_bound = action_bound  # 动作边界
+
+        self.locked = False  # 条件锁，用于决定是否锁定层和停止随机化
+
+    def randomize_fc2_params(self):
+        """随机化第二个隐藏层的权重和偏置"""
+        if not self.locked:  # 如果未锁定，则随机化
+            with torch.no_grad():
+                self.fc2.weight = torch.nn.Parameter(torch.randn_like(self.fc2.weight))  # 随机化权重
+                self.fc2.bias = torch.nn.Parameter(torch.randn_like(self.fc2.bias))  # 随机化偏置
+
+    def lock_fc1_and_fc3(self):
+        """锁定第一层和第三层的参数，不允许更新"""
+        for param in self.fc1.parameters():
+            param.requires_grad = False  # 锁定第一层
+        for param in self.fc3.parameters():
+            param.requires_grad = False  # 锁定第三层
+        for param in self.output_layer.parameters():
+            param.requires_grad = False  # 锁定输出层
+
+    def unlock_fc2(self):
+        """停止对第二个隐藏层的随机化，但允许继续训练和更新"""
+        self.locked = True  # 一旦锁定，停止随机化
+
+    def forward(self, x):
+        # 如果未锁定，继续随机化第二层的参数
+        self.randomize_fc2_params()
+
+        # 第一个隐藏层
+        x1 = F.relu(self.fc1(x))  # 第一个隐藏层的输出
+
+        # 第二个隐藏层，接收第一个隐藏层的输出
+        x2 = F.relu(self.fc2(x1))  # 第二个隐藏层的输出
+
+        # 第三个隐藏层，接收第一个隐藏层和第二个隐藏层的输出，并将它们拼接
+        x3 = torch.cat([x1, x2], dim=1)  # 按特征维度拼接
+        x3 = F.relu(self.fc3(x3))  # 第三个隐藏层的输出
+
+        # 输出层，生成一维的输出
+        output = self.output_layer(x3)
+        return torch.tanh(output) * self.action_bound
 
 class QValueNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
@@ -51,7 +103,7 @@ class DDPG:
 
         self.start_sigma = self.sigma * 50  # 高斯噪声的标准差, 增加一个初始探索领域
 
-    def take_action(self, state, time = 1000, i_episode = 1000):
+    def take_action(self, state, cur_episode, time = 1000, i_episode = 1000):
         # state = torch.tensor([state], dtype=torch.float).to(self.device)
         # action = self.actor(state).item()
         # if time < 90:
@@ -76,6 +128,18 @@ class DDPG:
         #给动作添加噪声，增加探索
         # action = action + self.start_sigma * np.random.randn(self.action_dim) #这里后续需要修改sigma
         action = action + self.sigma * np.random.randn(self.action_dim)
+        # if cur_episode <= 1000:
+        #     action = action + 0.8 * np.random.randn(self.action_dim)
+        # elif cur_episode >1000 and cur_episode <=2000:
+        #     action = action + 0.6 * np.random.randn(self.action_dim)
+        # elif cur_episode >2000 and cur_episode <=3000:
+        #     action = action + 0.4 * np.random.randn(self.action_dim)
+        # elif cur_episode >3000 and cur_episode <=4000:
+        #     action = action + 0.2 * np.random.randn(self.action_dim)
+        # elif cur_episode >4000 and cur_episode <=5000:
+        #     action = action + 0.1 * np.random.randn(self.action_dim)
+        # else:
+        #     action = action + 0.01 * np.random.randn(self.action_dim)
         if action > 1:
             action = action - 2
         if action < -1:

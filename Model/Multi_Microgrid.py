@@ -81,12 +81,14 @@ class MMGs:
         carbom_emission = carbom_emission * 0.001
         carbom_emission_cost = carbom_emission * 390.885
 
-        print("opeation cost:", operation_cost)
-        print("carom emission:", carbom_emission)
-        print("carom emission cost:", carbom_emission_cost)
-        print("profit:", profit)
-        print("total cost:", operation_cost + carbom_emission_cost - profit)
+        # print("opeation cost:", operation_cost)
+        # print("carom emission:", carbom_emission)
+        # print("carom emission cost:", carbom_emission_cost)
+        # print("profit:", profit)
+        # print("total cost:", operation_cost + carbom_emission_cost - profit)
         return operation_cost, carbom_emission, carbom_emission_cost, profit, operation_cost + carbom_emission_cost - profit
+
+
 
     def fix_SE_DG(self, num):
         for MG in self.MG:

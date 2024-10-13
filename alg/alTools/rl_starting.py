@@ -6,6 +6,7 @@ import random
 
 from tools.maybeExcel import writeDatatoExcel
 
+
 class ReplayBuffer:
     def __init__(self, capacity):
         self.buffer = collections.deque(maxlen=capacity)
@@ -20,6 +21,7 @@ class ReplayBuffer:
 
     def size(self):
         return len(self.buffer)
+
 
 class ReturnBuffer:
     def __init__(self):
@@ -38,6 +40,7 @@ class ReturnBuffer:
 
     def size(self):
         return len(self.operation_cost)
+
     def save(self, path, id):
         writeDatatoExcel(path, id, 0, self.operation_cost)
         writeDatatoExcel(path, id + 1, 0, self.carbon_emission)
@@ -49,6 +52,24 @@ class ReturnBuffer:
         writeDatatoExcel(path, index, 0, self.carbon_emission)
         writeDatatoExcel(path, index, 100, self.total_cost)
 
+
+class StoragePunishmentBuffer():
+    def __init__(self):
+        self.ramping_punishment = np.array([])
+        self.punishment2 = np.array([])
+        self.punishment3 = np.array([])
+        self.sum_punishment = np.array([])
+
+    def add(self, ramping_punishment, punishment2, punishment3):
+        self.ramping_punishment = np.append(self.ramping_punishment, ramping_punishment)
+        self.punishment2 = np.append(self.punishment2, punishment2)
+        self.punishment3 = np.append(self.punishment3, punishment3)
+        self.sum_punishment = np.append(self.sum_punishment, ramping_punishment+punishment2+punishment3)
+
+    def size(self):
+        return len(self.ramping_punishment)
+
+
 def moving_average(a, window_size):
     cumulative_sum = np.cumsum(np.insert(a, 0, 0))
     middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
@@ -56,6 +77,7 @@ def moving_average(a, window_size):
     begin = np.cumsum(a[:window_size - 1])[::2] / r
     end = (np.cumsum(a[:-window_size:-1])[::2] / r)[::-1]
     return np.concatenate((begin, middle, end))
+
 
 def train_on_policy_agent(env, agent, num_episodes):
     return_list = []
@@ -88,12 +110,13 @@ def train_on_policy_agent(env, agent, num_episodes):
                 pbar.update(1)
     return return_list
 
+
 def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size):
     return_list = []
 
     for i in range(10):
-        with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
-            for i_episode in range(int(num_episodes/10)):
+        with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
+            for i_episode in range(int(num_episodes / 10)):
                 episode_return = 0
                 state = env.reset()
                 done = False
@@ -106,34 +129,37 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
 
                     if replay_buffer.size() > minimal_size:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
-                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
+                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
+                                           'dones': b_d}
                         agent.update(transition_dict)
                 env.env.countCost()
                 return_list.append(episode_return)
-                if (i_episode+1) % 10 == 0:
-                    pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
+                if (i_episode + 1) % 10 == 0:
+                    pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
+                                      'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
     return return_list
 
-def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, return_buffer):
+
+def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, return_buffer, storage_punishment_buffer):
     action_list = []
-    ave_num = int(num_episodes//20)
+    ave_num = int(num_episodes // 20)
     for i in range(10):
-        with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
-            for i_episode in range(int(num_episodes/10)):
+        with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
+            for i_episode in range(int(num_episodes / 10)):
                 episode_return = 0
                 epsidoe_action_list = []
                 # state = env.reset()
-                for MG in env.env.MG:
-                    for node in MG.node:
-                        for device in node.devices:
-                            print(device.name)
+                # for MG in env.env.MG:
+                #     for node in MG.node:
+                #         for device in node.devices:
+                #             print(device.name)
                 state = env.reset2()
                 done = False
                 j = 1
                 going = False
                 actionSuccess = False
-                cur_episode = i_episode + (i * num_episodes/10)
+                cur_episode = i_episode + (i * num_episodes / 10)
                 while not done:
                     # for k in range(500):
                     #     action = agent.take_action(state, time = env.step_time, i_episode = i_episode)
@@ -146,9 +172,9 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                             # 对Demand和RT在t=1的功率添加随机性
                             state = env.first_stochastic_factor_setting_RED()
                             state_1 = state
-                        action = agent.take_action(state, time = env.step_time, i_episode = i_episode)
+                        action = agent.take_action(state,cur_episode, time=env.step_time, i_episode=i_episode)
                         # next_state, reward, done, going = env.step2(action)
-                        next_state, reward, done, going, action_ = env.step3(action, cur_episode)
+                        next_state, reward, done, going, action_ = env.step3(action, cur_episode, storage_punishment_buffer)
                         if next_state == None:
                             next_state = state_1
                         action = action_
@@ -161,22 +187,33 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                     state = next_state
                     episode_return += reward
                     epsidoe_action_list.append(action)
-                    j +=1
+                    j += 1
                     print('\r', {'action': '%.3f' % np.mean(epsidoe_action_list[-1]),
                                  'step': '%d' % env.step_time,
-                                 'time': '%d' % j}, end='', flush=True)
+                                 'time': '%d' % j}, end='', flush=False)
+                    '''
+                    # 测试时不更新
                     if replay_buffer.size() > minimal_size:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
-                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
+                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
+                                           'dones': b_d}
                         agent.update(transition_dict)
+                    '''
                 operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost = env.env.countCost()
                 return_buffer.add(operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost)
-                if (i_episode+1) % ave_num == 0:
-                    pbar.set_postfix({'episode': '%.3f' % (num_episodes/10 * i + i_episode+1), 'operation_cost': '%.3f' % np.mean(return_buffer.operation_cost[-ave_num:]), 'carbon_emission': '%.3f' % np.mean(return_buffer.carbon_emission[-ave_num:]), 'carbon_emission_cost': '%.3f' % np.mean(return_buffer.carbon_emission_cost[-ave_num:]), 'profit': '%.3f' % np.mean(return_buffer.profit[-ave_num:]), 'total_cost': '%.3f' % np.mean(return_buffer.total_cost[-ave_num:])})
-                    #动作方差为0说明动作选择出错了
+                if (i_episode + 1) % ave_num == 0:
+                    pbar.set_postfix({'episode': '%.3f' % (num_episodes / 10 * i + i_episode + 1),
+                                      'operation_cost': '%.3f' % np.mean(return_buffer.operation_cost[-ave_num:]),
+                                      'carbon_emission': '%.3f' % np.mean(return_buffer.carbon_emission[-ave_num:]),
+                                      'carbon_emission_cost': '%.3f' % np.mean(
+                                          return_buffer.carbon_emission_cost[-ave_num:]),
+                                      'profit': '%.3f' % np.mean(return_buffer.profit[-ave_num:]),
+                                      'total_cost': '%.3f' % np.mean(return_buffer.total_cost[-ave_num:])})
+                    # 动作方差为0说明动作选择出错了
                     if np.var(epsidoe_action_list[-ave_num:]) == 0:
                         break
                 pbar.update(1)
+
 
 def compute_advantage(gamma, lmbda, td_delta):
     td_delta = td_delta.detach().numpy()

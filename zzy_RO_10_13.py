@@ -25,6 +25,8 @@ from Model_zzy_RO.Flexible_demand import FD
 from Model_zzy_RO.Flexible_analysis import FA
 from datetime import datetime
 
+from Model_zzy_RO.Demand_ex import D_ex
+
 # 开始记录时间
 start_time = datetime.now()
 print("开始时间：", start_time)
@@ -43,6 +45,9 @@ load_e_01 = D("load_e_01", "e", p_total=65000, id=1, MG_id=1, ramping_rate=0.15,
 load_c_01 = D("load_c_01", "c", p_total=1100, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 load_h_01 = D("load_h_01", "th", p_total=20000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 load_g_01 = D("load_g_01", "g", p_total=48000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
+
+"额外负荷，强化学习用"
+load_e_ex = D_ex("load_e_ex", "e", 100000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 
 "可再生能源"
 pv_01 = RT("pv_01", type="PV", id=1, production_price=0.005, production_total=2000, time_num=time)
@@ -110,7 +115,7 @@ fl_h_01 = FL("fl_h_01", type="th", limit=300, time_num=time)
 """
 区域1
 """
-node_e_01 = Node("node_e_01", devices=np.array([load_e_01, cpp_01, pv_01, wt_01, storage_e_01, fl_e_01]),
+node_e_01 = Node("node_e_01", devices=np.array([load_e_01, cpp_01, pv_01, wt_01, storage_e_01, fl_e_01, load_e_ex]),
                  sLine=np.array([line_er_e_01, line_eb_e_01, line_hp_e_01]), rLine=np.array([line_cchp_e_01]), time_num=time,
                  type="e")
 node_c_01 = Node("node_c_01", devices=np.array([load_c_01, storage_c_01]), sLine=np.array([]), rLine=np.array([line_er_c_01]), time_num=time,

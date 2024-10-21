@@ -278,7 +278,9 @@ class MMGs:
         print("operation cost:", operation_cost)
         print("total cost:", total_cost)
         print("milp operation cost:", milp_operation_cost)
-        return operation_cost, carbom_emission, 0, 0, total_cost
+        print("total es_punishment:", es_punishment)
+        print("total gap_punishment:", gap_punishment)
+        return operation_cost, es_punishment, gap_punishment, 0, total_cost
     def fix_SE_DG(self, num):
         for MG in self.MG:
             for node in MG.node:

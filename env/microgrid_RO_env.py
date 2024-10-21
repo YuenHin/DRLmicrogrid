@@ -28,10 +28,10 @@ class microgrid_RO_env:
                                   'S_e_t', 'S_th_t', 'S_c_t']
         # self.action_space = np.array([len(self.observation_space)])
         self.action_space = np.array(['CPP_P', 'GW_P', 'S_e', 'S_th', 'S_c'])
-        # for MG in self.env.MG:
-        #     for node in MG.node:
-        #         for device in node.devices:
-        #             print(device.className)
+        for MG in self.env.MG:
+            for node in MG.node:
+                for device in node.devices:
+                    print(device.className)
 
         # 第一次执行全流程Perfect_MILP程序
         res = EndCount(self.C, self.intergrality, self.flash_num)
@@ -322,13 +322,13 @@ class microgrid_RO_env:
                     if device.className == "CPP":
                         operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
                         # CPP的惩罚项
-                        gap_punishment += device.p_gap[self.step_time - 1] * 1
+                        gap_punishment += device.p_gap[self.step_time - 1] * 1.5
 
                     # gw生产成本
                     if device.className == "GW":
                         operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
                         # GW的惩罚项
-                        gap_punishment += device.p_gap[self.step_time - 1] * 1
+                        gap_punishment += device.p_gap[self.step_time - 1] * 1.5
 
                     # pv生产成本
                     # wt生产成本

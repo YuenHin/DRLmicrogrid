@@ -113,12 +113,13 @@ class CPP:
         # 记录智能体所给的动作功率
         self.rl_p[step - 1] = self.p_max * action * 0.1
         self.p_gap[step - 1] = abs(self.x[step - 1] - self.rl_p[step - 1])
-        self.real_x[step - 1] = self.x[step - 1]
+        # self.real_x[step - 1] = self.x[step - 1]
+        self.real_x[step - 1] = self.rl_p[step - 1]
         B = np.array([
             [self.name + "P" + str(step), 1],
         ])
-        # CreatConstraintsByText(1, B, self.rl_p[step - 1], np.inf, num)
-        CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
+        CreatConstraintsByText(1, B, self.rl_p[step - 1], np.inf, num)
+        # CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
         return False, action
 
     def draw(self):

@@ -257,7 +257,7 @@ class D:
         # ran=1，真实值向上波动
         if ran == 1:
             self.real_x[step - 1] = self.x[step - 1] * (1 + (random.random() * (self.stochastic_value) * 0.01))
-        # ran=-1，真实值向下波动
+        # ran=-1，真实值向下波动，目前的处理是保持不变
         if ran == -1:
             #self.real_x[step - 1] = self.x[step - 1] * (1 - (random.random() * (0.5) * 0.01))
             self.real_x[step - 1] = self.x[step - 1]

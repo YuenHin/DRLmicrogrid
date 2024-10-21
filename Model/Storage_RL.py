@@ -187,7 +187,7 @@ class S:
     '''
 
     def constraints(self, num):
-        # 这里放开了储能的充放电约束
+        # 这里放开了储能的充放电约束，将充放电的约束放到奖励函数的惩罚项中
         "Energy storage limited"
         B = np.array([
             [self.name + "E1", 1]

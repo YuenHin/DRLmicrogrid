@@ -13,8 +13,8 @@ class microgrid_env:
         # 初始化
         self.con_add_num = 12  # 这是？
         self.env = MMGs
-        self.save_name = "microgrid"
-        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name)
+        self.save_name = "zzy_RO"
+        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=True)
         self.flash_num = deepcopy(self.start_num)
         self.mpc_num = deepcopy(self.start_num)
         # self.start_num_ =self.start_num
@@ -28,7 +28,7 @@ class microgrid_env:
         self.action_space = np.array([1])
 
         # 第一次执行全流程Perfect_MILP程序
-        res = EndCount(-self.C, self.intergrality, self.flash_num)
+        res = EndCount(self.C, self.intergrality, self.flash_num)
         # PrintBounds(self.flash_num)
         # self.flash_num.bu[0] = 170
         # self.flash_num.bl[0] = 165

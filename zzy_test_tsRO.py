@@ -4,8 +4,8 @@ UIES环境配置
 import numpy as np
 import pandas as pd
 
-import gurobipy as gp
-from gurobipy import GRB
+# import gurobipy as gp
+# from gurobipy import GRB
 
 from Model_zzy.Node import Node
 from Model_zzy.ConventionalPowerPlants_area import CPP

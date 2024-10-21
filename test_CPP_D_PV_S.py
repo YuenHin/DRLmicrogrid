@@ -58,7 +58,7 @@ MG01 = MG("MG_CPP", node=np.array([node01]), id=1, type="MG01", time_num=time)
 MG02 = MG("MG_D_e", node=np.array([node02, node03, node04]), id=1, type="MG02", time_num=time)
 
 "创建一个多微网"
-#MMGs = MMGs(np.array([MG01,MG02]))
+#MMGs = MMGs(np.array([MG01,MG02]))l
 CPP_D_PV_S_MMGs = MMGs(np.array([MG01,MG02]))
 
 # C, intergrality, num = MMGs_logic(MMGs, path)

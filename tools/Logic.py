@@ -11,6 +11,7 @@ def MMGs_logic(MMGs, file_name, flag = False):
     C = np.zeros(0)
     intergrality = np.zeros(0)
 
+
     for MG in MMGs.MG:
         for node in MG.node:
             # if len(node.params) != len(node.c):

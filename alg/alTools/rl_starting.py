@@ -214,6 +214,74 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                         break
                 pbar.update(1)
 
+def train_off_policy_agent_MG_RO(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, return_buffer, storage_punishment_buffer):
+    action_list = []
+    ave_num = int(num_episodes // 20)
+    for i in range(10):
+        with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
+            for i_episode in range(int(num_episodes / 10)):
+                episode_return = 0
+                epsidoe_action_list = []
+                # state = env.reset()
+                # for MG in env.env.MG:
+                #     for node in MG.node:
+                #         for device in node.devices:
+                #             print(device.name)
+                state = env.reset()
+                done = False
+                j = 1
+                going = False
+                actionSuccess = False
+                cur_episode = i_episode + (i * num_episodes / 10)
+                while not done:
+                    while not going:
+                        if actionSuccess == False:
+                            state = env.reset()
+                            epsidoe_action_list = []
+                            # 对Demand和RT(PV,WT)在t=1的功率添加随机性
+                            # state = env.first_stochastic_factor_setting_RED()
+                            state_1 = state
+                        action = agent.take_action_RO(state)
+                        next_state, reward, done, going, action_ = env.step3(action, cur_episode, storage_punishment_buffer)
+                        if next_state == None:
+                            next_state = state_1
+                        action = action_
+                        if going == True:
+                            actionSuccess = True
+                        else:
+                            actionSuccess = False
+                    going = False
+                    replay_buffer.add(state, action, reward, next_state, done)
+                    state = next_state
+                    episode_return += reward
+                    epsidoe_action_list.append(action)
+                    j += 1
+                    print('\r', {'action': '%.3f' % np.mean(epsidoe_action_list[-1]),
+                                 'step': '%d' % env.step_time,
+                                 'time': '%d' % j}, end='', flush=False)
+
+                    # 测试时不更新，要注释这段代码
+                    if replay_buffer.size() > minimal_size:
+                        b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
+                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
+                                           'dones': b_d}
+                        agent.update_ro(transition_dict)
+
+                # operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost = env.env.countCost()
+                operation_cost, es_punishment, gap_punishment, profit, total_cost = env.env.countCost_RO(env.res)
+                return_buffer.add(operation_cost, es_punishment, gap_punishment, profit, total_cost)
+                if (i_episode + 1) % ave_num == 0:
+                    pbar.set_postfix({'episode': '%.3f' % (num_episodes / 10 * i + i_episode + 1),
+                                      'operation_cost': '%.3f' % np.mean(return_buffer.operation_cost[-ave_num:]),
+                                      'carbon_emission': '%.3f' % np.mean(return_buffer.carbon_emission[-ave_num:]),
+                                      'carbon_emission_cost': '%.3f' % np.mean(
+                                          return_buffer.carbon_emission_cost[-ave_num:]),
+                                      'profit': '%.3f' % np.mean(return_buffer.profit[-ave_num:]),
+                                      'total_cost': '%.3f' % np.mean(return_buffer.total_cost[-ave_num:])})
+                    # 动作方差为0说明动作选择出错了
+                    if np.var(epsidoe_action_list[-ave_num:]) == 0:
+                        break
+                pbar.update(1)
 
 def compute_advantage(gamma, lmbda, td_delta):
     td_delta = td_delta.detach().numpy()

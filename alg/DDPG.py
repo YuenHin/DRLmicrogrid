@@ -146,6 +146,31 @@ class DDPG:
             action = action + 2
         return action
 
+    def take_action_RO(self, state):
+
+        state = torch.tensor([state], dtype=torch.float).to(self.device)
+        action = self.actor(state)
+        action = action.detach().squeeze().numpy()
+        # action = self.actor(state).item()
+        #给动作添加噪声，增加探索
+        action = action + self.sigma * np.random.randn(self.action_dim)
+
+        if action[0] > 1:
+            action[0] = action[0] -1
+        if action[0] < 0:
+            action[0] = action[0] + 1
+        if action[1] > 1:
+            action[1] = action[1] - 1
+        if action[1] < 0:
+            action[1] = action[1] + 1
+        for i in range(2,5):
+            if action[i] > 1:
+                action[i] = action[i] - 2
+            if action[i] < -1:
+                action[i] = action[i] + 2
+
+        return action
+
 
     def soft_update(self, net, target_net):
         for param_target, param in zip(target_net.parameters(), net.parameters()):
@@ -154,6 +179,28 @@ class DDPG:
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions'], dtype=torch.float).view(-1, 1).to(self.device)
+        rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
+        next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
+        dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
+
+        next_q_values = self.target_critic(next_states, self.target_actor(next_states))
+        q_targets = rewards + self.gamma * next_q_values * (1 - dones)
+        critic_loss = torch.mean(F.mse_loss(self.critic(states, actions), q_targets))
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic_optimizer.step()
+
+        actor_loss = -torch.mean(self.critic(states, self.actor(states)))
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor_optimizer.step()
+
+        self.soft_update(self.actor, self.target_actor)  # 软更新策略网络
+        self.soft_update(self.critic, self.target_critic)  # 软更新价值网络
+
+    def update_ro(self, transition_dict):
+        states = torch.tensor(transition_dict['states'], dtype=torch.float).to(self.device)
+        actions = torch.tensor(transition_dict['actions'], dtype=torch.float).to(self.device)
         rewards = torch.tensor(transition_dict['rewards'], dtype=torch.float).view(-1, 1).to(self.device)
         next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)

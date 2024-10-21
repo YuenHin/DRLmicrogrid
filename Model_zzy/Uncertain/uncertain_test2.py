@@ -17,17 +17,17 @@ from sklearn.metrics.pairwise import rbf_kernel
 """
 电负荷
 """
-# training_days = 15
-# testing_days = 15
-# total_time_num = 96
-# time_period = 15
-# confidence_level = 0.9
-# file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\load_e.xlsx'
-# training_column_name = 'training_power'
-# testing_column_name = 'testing_power'
-# column_name = "testing_power"
-# n_samples = training_days * total_time_num
-# name = "load_e"
+training_days = 15
+testing_days = 15
+total_time_num = 96
+time_period = 15
+confidence_level = 0.9
+file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\load_e.xlsx'
+training_column_name = 'training_power'
+testing_column_name = 'testing_power'
+column_name = "testing_power"
+n_samples = training_days * total_time_num
+name = "load_e"
 
 """
 气负荷
@@ -47,17 +47,17 @@ from sklearn.metrics.pairwise import rbf_kernel
 """
 热负荷
 """
-training_days = 7
-testing_days = 7
-total_time_num = 96
-time_period = 15
-confidence_level = 0.95
-file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\load_h.xlsx'
-training_column_name = 'training_power'
-testing_column_name = 'testing_power'
-column_name = "testing_power"
-n_samples = training_days * total_time_num
-name = "load_h"
+# training_days = 7
+# testing_days = 7
+# total_time_num = 96
+# time_period = 15
+# confidence_level = 0.95
+# file_path = 'C:\software\Github\DRLmicrogrid\Data\Predict\load_h.xlsx'
+# training_column_name = 'training_power'
+# testing_column_name = 'testing_power'
+# column_name = "testing_power"
+# n_samples = training_days * total_time_num
+# name = "load_h"
 
 """
 冷负荷

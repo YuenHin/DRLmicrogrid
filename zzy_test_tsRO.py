@@ -27,14 +27,10 @@ from Model_zzy.Flexible_analysis import FA
 from Model_zzy.Tools.divide_num import DivideNum
 from datetime import datetime
 
-# 开始记录时间
-start_time = datetime.now()
-print("开始时间：", start_time)
-
 
 "时间尺度"
 time = 24
-path = "zzy_test_defeat_c"
+path = "zzy_test_tsRO"
 
 """
 所有源网荷储
@@ -295,10 +291,14 @@ Gurobi求解
 MILP求解
 """
 "求解所需参数"
-C, integrality, num = MMGs_logic(UIES, path, flag=False)
+C, integrality, num = MMGs_logic(UIES, path, flag=True)
 
 "打印约束"
 PrintBounds(num)
+
+# 开始记录时间
+start_time = datetime.now()
+print("开始时间：", start_time)
 
 "计算结果"
 results = EndCount(C, integrality, num)

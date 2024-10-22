@@ -1,5 +1,5 @@
 from tools.Logic import MMGs_logic, x_callBack, draw, save_data
-from tools.MILP import EndCount, PrintBounds
+from tools.MILP import EndCount, PrintBounds, EndCount_notPrint
 import numpy as np
 import time
 import os
@@ -13,8 +13,8 @@ class microgrid_env:
         # 初始化
         self.con_add_num = 12  # 这是？
         self.env = MMGs
-        self.save_name = "zzy_RO"
-        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=True)
+        self.save_name = "microgrid"
+        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=False)
         self.flash_num = deepcopy(self.start_num)
         self.mpc_num = deepcopy(self.start_num)
         # self.start_num_ =self.start_num
@@ -28,7 +28,7 @@ class microgrid_env:
         self.action_space = np.array([1])
 
         # 第一次执行全流程Perfect_MILP程序
-        res = EndCount(self.C, self.intergrality, self.flash_num)
+        res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
         # PrintBounds(self.flash_num)
         # self.flash_num.bu[0] = 170
         # self.flash_num.bl[0] = 165
@@ -212,13 +212,16 @@ class microgrid_env:
         for MG in self.env.MG:
             for node in MG.node:
                 for device in node.devices:
-                    # pp生产成本 pp是什么
+                    # cpp生产成本
                     if device.className == "CPP":
-                        operation_cost += device.x[self.step_time - 1] * device.production_price[self.step_time - 1] * (
-                                    24 / device.time_num)
+                        # operation_cost += device.x[self.step_time - 1] * device.production_price[self.step_time - 1] * (24 / device.time_num)
+                        if device.x[self.step_time - 1] >= 0:
+                            operation_cost += device.x[self.step_time - 1] * device.production_price[self.step_time - 1] * (24 / device.time_num)
+                        else:
+                            profit += device.x[self.step_time - 1] * 0.315 * (24 / device.time_num)
                         carbon_emission += device.x[device.time_num + self.step_time - 1] * 0.839 * (
                                     24 / device.time_num)
-                        profit += device.x[device.time_num * 2 + self.step_time - 1] * 0.315 * (24 / device.time_num)
+                        # profit += device.x[device.time_num * 2 + self.step_time - 1] * 0.315 * (24 / device.time_num)
 
                     # gw生产成本
                     if device.className == "GW":
@@ -287,7 +290,7 @@ class microgrid_env:
         # PrintBounds(self.flash_num)
 
         # 计算该环境下的真实控制值
-        res = EndCount(-self.C, self.intergrality, self.flash_num)
+        res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
         flag = 0
         # done = False
         while res.success == False:
@@ -296,7 +299,7 @@ class microgrid_env:
             # done = True
             os.system("pause")
             self.__de_constrains()
-            res = EndCount(-self.C, self.intergrality, self.flash_num)
+            res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
             flag = flag + 1
             print("删一个")
             if res.success == True:
@@ -350,7 +353,7 @@ class microgrid_env:
             if done == True:
                 return self.x, np.array([0]), True, None
             # 计算该环境下的真实控制值
-            res = EndCount(-self.C, self.intergrality, self.flash_num)
+            res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
             done = False
             if res.success == False:
                 # PrintBounds(self.flash_num)
@@ -385,7 +388,7 @@ class microgrid_env:
             # 增加随机变量 # 感觉不应该放在这里
             # self.__stochastic_factor_setting_RED()  # 这里需要获取下一步的负荷的总需求功率和可再生能源的总出力功率
             if cur_episode < 0:  # 使用MILP的求解作为储能的动作需要这部分代码，后面求出MILP给的动作放进state
-                res = EndCount(-self.C, self.intergrality, self.flash_num)
+                res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
                 if res.success == False:
                     # PrintBounds(self.flash_num)
                     print("无解了！！！！！！！！！")
@@ -399,7 +402,7 @@ class microgrid_env:
             if done == True:
                 return self.x, np.array([0]), True, None, action_
             # 使用MILP验证执行动作后有无解，并得到该环境下的其他设备的真实控制值
-            res = EndCount(-self.C, self.intergrality, self.flash_num)
+            res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
             done = False
             if res.success == False:
                 # PrintBounds(self.flash_num)

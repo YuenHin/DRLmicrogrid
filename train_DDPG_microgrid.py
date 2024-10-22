@@ -124,8 +124,8 @@ class test_DDPG():
         # plt.show()
         ###############################################################################
         # 保存到excel
-        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_testv6.0.xlsx", 1, 0, return_list[0])
-        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_testv6.0.xlsx", 2, 0, storage_punishment_list)
+        writeDatatoExcel("Data/save_RL_model/Result\DDPG_actor_testv6.0.xlsx", 1, 0, return_list[0])
+        writeDatatoExcel("Data/save_RL_model/Result\DDPG_actor_testv6.0.xlsx", 2, 0, storage_punishment_list)
 
         # 保存模型参数
         # torch.save(agent.actor.state_dict(), '.\Data\save_RL_model\DDPG_actor_network'+ '_' + str(train_time) + '.pkl')

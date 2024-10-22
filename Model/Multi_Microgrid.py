@@ -45,9 +45,13 @@ class MMGs:
                     # pp生产成本
                     if devices.className == "CPP":
                         for i in range(devices.time_num):
-                            operation_cost += devices.x[devices.time_num + i] * devices.production_price[i] * (24 / devices.time_num)
+                            # operation_cost += devices.x[devices.time_num + i] * devices.production_price[i] * (24 / devices.time_num)
+                            if devices.x[i] >= 0:
+                                operation_cost += devices.x[i] * devices.production_price[i] * (24 / devices.time_num)
+                            else:
+                                profit += devices.x[i] * 0.315 * (24 / devices.time_num)
                             carbom_emission += devices.x[devices.time_num + i] * 0.839 * (24 / devices.time_num)
-                            profit += devices.x[devices.time_num * 2 + i] * 0.315 * (24 / devices.time_num)
+                            # profit += devices.x[devices.time_num * 2 + i] * 0.315 * (24 / devices.time_num)
                     # gw生产成本
                     if devices.className == "GW":
                         for i in range(devices.time_num):

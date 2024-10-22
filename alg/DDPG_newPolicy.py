@@ -20,11 +20,11 @@ class PolicyNet2(torch.nn.Module):
         # 第一个隐藏层
         self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
         # 第二个隐藏层
-        self.fc2 = torch.nn.Linear(hidden_dim, 8)
+        self.fc2 = torch.nn.Linear(hidden_dim, 1)
         # 第三个隐藏层，将第一个和第二个隐藏层的输出拼接
-        self.fc3 = torch.nn.Linear(hidden_dim + 8, hidden_dim)
+        self.fc3 = torch.nn.Linear(hidden_dim + 1, action_dim)
         # 输出层
-        self.output_layer = torch.nn.Linear(hidden_dim, action_dim)  # 输出一个一维值
+        # self.output_layer = torch.nn.Linear(hidden_dim, action_dim)  # 输出一个一维值
         self.action_bound = action_bound  # 动作边界
 
         self.locked = False  # 条件锁，用于决定是否锁定层和停止随机化
@@ -42,8 +42,8 @@ class PolicyNet2(torch.nn.Module):
             param.requires_grad = False  # 锁定第一层
         for param in self.fc3.parameters():
             param.requires_grad = False  # 锁定第三层
-        for param in self.output_layer.parameters():
-            param.requires_grad = False  # 锁定输出层
+        # for param in self.output_layer.parameters():
+        #     param.requires_grad = False  # 锁定输出层
 
     def unlock_fc2(self):
         """停止对第二个隐藏层的随机化，但允许继续训练和更新"""
@@ -64,7 +64,8 @@ class PolicyNet2(torch.nn.Module):
         x3 = F.relu(self.fc3(x3))  # 第三个隐藏层的输出
 
         # 输出层，生成一维的输出
-        output = self.output_layer(x3)
+        # output = self.output_layer(x3)
+        output = x3
         return torch.tanh(output) * self.action_bound
 
 class QValueNet(torch.nn.Module):
@@ -80,7 +81,7 @@ class QValueNet(torch.nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc_out(x)
 
-class DDPG:
+class DDPG_newPolicy:
     ''' DDPG算法 '''
     def __init__(self, state_dim, hidden_dim, action_dim, action_bound, sigma, actor_lr, critic_lr, tau, gamma, device):
         # self.actor = PolicyNet(state_dim, hidden_dim, action_dim, action_bound).to(device)

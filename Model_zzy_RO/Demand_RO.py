@@ -238,6 +238,7 @@ class D:
 
         #依据当前值得到真实随机出力值,并加入约束控制其值输出为确定性输出值
         #需要控制不确定变化后不会跳出范围
+        '''
         ran = random.choice([1, -1])
         # ran=1，真实值向上波动
         if ran == 1:
@@ -258,7 +259,9 @@ class D:
             else:
                 if self.real_x[step - 2] - self.real_x[step - 1] > self.ramping[step - 1]:
                     self.real_x[step - 1] = self.real_x[step - 2] - self.ramping[step - 1]
-
+        '''
+        # self.real_x[step - 1] = random.uniform(self.p_min[step - 1], self.p_max[step - 1])
+        self.real_x[step - 1] = self.p_min[step - 1]
         # num.bu[self.contraint_num + step - 1] = self.real_x[step - 1]
         # num.bl[self.contraint_num + step - 1] = self.real_x[step - 1]
         B = np.array([

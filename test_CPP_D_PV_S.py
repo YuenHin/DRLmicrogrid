@@ -22,7 +22,7 @@ demand_e_01 = D("D_e_01", "e", demand_total, 1, MG_id=1, ramping_rate=0.25, time
 CPP_e_01 = CPP("CPP_e_01", 1, 100000, time_num=time)
 
 "创建一个光伏发电厂"
-PV = RT("PV_01", "PV", 2, -0.048, demand_total*0.5, time_num=time)
+PV = RT("PV_01", "PV", 2, 0.048, demand_total*0.5, time_num=time)
 
 "创建一个储能"
 SE = S("S_e_01", 'e', 1, 10/1.1125, 3000, 80, 0.01/30/24, np.sqrt(0.95), np.sqrt(0.95), time)

@@ -26,7 +26,26 @@ class D:
 
         self.p = np.zeros(self.time_num)
         self.p_min = np.zeros(self.time_num)
+        self.p_mu = np.zeros(self.time_num)
         self.p_max = np.zeros(self.time_num)
+
+        self.randoms_e = np.array([0.11236204, 0.28521429, 0.21959818, 0.17959755, 0.04680559, 0.04679836,
+                                    0.01742508, 0.25985284, 0.1803345,  0.21242177, 0.00617535, 0.29097296,
+                                    0.24973279, 0.06370173, 0.05454749, 0.05502135, 0.09127267, 0.15742693,
+                                    0.12958351, 0.08736874, 0.18355587, 0.04184816, 0.08764339, 0.10990855])
+        self.randoms_g = np.array([0.21651324, 0.2913107,  0.12957349, 0.12455763, 0.00544368, 0.25198967,
+                                    0.14901604, 0.04595882, 0.23330536, 0.094079,   0.06942008, 0.13112689,
+                                    0.24014087, 0.14563949, 0.20326681, 0.06313587, 0.15087258, 0.27935159,
+                                    0.22504639, 0.06087852, 0.01193102, 0.11714176, 0.04954388, 0.15724382])
+        self.randoms_h = np.array([0.02782551, 0.09093528, 0.01193102, 0.06087852, 0.15724382, 0.04954388,
+                                    0.11714176, 0.02782551, 0.09093528, 0.01193102, 0.06087852, 0.15724382,
+                                    0.04954388, 0.11714176, 0.02782551, 0.09093528, 0.01193102, 0.06087852,
+                                    0.15724382, 0.04954388, 0.11714176, 0.02782551, 0.09093528, 0.01193102])
+        self.randoms_c = np.array([0.06087852, 0.15724382, 0.04954388, 0.11714176, 0.02782551, 0.09093528,
+                                    0.01193102, 0.06087852, 0.15724382, 0.04954388, 0.11714176, 0.02782551,
+                                    0.09093528, 0.01193102, 0.06087852, 0.15724382, 0.04954388, 0.11714176,
+                                    0.02782551, 0.09093528, 0.01193102, 0.06087852, 0.15724382, 0.04954388])
+
 
         self.params = np.array([""])
         "1"
@@ -69,8 +88,67 @@ class D:
 
     def __set_C2(self):
         self.c = np.zeros(len(self.params))
-        for i in range(len(self.params)):
-            self.c[i] = - (0.0001)
+
+        if self.type == "e":
+            for i in range(self.time_num):
+                self.c[i] = 0.01
+
+        if self.type == "g":
+            for i in range(self.time_num):
+                self.c[i] = 0.02
+
+        if self.type == "th":
+            for i in range(self.time_num):
+                self.c[i] = 0.01
+
+        if self.type == "c":
+            for i in range(self.time_num):
+                self.c[i] = 0.01
+
+        # if self.type == "e":
+        #     for i in range(0, 7):  # 0点至7点
+        #         self.c[i] = -0.5 * 0.5
+        #     for i in range(7, 14):  # 8点至14点
+        #         self.c[i] = -0.5 * 1.8
+        #     for i in range(14, 17):  # 13点至17点
+        #         self.c[i] = -0.5
+        #     for i in range(17, 23):  # 18点至23点
+        #         self.c[i] = -0.5 * 1.8
+        #     self.c[23] = -0.5 * 0.5
+
+        # if self.type == "g":
+        #     for i in range(0, 7):  # 0点至7点
+        #         self.c[i] = -0.5 * 0.9
+        #     for i in range(7, 14):  # 8点至14点
+        #         self.c[i] = -0.5 * 1.1
+        #     for i in range(14, 17):  # 13点至17点
+        #         self.c[i] = -0.5
+        #     for i in range(17, 23):  # 18点至23点
+        #         self.c[i] = -0.5 * 1.1
+        #     self.c[23] = -0.5 * 0.9
+
+        # if self.type == "th":
+        #     for i in range(0, 7):  # 0点至7点
+        #         self.c[i] = -0.5 * 0.9
+        #     for i in range(7, 14):  # 8点至14点
+        #         self.c[i] = -0.5 * 1.1
+        #     for i in range(14, 17):  # 13点至17点
+        #         self.c[i] = -0.5
+        #     for i in range(17, 23):  # 18点至23点
+        #         self.c[i] = -0.5 * 1.1
+        #     self.c[23] = -0.5 * 0.9
+        #
+        # if self.type == "c":
+        #     for i in range(0, 7):  # 0点至7点
+        #         self.c[i] = -0.5 * 0.9
+        #     for i in range(7, 14):  # 8点至14点
+        #         self.c[i] = -0.5 * 1.1
+        #     for i in range(14, 17):  # 13点至17点
+        #         self.c[i] = -0.5
+        #     for i in range(17, 23):  # 18点至23点
+        #         self.c[i] = -0.5 * 1.1
+        #     self.c[23] = -0.5 * 0.9
+
 
     #负荷数据修改
     def __getData2(self):
@@ -87,6 +165,8 @@ class D:
             self.p = self.p[:self.time_num]
             self.p_min = dataset['min'].values
             self.p_max = dataset['max'].values
+            self.p_mu = dataset['mu'].values
+            self.p_mu = self.p_mu[:self.time_num]
             self.p_min = self.p_min[:self.time_num]
             self.p_max = self.p_max[:self.time_num]
 
@@ -102,6 +182,8 @@ class D:
             self.p = self.p[:self.time_num]
             self.p_min = dataset['min'].values
             self.p_max = dataset['max'].values
+            self.p_mu = dataset['mu'].values
+            self.p_mu = self.p_mu[:self.time_num]
             self.p_min = self.p_min[:self.time_num]
             self.p_max = self.p_max[:self.time_num]
 
@@ -117,6 +199,8 @@ class D:
             self.p = self.p[:self.time_num]
             self.p_min = dataset['min'].values
             self.p_max = dataset['max'].values
+            self.p_mu = dataset['mu'].values
+            self.p_mu = self.p_mu[:self.time_num]
             self.p_min = self.p_min[:self.time_num]
             self.p_max = self.p_max[:self.time_num]
 
@@ -132,6 +216,8 @@ class D:
             self.p = self.p[:self.time_num]
             self.p_min = dataset['min'].values
             self.p_max = dataset['max'].values
+            self.p_mu = dataset['mu'].values
+            self.p_mu = self.p_mu[:self.time_num]
             self.p_min = self.p_min[:self.time_num]
             self.p_max = self.p_max[:self.time_num]
 
@@ -144,11 +230,37 @@ class D:
         """
         负荷的上下限约束
         """
-        for i in range(self.time_num):
-            B = np.array([
-                [self.params[i], 1]
-            ])
-            CreatConstraintsByText(1, B, self.p_min[i], self.p_max[i], num)
+        if self.type == "e":
+            for i in range(self.time_num):
+                B = np.array([
+                    [self.name + "P" + str(i + 1), 1]
+                ])
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+
+        if self.type == "g":
+            for i in range(self.time_num):
+                B = np.array([
+                    [self.name + "P" + str(i + 1), 1]
+                ])
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+
+        if self.type == "th":
+            for i in range(self.time_num):
+                B = np.array([
+                    [self.name + "P" + str(i + 1), 1]
+                ])
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+
+        if self.type == "c":
+            for i in range(self.time_num):
+                B = np.array([
+                    [self.name + "P" + str(i + 1), 1]
+                ])
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i]),
+                                       self.p_max[i], num)
         """
         ramping limits
         """
@@ -198,68 +310,11 @@ class D:
         # B = B.reshape((int(len(B) / 2), 2))
         # CreatConstraintsByText(1, B, self.p_total * (self.time_num / 24), np.inf, num)
 
-        # 结束位置
-        self.end_location = len(num.A)
 
         return num.A, num.bl, num.bu
 
-    def draw(self):
-        drawDemands(self.x, self.p_max, self.p_min, self.ramping, self.type, self.name+"_Load")
 
-    def getdata(self, path, y_index):
-        self.p = self.__24to96(path, y_index)
-        self.p_limit_max = self.p * (1 + self.ramping_rate)
-        self.p_limit_min = self.p * (1 - self.ramping_rate)
 
-        # using 24 step points to caculate 96 step points
-        # limit the type of demand data
-
-    def __24to96(self, path, y_index):
-        p = self.__downLoad_load(path, y_index)
-        p = self.__creatY_96(p)
-        return p
-
-        #顺滑Y轴24->96
-
-    def __creatY_96(self, p):
-        x = np.arange(1, len(p) + 1, 1)
-        x, p = smooth(x, p, self.time_num)
-        return p
-
-        #加载Y轴数据
-
-    def __downLoad_load(self, path, y_index):
-        p = getDataFromExcel(path, y_index, y_index + 1, 1, 25)
-        return p
-
-    def stochastic(self, step, num):
-
-        #依据当前值得到真实随机出力值,并加入约束控制其值输出为确定性输出值
-        #需要控制不确定变化后不会跳出范围
-        self.real_x[step - 1] * (1 + (random.random() * self.stochastic_value * 0.01))
-        # if (step != 93 and self.type != 'g') and (step != 96 and self.type != 'h'):
-        #     self.real_x[step - 1] = self.x[step - 1] * (1 + (random.random() * (self.stochastic_value ) * 0.01))
-        # else:
-        #     self.real_x[step - 1] = self.x[step - 1]
-
-        if self.real_x[step - 1] > self.p_max[step - 1]:
-            num.bu[self.contraint_num + step - 1] = self.real_x[step - 1]
-            self.p_max[step - 1] = self.real_x[step - 1]
-        if self.real_x[step - 1] < self.p_min[step - 1]:
-            num.bl[self.contraint_num + step - 1] = self.real_x[step - 1]
-            self.p_min[step - 1] = self.real_x[step - 1]
-
-        B = np.array([
-            [self.name + "P" + str(step), 1],
-        ])
-        CreatConstraintsByText(1, B, self.real_x[step - 1] * (1 - self.flexible_value),
-                                        self.real_x[step - 1] * (1 + self.flexible_value), num)
-
-    def re_train(self, step, num):
-        num.bu[self.contraint_num + self.time_num + step - 1] = np.inf
-        num.bu[self.contraint_num + self.time_num * 2 + step - 1] = np.inf
-        num.bu[self.contraint_num + self.time_num + step] = np.inf
-        num.bu[self.contraint_num + self.time_num * 2 + step] = np.inf
 
 
 

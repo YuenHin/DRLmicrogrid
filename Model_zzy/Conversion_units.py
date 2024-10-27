@@ -9,12 +9,7 @@ from tools.drawCPP import drawCPP
 class CCHP:
     def __init__(self, name, type, conversion_rate_e, conversion_rate_h, conversion_limit, time_num,
                  line_g, line_e, line_h):
-        self.first_location_bl = None
-        self.begin_location_bl = None
-        self.end_location_bl = None
-        self.first_location = None
-        self.begin_location = None
-        self.end_location = None
+
         self.className = "cchp"
         # 设备名
         self.name = name
@@ -100,10 +95,10 @@ class CCHP:
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num):
             # 运维成本
-            self.c[i] = 0.084
-            # 调节成本
-            self.c[i + self.time_num] = 0.018
-            self.c[i + self.time_num * 2] = 0.015
+            self.c[i] = 0.074
+            # # 调节成本
+            # self.c[i + self.time_num] = 0.018
+            # self.c[i + self.time_num * 2] = 0.015
             # 灵活性供给成本
             self.c[i + self.time_num * 4] = 0.019
             self.c[i + self.time_num * 5] = 0.019
@@ -122,9 +117,7 @@ class CCHP:
 
     # 约束条件
     def constraints(self, constraint_information_class):
-        # 起始位置
-        self.begin_location = len(constraint_information_class.A)
-        self.begin_location_bl = len(constraint_information_class.bl)
+
 
         """*****"""
         """能量转化约束"""
@@ -308,10 +301,6 @@ class CCHP:
             CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
 
 
-        # 起始位置
-        self.end_location = len(constraint_information_class.A)
-        self.end_location_bl = len(constraint_information_class.bl)
-
     # 用来记录强化学习中每一步的值
     def remember_one_step_real_value(self, step, constraint_information_class):
         # 保存计算得到的真实值
@@ -328,12 +317,7 @@ class CCHP:
 
 class EB:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_h):
-        self.begin_location_bl = None
-        self.end_location_bl = None
-        self.first_location_bl = None
-        self.first_location = None
-        self.begin_location = None
-        self.end_location = None
+
         self.name = name
         self.className = 'eb'
         self.time_num = time_num
@@ -400,9 +384,9 @@ class EB:
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num):
             # 运维成本
-            self.c[i] = 0.056
+            self.c[i] = 0.046
             # 调节成本
-            self.c[i + self.time_num] = 0.015
+            # self.c[i + self.time_num] = 0.015
             # 灵活性供给成本
             self.c[i + self.time_num * 3] = 0.015
             self.c[i + self.time_num * 4] = 0.015
@@ -420,9 +404,7 @@ class EB:
         self.p_rampingDown = self.p_max * 0.35
 
     def constraints(self, constraint_information_class):
-        # 起始位置
-        self.begin_location = len(constraint_information_class.A)
-        self.begin_location_bl = len(constraint_information_class.bl)
+
 
         # 能量转化约束
         transfer_constraint = np.array([
@@ -524,9 +506,6 @@ class EB:
         CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_h, self.max_output_h,
                                constraint_information_class)
 
-        # 第一阶段所需约束
-        self.first_location = len(constraint_information_class.A)
-        self.first_location_bl = len(constraint_information_class.bl)
 
         """
         上下限约束
@@ -586,10 +565,6 @@ class EB:
             ])
             CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
 
-        # 起始位置
-        self.end_location = len(constraint_information_class.A)
-        self.end_location_bl = len(constraint_information_class.bl)
-
 
     def draw(self):
         p = self.x[self.time_num: self.time_num * 2]
@@ -608,13 +583,6 @@ class EB:
 
 class ER:
     def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_c):
-
-        self.end_location_bl = None
-        self.first_location_bl = None
-        self.begin_location_bl = None
-        self.first_location = None
-        self.begin_location = None
-        self.end_location = None
 
         self.name = name
         self.className = 'er'
@@ -684,7 +652,7 @@ class ER:
             # 运维成本
             self.c[i] = 0.07
             # 调节成本
-            self.c[i + self.time_num] = 0.013
+            # self.c[i + self.time_num] = 0.013
             # 灵活性供给成本
             self.c[i + self.time_num * 3] = 0.015
             self.c[i + self.time_num * 4] = 0.015
@@ -703,10 +671,6 @@ class ER:
         self.p_rampingDown = self.p_max * 0.25
 
     def constraints(self, constraint_information_class):
-        # A起始位置
-        self.begin_location = len(constraint_information_class.A)
-        # bl起始位置
-        self.begin_location_bl = len(constraint_information_class.bl)
 
         # 能量转化约束
         transfer_constraint = np.array([
@@ -808,11 +772,6 @@ class ER:
         # CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_c, self.max_output_c,
         #                        constraint_information_class)
 
-        # 第一阶段所需约束
-        self.first_location = len(constraint_information_class.A)
-        # 第一阶段bl位置
-        self.first_location_bl = len(constraint_information_class.bl)
-
         """
         上下限约束
         """
@@ -871,11 +830,6 @@ class ER:
         ])
         CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
 
-        # 结束位置
-        self.end_location = len(constraint_information_class.A)
-        # bl结束位置
-        self.end_location_bl = len(constraint_information_class.bl)
-
     def draw(self):
         print("draw_ER")
 
@@ -888,288 +842,5 @@ class ER:
         ])
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], constraint_information_class)
 
-class PG:
-    def __init__(self, name, conversion_rate, conversion_limits, time_num, line_e, line_g, ud_set, dd_set, n):
-        self.begin_location_bl = None
-        self.end_location_bl = None
-        self.first_location_bl = None
-        self.first_location = None
-        self.begin_location = None
-        self.end_location = None
-        self.name = name
-        self.className = 'pg'
-        self.time_num = time_num
-        self.line_e = line_e
-        self.line_g = line_g
-
-        self.ud_set = ud_set
-        self.dd_set = dd_set
-
-        self.n = n
-
-        self.way = 8
-
-        # 爬坡功率与滑坡功率
-        self.ramping_up = 0.35
-        self.ramping_down = 0.35
-
-        self.p_max = conversion_limits
-        self.p_rampingUp = None
-        self.p_rampingDown = None
-
-        # 最大最小功率
-        self.max_input_e = conversion_limits
-        self.min_input_e = 0
-        self.max_output_g = conversion_limits * conversion_rate
-        self.min_output_g = 0
-
-        self.params = np.array([""])
-
-        self.conversion_rate = conversion_rate
-
-        self.day = int(self.time_num / 24)
-
-        self.__init()
-
-        self.length = len(self.params)
-
-        self.x = np.zeros(self.length)
-        self.real_x = np.zeros(self.length)
-
-        self.constraint_num = 0
-
-    def __init(self):
-        self.__params_named()
-        self.__set_C()
-        self.__set_intergrality()
-        self.__getData()
-
-    def __params_named(self):
-        temp = np.array([
-            self.name + "input_e",
-            self.name + "output_g",
-            self.name + "S",
-            self.name + "e_us",
-            self.name + "e_ds",
-            self.name + "g_us",
-            self.name + "g_ds",
-            # self.name + "C"  #  表示t+1与t时刻之间的运行功率变化
-        ])
-        self.params = AddParams(self.params, self.time_num, temp)
-        self.params = self.params[1:]
-
-    def __set_intergrality(self):
-        self.intergrality = np.zeros(len(self.params))
-        for i in range(self.time_num):
-            self.intergrality[i + self.time_num * 2] = 1
-
-    def __set_C(self):
-        self.c = np.zeros(len(self.params))
-        for i in range(self.time_num):
-            # 运维成本
-            self.c[i] = 0.0873
-            # 调节成本
-            self.c[i + self.time_num] = 0.016
-            # 灵活性供给成本
-            self.c[i + self.time_num * 3] = 0.015
-            self.c[i + self.time_num * 4] = 0.015
-            self.c[i + self.time_num * 5] = 0.001
-            self.c[i + self.time_num * 6] = 0.001
-
-            """放宽约束后的灵活性供给成本"""
-            # self.c[i + self.time_num * 3] = 0.029
-            # self.c[i + self.time_num * 4] = 0.029
-            # self.c[i + self.time_num * 5] = 0.024
-            # self.c[i + self.time_num * 6] = 0.024
-
-    def __getData(self):
-        self.p_rampingUp = self.p_max * 0.35
-        self.p_rampingDown = self.p_max * 0.35
-
-    def constraints(self, constraint_information_class):
-        # 起始位置
-        self.begin_location = len(constraint_information_class.A)
-        self.begin_location_bl = len(constraint_information_class.bl)
-
-        # 能量转化约束
-        transfer_constraint = np.array([
-            [self.name + "input_e1", 1],
-            [self.name + "output_g1", -1 / self.conversion_rate]
-        ])
-        CreatConstraintsByText(self.time_num, transfer_constraint, 0, 0, constraint_information_class)
-
-        # 爬坡功率与滑坡功率约束
-        # 固定
-        ramping_up_constraint = np.array([
-            [self.name + "input_e2", 1],
-            [self.name + "input_e1", -1],
-            [self.name + "S2", -self.ramping_up]
-        ])
-        CreatConstraintsByText(self.time_num-1, ramping_up_constraint, -np.inf, 0, constraint_information_class)
-        ramping_down_constraint = np.array([
-            [self.name + "input_e2", -1],
-            [self.name + "input_e1", 1],
-            [self.name + "S2", -self.ramping_down]
-        ])
-        CreatConstraintsByText(self.time_num-1, ramping_down_constraint, -np.inf, 0, constraint_information_class)
-        # 变动
-        B = np.array([
-            [self.name + "input_e2", 1],
-            [self.name + "input_e1", -1],
-            [self.name + "S2", -self.p_rampingUp]
-        ])
-        CreatConstraintsByText(self.time_num - 1, B, -np.inf, 0, constraint_information_class)
-        # Down
-        B = np.array([
-            [self.name + "input_e2", -1],
-            [self.name + "input_e1", 1],
-            [self.name + "S2", -self.p_rampingDown]
-        ])
-        CreatConstraintsByText(self.time_num - 1, B, -np.inf, 0, constraint_information_class)
-        """
-        State
-        """
-        state_constraint = np.array([
-            [self.name + "S1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, state_constraint, 0, 1, constraint_information_class)
-
-        # 线路约束
-        """
-        line_e
-        """
-        B = np.array([
-            [self.name + "input_e1", 1],
-            [self.line_e.name + "P1", -1]
-        ])
-        CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
-        """
-        line_h
-        """
-        B = np.array([
-            [self.name + "output_g1", 1],
-            [self.line_g.name + "P1", -1]
-        ])
-        CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
-
-        # """运行功率变化"""
-        # B = np.array([
-        #     [self.name + "C1", 1],
-        #     [self.name + "input_e1", -1]
-        # ])
-        # CreatConstraintsByText(1, B, 0, 0, constraint_information_class)
-        #
-        # for i in range(self.time_num - 1):
-        #     B = np.array([
-        #         [self.name + "C" + str(i + 2), 1],
-        #         [self.name + "input_e" + str(i + 2), -1],
-        #         [self.name + "input_e" + str(i + 1), 1]
-        #     ])
-        #     CreatConstraintsByText(1, B, 0, 0, constraint_information_class)
-
-        """
-        上下限约束(无灵活性供给)
-        """
-        e_bound_us = np.array([
-            [self.name + "input_e1", 1]
-        ])
-        e_bound_ds = np.array([
-            [self.name + "input_e1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, e_bound_us, self.min_input_e, self.max_input_e,
-                               constraint_information_class)
-        CreatConstraintsByText(self.time_num, e_bound_ds, self.min_input_e, self.max_input_e,
-                               constraint_information_class)
-        h_bound_us = np.array([
-            [self.name + "output_g1", 1]
-        ])
-        h_bound_ds = np.array([
-            [self.name + "output_g1", 1]
-        ])
-        CreatConstraintsByText(self.time_num, h_bound_us, self.min_output_g, self.max_output_g,
-                               constraint_information_class)
-        CreatConstraintsByText(self.time_num, h_bound_ds, self.min_output_g, self.max_output_g,
-                               constraint_information_class)
-
-        # 第一阶段所需约束
-        self.first_location = len(constraint_information_class.A)
-        self.first_location_bl = len(constraint_information_class.bl)
-
-        """
-        上下限约束
-        """
-        e_bound_us = np.array([
-            [self.name + "input_e1", 1],
-            [self.name + "e_us1", 1]
-        ])
-        e_bound_ds = np.array([
-            [self.name + "input_e1", 1],
-            [self.name + "e_ds1", -1]
-        ])
-        CreatConstraintsByText(self.time_num, e_bound_us, self.min_input_e, self.max_input_e,
-                               constraint_information_class)
-        CreatConstraintsByText(self.time_num, e_bound_ds, -np.inf, self.max_input_e,
-                               constraint_information_class)
-        h_bound_us = np.array([
-             [self.name + "output_g1", 1],
-             [self.name + "g_us1", 1]
-         ])
-        h_bound_ds = np.array([
-            [self.name + "output_g1", 1],
-            [self.name + "g_ds1", -1]
-        ])
-        CreatConstraintsByText(self.time_num, h_bound_us, self.min_output_g, self.max_output_g,
-                               constraint_information_class)
-        CreatConstraintsByText(self.time_num, h_bound_ds, -np.inf, self.max_output_g,
-                               constraint_information_class)
-
-        for i in range(self.time_num):
-            B = np.array([
-                [self.name + "e_us" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, 0, self.p_rampingUp, constraint_information_class)
-            B = np.array([
-                [self.name + "e_ds" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, 0, self.p_rampingDown, constraint_information_class)
-            B = np.array([
-                [self.name + "g_us" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, 0, self.p_rampingUp, constraint_information_class)
-            B = np.array([
-                [self.name + "g_ds" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, 0, self.p_rampingDown, constraint_information_class)
-
-            B = np.array([
-                [self.name + "e_us1", 1],
-                [self.name + "g_us1", -1 / self.conversion_rate],
-            ])
-            CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
-
-            B = np.array([
-                [self.name + "e_ds1", 1],
-                [self.name + "g_ds1", -1 / self.conversion_rate],
-            ])
-            CreatConstraintsByText(self.time_num, B, 0, 0, constraint_information_class)
-
-        # 起始位置
-        self.end_location = len(constraint_information_class.A)
-        self.end_location_bl = len(constraint_information_class.bl)
-
-
-    def draw(self):
-        p = self.x[self.time_num: self.time_num * 2]
-        # drawCPP(p, self.p_max, 0, self.p_rampingUp, self.p_rampingDown, None, title=self.name + "production")
-
-
-    def remenber_realValue(self, step, constraint_information_class):
-        #这里因为没有涉及到强化学习控制，因此只需要将perfect——MILP下未考虑随机的控制结果输出即可，不需要做额外的控制
-        self.real_x[step - 1] = self.x[step - 1]
-
-        B = np.array([
-            [self.name + "input_e" + str(step), 1],
-        ])
-        CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], constraint_information_class)
 
 

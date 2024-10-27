@@ -97,6 +97,8 @@ class FD:
 
     def __set_params(self):
         temp = np.array([
+            # self.name + "Z_UD",  # 向上灵活性需求辅助变量
+            # self.name + "Z_DD",  # 向下灵活性需求辅助变量
             self.name + "UD",  # 向上灵活性需求
             self.name + "DD",   # 向下灵活性需求
         ])
@@ -109,29 +111,37 @@ class FD:
     def __set_c(self):
         self.c = np.zeros(len(self.params))
 
-        for i in range(self.time_num):
-            self.c[i] = 0.01
-            self.c[i + self.time_num] = 0.01
+        # for i in range(self.time_num):
+        #     self.c[i] = 0.1
+        #     self.c[i + self.time_num * 1] = 0.1
 
-        # if self.type == "e":
-        #     for i in range(self.time_num):
-        #         self.c[i] = -0.058
-        #         self.c[i + self.time_num] = -0.058
-        #
-        # if self.type == "g":
-        #     for i in range(self.time_num):
-        #         self.c[i] = -0.041
-        #         self.c[i + self.time_num] = -0.041
-        #
-        # if self.type == "th":
-        #     for i in range(self.time_num):
-        #         self.c[i] = -0.043
-        #         self.c[i + self.time_num] = -0.043
-        #
-        # if self.type == "c":
-        #     for i in range(self.time_num):
-        #         self.c[i] = -0.036
-        #         self.c[i + self.time_num] = -0.036
+        if self.type == "e":
+            for i in range(self.time_num):
+                self.c[i] = 0.01
+                self.c[i + self.time_num * 1] = 0.01
+                # self.c[i + self.time_num * 2] = 0.1
+                # self.c[i + self.time_num * 3] = 0.1
+
+        if self.type == "g":
+            for i in range(self.time_num):
+                self.c[i] = 0.01
+                self.c[i + self.time_num * 1] = 0.01
+                # self.c[i + self.time_num * 2] = 0.1
+                # self.c[i + self.time_num * 3] = 0.1
+
+        if self.type == "th":
+            for i in range(self.time_num):
+                # self.c[i + self.time_num * 2] = 0.1        # -0.043
+                # self.c[i + self.time_num * 3] = 0.1
+                self.c[i] = 0.01
+                self.c[i + self.time_num * 1] = 0.01
+
+        if self.type == "c":
+            for i in range(self.time_num):
+                # self.c[i + self.time_num * 2] = 0.1            # -0.036
+                # self.c[i + self.time_num * 3] = 0.1
+                self.c[i] = 0.01
+                self.c[i + self.time_num * 1] = 0.01
 
     def constraints(self, num):
 
@@ -154,6 +164,20 @@ class FD:
                 [self.name + "UD1", 1],
             ])
             CreatConstraintsByText(self.time_num - 1, B, 0, np.inf, num)
+
+        # if self.type == "e":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "UD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, max(0, self.net_load_min[k+1] - self.predict_load[k],
+        #                                          self.net_load_max[k + 1] - self.predict_load[k],
+        #                                          self.net_load_max[k + 1] + self.net_load_min[k + 1]
+        #                                          - 2 * self.predict_load[k]),
+        #                                max(0, self.net_load_min[k + 1] - self.predict_load[k],
+        #                                    self.net_load_max[k + 1] - self.predict_load[k],
+        #                                    self.net_load_max[k + 1] + self.net_load_min[k + 1]
+        #                                    - 2 * self.predict_load[k]), num)
 
         if self.type == "e":
             for k in range(self.time_num - 1):
@@ -197,12 +221,27 @@ class FD:
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_max[k + 1] + self.net_load_min[k + 1] - 2 * self.predict_load[k], np.inf, num)
 
+
         "电力子系统向下灵活性需求"
         if self.type == "e":
             B = np.array([
                 [self.name + "DD1", 1],
             ])
             CreatConstraintsByText(self.time_num - 1, B, 0, np.inf, num)
+
+        # if self.type == "e":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "DD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, max(0, self.predict_load[k] - self.net_load_min[k + 1],
+        #                                          self.predict_load[k] - self.net_load_max[k + 1],
+        #                                          2 * self.predict_load[k] - self.net_load_max[k + 1]
+        #                                          - self.net_load_min[k + 1]),
+        #                                max(0, self.predict_load[k] - self.net_load_min[k + 1],
+        #                                    self.predict_load[k] - self.net_load_max[k + 1],
+        #                                    2 * self.predict_load[k] - self.net_load_max[k + 1]
+        #                                    - self.net_load_min[k + 1]), num)
 
         if self.type == "e":
             for k in range(self.time_num - 1):
@@ -256,12 +295,38 @@ class FD:
             ])
             CreatConstraintsByText(1, B, 498.2124343, 498.2124343, num)
 
+        # if self.type == "e":
+        #     B = np.array([
+        #         [self.name + "Z_UD1", 1],
+        #         [self.name + "UD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
+        #     B = np.array([
+        #         [self.name + "Z_DD1", 1],
+        #         [self.name + "DD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
+
         "热能子系统向上灵活性需求"
         if self.type == "th":
             B = np.array([
                 [self.name + "UD1", 1],
             ])
             CreatConstraintsByText(self.time_num - 1, B, 0, np.inf, num)
+
+        # if self.type == "th":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "UD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, max(0, self.net_load_min[k+1] - self.predict_load[k],
+        #                                          self.net_load_max[k + 1] - self.predict_load[k],
+        #                                          self.net_load_max[k + 1] + self.net_load_min[k + 1]
+        #                                          - 2 * self.predict_load[k]),
+        #                                max(0, self.net_load_min[k + 1] - self.predict_load[k],
+        #                                    self.net_load_max[k + 1] - self.predict_load[k],
+        #                                    self.net_load_max[k + 1] + self.net_load_min[k + 1]
+        #                                    - 2 * self.predict_load[k]), num)
 
         if self.type == "th":
             for k in range(self.time_num - 1):
@@ -312,6 +377,20 @@ class FD:
             ])
             CreatConstraintsByText(self.time_num - 1, B, 0, np.inf, num)
 
+        # if self.type == "th":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "DD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, max(0, self.predict_load[k] - self.net_load_min[k + 1],
+        #                                          self.predict_load[k] - self.net_load_max[k + 1],
+        #                                          2 * self.predict_load[k] - self.net_load_max[k + 1]
+        #                                          - self.net_load_min[k + 1]),
+        #                                max(0, self.predict_load[k] - self.net_load_min[k + 1],
+        #                                    self.predict_load[k] - self.net_load_max[k + 1],
+        #                                    2 * self.predict_load[k] - self.net_load_max[k + 1]
+        #                                    - self.net_load_min[k + 1]), num)
+
         if self.type == "th":
             for k in range(self.time_num - 1):
                 B = np.array([
@@ -353,7 +432,7 @@ class FD:
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, 2 * self.predict_load[k] - self.net_load_max[k + 1] - self.net_load_min[k + 1], np.inf, num)
-
+        #
         if self.type == "th":
             B = np.array([
                 [self.name + "UD24", 1],
@@ -363,6 +442,18 @@ class FD:
                 [self.name + "DD24", 1],
             ])
             CreatConstraintsByText(1, B, 0, 0, num)
+
+        # if self.type == "th":
+        #     B = np.array([
+        #         [self.name + "Z_UD1", 1],
+        #         [self.name + "UD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
+        #     B = np.array([
+        #         [self.name + "Z_DD1", 1],
+        #         [self.name + "DD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
 
         "气能子系统向上灵活性需求"
         if self.type == "g":
@@ -376,14 +467,28 @@ class FD:
                 B = np.array([
                     [self.name + "UD" + str(k + 1), 1],
                 ])
-                CreatConstraintsByText(1, B, self.net_load_min[k+1] - self.predict_load[k], np.inf, num)
+                CreatConstraintsByText(1, B, max(0, self.net_load_min[k+1] - self.predict_load[k],
+                                                 self.net_load_max[k + 1] - self.predict_load[k],
+                                                 self.net_load_max[k + 1] + self.net_load_min[k + 1]
+                                                 - 2 * self.predict_load[k]),
+                                       max(0, self.net_load_min[k + 1] - self.predict_load[k],
+                                           self.net_load_max[k + 1] - self.predict_load[k],
+                                           self.net_load_max[k + 1] + self.net_load_min[k + 1]
+                                           - 2 * self.predict_load[k]), num)
 
-        if self.type == "g":
-            for k in range(self.time_num - 1):
-                B = np.array([
-                    [self.name + "UD" + str(k + 1), 1],
-                ])
-                CreatConstraintsByText(1, B, self.net_load_max[k + 1] - self.predict_load[k], np.inf, num)
+        # if self.type == "g":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "UD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.net_load_min[k+1] - self.predict_load[k], np.inf, num)
+        #
+        # if self.type == "g":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "UD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.net_load_max[k + 1] - self.predict_load[k], np.inf, num)
 
         "气能子系统向下灵活性需求"
         if self.type == "g":
@@ -397,14 +502,28 @@ class FD:
                 B = np.array([
                     [self.name + "DD" + str(k + 1), 1],
                 ])
-                CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_min[k+1], np.inf, num)
+                CreatConstraintsByText(1, B, max(0, self.predict_load[k] - self.net_load_min[k + 1],
+                                                 self.predict_load[k] - self.net_load_max[k + 1],
+                                                 2 * self.predict_load[k] - self.net_load_max[k + 1]
+                                                 - self.net_load_min[k + 1]),
+                                       max(0, self.predict_load[k] - self.net_load_min[k + 1],
+                                           self.predict_load[k] - self.net_load_max[k + 1],
+                                           2 * self.predict_load[k] - self.net_load_max[k + 1]
+                                           - self.net_load_min[k + 1]), num)
 
-        if self.type == "g":
-            for k in range(self.time_num - 1):
-                B = np.array([
-                    [self.name + "DD" + str(k + 1), 1],
-                ])
-                CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_max[k + 1], np.inf, num)
+        # if self.type == "g":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "DD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_min[k+1], np.inf, num)
+        #
+        # if self.type == "g":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "DD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_max[k + 1], np.inf, num)
 
         if self.type == "g":
             B = np.array([
@@ -428,14 +547,28 @@ class FD:
                 B = np.array([
                     [self.name + "UD" + str(k + 1), 1],
                 ])
-                CreatConstraintsByText(1, B, self.net_load_min[k+1] - self.predict_load[k], np.inf, num)
+                CreatConstraintsByText(1, B, max(0, self.net_load_min[k+1] - self.predict_load[k],
+                                                 self.net_load_max[k + 1] - self.predict_load[k],
+                                                 self.net_load_max[k + 1] + self.net_load_min[k + 1]
+                                                 - 2 * self.predict_load[k]),
+                                       max(0, self.net_load_min[k + 1] - self.predict_load[k],
+                                           self.net_load_max[k + 1] - self.predict_load[k],
+                                           self.net_load_max[k + 1] + self.net_load_min[k + 1]
+                                           - 2 * self.predict_load[k]), num)
 
-        if self.type == "c":
-            for k in range(self.time_num - 1):
-                B = np.array([
-                    [self.name + "UD" + str(k + 1), 1],
-                ])
-                CreatConstraintsByText(1, B, self.net_load_max[k + 1] - self.predict_load[k], np.inf, num)
+        # if self.type == "c":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "UD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.net_load_min[k+1] - self.predict_load[k], np.inf, num)
+        #
+        # if self.type == "c":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "UD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.net_load_max[k + 1] - self.predict_load[k], np.inf, num)
 
         "冷能子系统向下灵活性需求"
         if self.type == "c":
@@ -449,14 +582,28 @@ class FD:
                 B = np.array([
                     [self.name + "DD" + str(k + 1), 1],
                 ])
-                CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_min[k+1], np.inf, num)
+                CreatConstraintsByText(1, B, max(0, self.predict_load[k] - self.net_load_min[k + 1],
+                                                 self.predict_load[k] - self.net_load_max[k + 1],
+                                                 2 * self.predict_load[k] - self.net_load_max[k + 1]
+                                                 - self.net_load_min[k + 1]),
+                                       max(0, self.predict_load[k] - self.net_load_min[k + 1],
+                                           self.predict_load[k] - self.net_load_max[k + 1],
+                                           2 * self.predict_load[k] - self.net_load_max[k + 1]
+                                           - self.net_load_min[k + 1]), num)
 
-        if self.type == "c":
-            for k in range(self.time_num - 1):
-                B = np.array([
-                    [self.name + "DD" + str(k + 1), 1],
-                ])
-                CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_max[k + 1], np.inf, num)
+        # if self.type == "c":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "DD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_min[k+1], np.inf, num)
+        #
+        # if self.type == "c":
+        #     for k in range(self.time_num - 1):
+        #         B = np.array([
+        #             [self.name + "DD" + str(k + 1), 1],
+        #         ])
+        #         CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_max[k + 1], np.inf, num)
 
         if self.type == "c":
             B = np.array([

@@ -73,12 +73,12 @@ class FL:
             # 响应功率
             for i in range(self.time_num):
                 # 柔性负荷作为灵活性供给的成本 自愿减碳收入
-                self.c[i] = 0.03 - 0.035
+                self.c[i] = 0.033 - 0.032
 
         if self.type == "g":
             for i in range(self.time_num):
                 # 柔性负荷作为灵活性供给的成本
-                self.c[i] = 0.04 - 0.027
+                self.c[i] = 0.03 - 0.027
 
         if self.type == "th":
             for i in range(self.time_num):

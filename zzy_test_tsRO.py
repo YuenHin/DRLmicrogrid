@@ -4,8 +4,8 @@ UIES环境配置
 import numpy as np
 import pandas as pd
 
-# import gurobipy as gp
-# from gurobipy import GRB
+import gurobipy as gp
+from gurobipy import GRB
 
 from Model_zzy.Node import Node
 from Model_zzy.ConventionalPowerPlants_area import CPP
@@ -13,7 +13,7 @@ from Model_zzy.GasWell import GW
 from Model_zzy.Demand_RO import D
 from Model_zzy.RenewableProductionUnit_RO import RT, HP
 from Model_zzy.Storage import ES
-from Model_zzy.Conversion_units import CCHP, EB, ER, PG
+from Model_zzy.Conversion_units import CCHP, EB, ER
 from Tools.two_stage_robust import two_stage_RO
 from tools.Logic import MMGs_logic, x_callBack, draw
 from tools.MILP import PrintBounds, EndCount
@@ -228,6 +228,8 @@ Gurobi求解
 # "打印约束"
 # PrintBounds(num)
 #
+# start_time = datetime.now()
+#
 # A = num.A
 # params = num.params
 # A = A.reshape((int(len(A) / len(params)), len(params)))
@@ -291,7 +293,7 @@ Gurobi求解
 MILP求解
 """
 "求解所需参数"
-C, integrality, num = MMGs_logic(UIES, path, flag=True)
+C, integrality, num = MMGs_logic(UIES, path, flag=False)
 
 "打印约束"
 PrintBounds(num)

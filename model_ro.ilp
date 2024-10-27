@@ -1,0 +1,8 @@
+\ Model RO_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ R15351: fd_eUD2 <= -21.95576380370994
+Bounds
+End

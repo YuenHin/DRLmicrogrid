@@ -157,6 +157,17 @@ class FA:
                     B = np.append(B, np.array([
                         [self.nodes[i].devices[j].name + "UD1", 1],
                     ]))
+
+                "可再生能源出力"
+                # if self.nodes[i].devices[j].className == "RT" and self.nodes[i].devices[j].type == "PV":
+                #     B = np.append(B, np.array([
+                #         [self.nodes[i].devices[j].name + "P1", 1]
+                #     ]))
+                # if self.nodes[i].devices[j].className == "RT" and self.nodes[i].devices[j].type == "WT":
+                #     B = np.append(B, np.array([
+                #         [self.nodes[i].devices[j].name + "P1", 1]
+                #     ]))
+
                 if self.nodes[i].devices[j].className == "FL" and self.nodes[i].devices[j].type == "e":
                     B = np.append(B, np.array([
                        [self.nodes[i].devices[j].name + "RP1", -1],
@@ -200,6 +211,16 @@ class FA:
                     B = np.append(B, np.array([
                         [self.nodes[i].devices[j].name + "DD1", 1],
                     ]))
+
+                "可再生能源出力"
+                # if self.nodes[i].devices[j].className == "RT" and self.nodes[i].devices[j].type == "PV":
+                #     B = np.append(B, np.array([
+                #         [self.nodes[i].devices[j].name + "P1", -1]
+                #     ]))
+                # if self.nodes[i].devices[j].className == "RT" and self.nodes[i].devices[j].type == "WT":
+                #     B = np.append(B, np.array([
+                #         [self.nodes[i].devices[j].name + "P1", -1]
+                #     ]))
 
                 # if self.nodes[i].devices[j].className == "FL" and self.nodes[i].devices[j].type == "e":
                 #     B = np.append(B, np.array([
@@ -288,10 +309,14 @@ class FA:
                     ]))
 
                 if self.nodes[i].devices[j].className == "FD" and self.nodes[i].devices[j].type == "th":
-                    for k in range(self.time_num):
                         B = np.append(B, np.array([
                             [self.nodes[i].devices[j].name + "UD1", 1],
                         ]))
+                "可再生能源出力"
+                # if self.nodes[i].devices[j].className == "RT" and self.nodes[i].devices[j].type == "HP":
+                #     B = np.append(B, np.array([
+                #         [self.nodes[i].devices[j].name + "output_h1", 1]
+                #     ]))
 
                 if self.nodes[i].devices[j].className == "FL" and self.nodes[i].devices[j].type == "th":
                     B = np.append(B, np.array([
@@ -327,6 +352,12 @@ class FA:
                         B = np.append(B, np.array([
                             [self.nodes[i].devices[j].name + "DD1", 1],
                         ]))
+
+                "可再生能源出力"
+                # if self.nodes[i].devices[j].className == "RT" and self.nodes[i].devices[j].type == "HP":
+                #     B = np.append(B, np.array([
+                #         [self.nodes[i].devices[j].name + "output_h1", -1]
+                #     ]))
 
                 # if self.nodes[i].devices[j].className == "FL" and self.nodes[i].devices[j].type == "th":
                 #     B = np.append(B, np.array([

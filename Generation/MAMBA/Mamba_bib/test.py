@@ -25,8 +25,8 @@ print(result)  # 输出: tensor([[[ 5,  6], [10, 12]], [[15, 18], [20, 24]]])
 
 # torch.Size([3, 2, 1])
 
-# result = torch.einsum('jki->jk', C)
-# print(result)  # 输出: tensor([3, 7])
+# Result = torch.einsum('jki->jk', C)
+# print(Result)  # 输出: tensor([3, 7])
 # 'ijk->i'    10, 26
 # 'ijk->j'    14, 22
 # 'ijk->k'    16, 20

@@ -1,5 +1,5 @@
 from tools.Logic import MMGs_logic, x_callBack, draw, save_data
-from tools.MILP import EndCount, PrintBounds
+from tools.MILP import EndCount, PrintBounds,EndCount_notPrint
 import numpy as np
 import time
 import os
@@ -28,13 +28,13 @@ class microgrid_RO_env:
                                   'S_e_t', 'S_th_t', 'S_c_t']
         # self.action_space = np.array([len(self.observation_space)])
         self.action_space = np.array(['CPP_P', 'GW_P', 'S_e', 'S_th', 'S_c'])
-        for MG in self.env.MG:
-            for node in MG.node:
-                for device in node.devices:
-                    print(device.className)
+        # for MG in self.env.MG:
+        #     for node in MG.node:
+        #         for device in node.devices:
+        #             print(device.className)
 
         # 第一次执行全流程Perfect_MILP程序
-        res = EndCount(self.C, self.intergrality, self.flash_num)
+        res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)
         # PrintBounds(self.flash_num)
         # res = EndCount(-self.C, self.intergrality, self.flash_num)
         # PrintBounds(self.flash_num)
@@ -47,10 +47,10 @@ class microgrid_RO_env:
         # 初始化结束之后，每一个设备在预测值下的运行数据都已经获得了；下面需要对数据进行第一轮处理
         print("初始化用时：", time.time() - self.start_time)
 
-        # for MG in self.env.MG:
-        #     for node in MG.node:
-        #         for device in node.devices:
-        #             print(device.className)
+        for MG in self.env.MG:
+            for node in MG.node:
+                for device in node.devices:
+                    print(device.className)
 
         self.last_time = time.time()
 
@@ -157,31 +157,36 @@ class microgrid_RO_env:
             for node in MG.node:
                 for device in node.devices:
                     if device.className == 'D' and device.type == 'e':
-                        D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        D_P1 = device.real_x[0]  # 获取该负荷设备在t=1时刻的功率需求
                         D_P_min = device.p_min.min()
                         D_P_max = device.p_max.max()
                         D_norma_P1 = (D_P1 - D_P_min) / (D_P_max - D_P_min)  # 归一化
                         demand_e_total_t = demand_e_total_t + D_norma_P1
                     elif device.className == 'D' and device.type == 'th':
-                        D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        D_P1 = device.real_x[0]  # 获取该负荷设备在t=1时刻的功率需求
                         D_P_min = device.p_min.min()
                         D_P_max = device.p_max.max()
                         D_norma_P1 = (D_P1 - D_P_min) / (D_P_max - D_P_min)  # 归一化
                         demand_th_total_t = demand_th_total_t + D_norma_P1
                     elif device.className == 'D' and device.type == 'c':
-                        D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        D_P1 = device.real_x[0]  # 获取该负荷设备在t=1时刻的功率需求
                         D_P_min = device.p_min.min()
                         D_P_max = device.p_max.max()
                         D_norma_P1 = (D_P1 - D_P_min) / (D_P_max - D_P_min)  # 归一化
                         demand_c_total_t = demand_c_total_t + D_norma_P1
                     elif device.className == 'D' and device.type == 'g':
-                        D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        D_P1 = device.real_x[0]  # 获取该负荷设备在t=1时刻的功率需求
                         D_P_min = device.p_min.min()
                         D_P_max = device.p_max.max()
                         D_norma_P1 = (D_P1 - D_P_min) / (D_P_max - D_P_min)  # 归一化
                         demand_g_total_t = demand_g_total_t + D_norma_P1
                     elif device.className == 'RT':
-                        RT_P1 = device.p[0]
+                        # RT_P1 = device.p[0]
+                        RT_P1 = device.real_x[0]  # 获取该可再生能源设备在t=1时刻的出力功率
                         RT_P_min = device.p_min.min()
                         RT_P_max = device.p_max.max()
                         RT_norma_P1 = (RT_P1 - RT_P_min) / (RT_P_max - RT_P_min)  # 归一化
@@ -460,6 +465,9 @@ class microgrid_RO_env:
                         operation_cost += device.x[device.time_num * 15 + self.step_time - 1] * device.c[
                             device.time_num * 15 + self.step_time - 1] * (24 / device.time_num)
 
+                    if device.name == "load_e_ex":
+                        gap_punishment += device.x[self.step_time - 1] * 10 * (24 / device.time_num)
+
         reward = -(operation_cost + punishment2 + punishment3 + ramping_punishment + punishment4 + gap_punishment)
         # sp_max = 600
         # reward = -( 2*(punishment2 + punishment3 + ramping_punishment) +
@@ -478,7 +486,7 @@ class microgrid_RO_env:
         done, action_ = self.__get_action_SE(action, cur_episode)
         if done == True:
             return self.x, np.array([0]), True, None, action_
-        res = EndCount(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解
+        res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解
         done = False
         if res.success == False:
             PrintBounds(self.flash_num)
@@ -491,7 +499,7 @@ class microgrid_RO_env:
         done, action_ = self.__get_action_CPPGW(action, cur_episode)
         if done == True:
             return self.x, np.array([0]), True, None, action_
-        res = EndCount(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解，并得到该环境下的其他设备的真实控制值
+        res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解，并得到该环境下的其他设备的真实控制值
         done = False
         if res.success == False:
             # PrintBounds(self.flash_num)
@@ -511,7 +519,7 @@ class microgrid_RO_env:
         # 接下来进行t+1时刻RT和Demand随机性的添加
         self.step_time += 1  ############################################################################
         if self.step_time < 25:
-            # self.__stochastic_factor_setting_RED()
+            self.__stochastic_factor_setting_RED()
 
             # 这里需要获取下一步的负荷的总需求功率和可再生能源的总出力功率
             demand_e_total_t = 0  # 所有Demand(e)设备在第t步的功率需求总和
@@ -529,36 +537,41 @@ class microgrid_RO_env:
                 for node in MG.node:
                     for device in node.devices:
                         if device.className == 'D' and device.type == 'e':
-                            D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
-                            D_P = device.p[self.step_time - 1]
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
                             D_P_min = device.p_min.min()
                             D_P_max = device.p_max.max()
                             D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
                             demand_e_total_t = demand_e_total_t + D_norma_P1
                         elif device.className == 'D' and device.type == 'th':
-                            D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
-                            D_P = device.p[self.step_time - 1]
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
                             D_P_min = device.p_min.min()
                             D_P_max = device.p_max.max()
                             D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
                             demand_th_total_t = demand_th_total_t + D_norma_P1
                         elif device.className == 'D' and device.type == 'c':
-                            D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
-                            D_P = device.p[self.step_time - 1]
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
                             D_P_min = device.p_min.min()
                             D_P_max = device.p_max.max()
                             D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
                             demand_c_total_t = demand_c_total_t + D_norma_P1
                         elif device.className == 'D' and device.type == 'g':
-                            D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
-                            D_P = device.p[self.step_time - 1]
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
                             D_P_min = device.p_min.min()
                             D_P_max = device.p_max.max()
                             D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
                             demand_g_total_t = demand_g_total_t + D_norma_P1
                         elif device.className == 'RT' and device.type != 'HP':
-                            RT_P1 = device.stochas_P[self.step_time - 1]
-                            RT_P1 = device.p[self.step_time - 1]
+                            # RT_P1 = device.stochas_P[self.step_time - 1]
+                            # RT_P1 = device.p[self.step_time - 1]
+                            RT_P1 = device.real_x[self.step_time - 1]
                             RT_P_min = device.p_min.min()
                             if RT_P_min < 0:
                                 RT_P_min = 0

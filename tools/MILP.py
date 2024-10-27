@@ -295,6 +295,24 @@ def EndCount(c,integrality,Number):
     print(res)
     return res
 
+def EndCount_notPrint(c,integrality,Number):
+    A = Number.A
+    A = A.reshape((int(len(A) / len(Number.params)), len(Number.params)))
+    bl = Number.bl
+    bu = Number.bu
+    # print("Counting.......")
+    # print("Counting....")
+    # print("Counting.")
+    # print("")
+    b1 = np.zeros(Number.variableNum)
+    b2 = np.zeros(Number.variableNum)
+    for i in range(Number.variableNum):
+        b1[i] = -np.inf
+        b2[i] = np.inf
+    res = milp(c=c, integrality=integrality, bounds=np.array([b1,b2]), constraints = LinearConstraint(A, bl, bu))
+    # print(res)
+    return res
+
 
 
 '''

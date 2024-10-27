@@ -191,14 +191,14 @@ def train_off_policy_agent_MG(env, agent, num_episodes, replay_buffer, minimal_s
                     print('\r', {'action': '%.3f' % np.mean(epsidoe_action_list[-1]),
                                  'step': '%d' % env.step_time,
                                  'time': '%d' % j}, end='', flush=False)
-                    '''
+
                     # 测试时不更新
                     if replay_buffer.size() > minimal_size:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
                         transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
                                            'dones': b_d}
                         agent.update(transition_dict)
-                    '''
+
                 operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost = env.env.countCost()
                 return_buffer.add(operation_cost, carbon_emission, carbon_emission_cost, profit, total_cost)
                 if (i_episode + 1) % ave_num == 0:
@@ -239,7 +239,7 @@ def train_off_policy_agent_MG_RO(env, agent, num_episodes, replay_buffer, minima
                             state = env.reset()
                             epsidoe_action_list = []
                             # 对Demand和RT(PV,WT)在t=1的功率添加随机性
-                            # state = env.first_stochastic_factor_setting_RED()
+                            state = env.first_stochastic_factor_setting_RED()
                             state_1 = state
                         action = agent.take_action_RO(state)
                         next_state, reward, done, going, action_ = env.step3(action, cur_episode, storage_punishment_buffer)

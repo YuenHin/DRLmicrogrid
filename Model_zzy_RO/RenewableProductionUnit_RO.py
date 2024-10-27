@@ -214,6 +214,7 @@ class RT:
     #依据当前值得到真实随机出力值,并加入约束控制其值输出为确定性输出值
     def stochastic(self, step, num):
         # 我需要控制不确定变化后不会跳出范围
+        '''
         ran = random.choice([1, -1])
         # ran=1，真实出力值向上波动
         if ran == 1:
@@ -228,7 +229,9 @@ class RT:
             self.real_x[step - 1] = self.p_max[step - 1]
         if self.real_x[step - 1] < self.p_min[step - 1]:
             self.real_x[step - 1] = self.p_min[step - 1]
-
+        '''
+        # self.real_x[step - 1] = random.uniform(self.p_min[step - 1], self.p_max[step - 1])
+        self.real_x[step - 1] = self.p_max[step - 1]
         B = np.array([
             [self.name + "P" + str(step), 1],
         ])

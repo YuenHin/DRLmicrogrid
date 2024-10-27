@@ -4,6 +4,7 @@ import gym
 import numpy as np
 
 from alg.DDPG import DDPG
+from alg.DDPG_newPolicy import DDPG_newPolicy
 from alg.alTools.rl_starting import *
 import matplotlib.pyplot as plt
 from env.microgrid_env import microgrid_env
@@ -21,14 +22,14 @@ class test_DDPG():
         start_time = time.time()
         actor_lr = 3e-4
         critic_lr = 3e-3
-        num_episodes = 1000
+        num_episodes = 10000
         hidden_dim = 128
         gamma = 0.98
         tau = 0.005  # 软更新参数
         buffer_size = 10000
         minimal_size = 64
         batch_size = 32
-        sigma = 0
+        sigma = sigma
         # sigma = sigma[train_time]
         #device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         device = torch.device("cpu")
@@ -46,7 +47,8 @@ class test_DDPG():
         state_dim = len(env.observation_space)
         action_dim = env.action_space.shape[0]
         action_bound = 1  # 动作最大值
-        agent = DDPG(state_dim, hidden_dim, action_dim, action_bound, sigma, actor_lr, critic_lr, tau, gamma, device)
+        # agent = DDPG(state_dim, hidden_dim, action_dim, action_bound, sigma, actor_lr, critic_lr, tau, gamma,device)
+        agent = DDPG_newPolicy(state_dim, hidden_dim, action_dim, action_bound, sigma, actor_lr, critic_lr, tau, gamma, device)
         '''
         if train_time != 0:
             agent.actor.load_state_dict(torch.load('.\Data\save_RL_model\DDPG_actor_network'+ '_' + str(train_time-1) + '.pkl'))
@@ -95,7 +97,7 @@ class test_DDPG():
         plt.xlabel('Episodes')
         plt.ylabel('Returns')
         # plt.title('DDPG on {}'.format(title[0]))
-        plt.title('DDPG on CPP_D_PV_S return')
+        plt.title('DDPG on CPP_D_PV_S operation cost')
         # plt.show()
         # plt.savefig('.\Data\save_RL_model\DDPG on {}'.format(title[0])+ str(train_time) +'0.png')
 
@@ -106,9 +108,9 @@ class test_DDPG():
         plt.xlabel('Episodes')
         plt.ylabel('Returns')
         # plt.title('DDPG on {}'.format(title[0]))
-        plt.title('DDPG on CPP_D_PV_S return')
+        plt.title('DDPG on CPP_D_PV_S operation cost')
         # plt.savefig('.\Data\save_RL_model\DDPG on CPP_D_PV_S return' + str(train_time) + '_ori10000v5.0.png')
-        plt.savefig('.\Data\save_RL_model\DDPG on CPP_D_PV_S return' + '_np1000.png')
+        plt.savefig('.\Data\save_RL_model\DDPG on CPP_D_PV_S operation cost' + '_0.4np10000.png')
         # plt.show()
         # plt.savefig('.\Data\save_RL_model\DDPG on {}'.format(title[0])+ str(train_time) +'1.png')
 
@@ -120,18 +122,22 @@ class test_DDPG():
         # plt.title('DDPG on {}'.format(title[0]))
         plt.title('DDPG on CPP_D_PV_S-Storage Punishment')
         # plt.savefig('.\Data\save_RL_model\DDPG on CPP_D_PV_S-Storage Punishment' + str(train_time) + '_ori10000v5.0.png')
-        plt.savefig('.\Data\save_RL_model\DDPG on CPP_D_PV_S-Storage Punishment' + '_np1000.png')
+        plt.savefig('.\Data\save_RL_model\DDPG on CPP_D_PV_S-Storage Punishment' + '_0.4np10000.png')
         # plt.show()
         ###############################################################################
         # 保存到excel
-        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_np1000.xlsx", 1, 0, return_list[0])
-        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_np1000.xlsx", 2, 0, storage_punishment_list)
+        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_0.4np10000.xlsx", 1, 0, return_list[0])
+        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_0.4np10000.xlsx", 2, 0, return_list[1])
+        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_0.4np10000.xlsx", 3, 0, return_list[2])
+        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_0.4np10000.xlsx", 4, 0, return_list[3])
+        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_0.4np10000.xlsx", 5, 0, return_list[4])
+        writeDatatoExcel(".\Data\save_RL_model\Result\DDPG_actor_0.4np10000.xlsx", 6, 0, storage_punishment_list)
 
         # 保存模型参数
         # torch.save(agent.actor.state_dict(), '.\Data\save_RL_model\DDPG_actor_network'+ '_' + str(train_time) + '.pkl')
         # torch.save(agent.critic.state_dict(), '.\Data\save_RL_model\DDPG_critic_network'+ '_' + str(train_time) + '.pkl')
-        torch.save(agent.actor.state_dict(), '.\Data\save_RL_model\DDPG_actor_network' + '_np1000' + '.pkl')
-        torch.save(agent.critic.state_dict(),'.\Data\save_RL_model\DDPG_critic_network' + '_np1000' + '.pkl')
+        torch.save(agent.actor.state_dict(), '.\Data\save_RL_model\DDPG_actor_network' + '_0.4np10000' + '.pkl')
+        torch.save(agent.critic.state_dict(),'.\Data\save_RL_model\DDPG_critic_network' + '_0.4np10000' + '.pkl')
         # save_data(env.save_name+str(train_time), env.x, 2)
         #draw(env.env.MG)
 
@@ -144,5 +150,5 @@ sigma = [0.8, 0.6, 0.4, 0.2, 0.4]
 start_time = time.time()
 for i in range(len(sigma)-4):
     a = test_DDPG()
-    a.func(i+4, sigma)
+    a.func(i+4, sigma[i+4])
 print("训练用时：", time.time() - start_time)

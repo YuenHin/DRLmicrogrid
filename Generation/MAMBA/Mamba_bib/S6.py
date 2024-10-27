@@ -50,7 +50,7 @@ class S6(nn.Module):
         Where:
         - Parameter is a learned scalar parameter that controls the baseline discretization rate
         - sΔ(xt) is a projection that makes Δt input-dependent by computing a value based on xt
-        - τΔ(x) = softplus(x) transforms the result to be positive through the softplus nonlinearity
+        - τΔ(x) = softplus(x) transforms the Result to be positive through the softplus nonlinearity
         The rationale for this formulation is:
         - Parameter provides a reasonable default discretization rate
         - sΔ(xt) injects input-dependence through the projection
@@ -58,7 +58,7 @@ class S6(nn.Module):
         - The projection sΔ allows the model to learn to modulate Δt based on the input xt
         - This modulation creates selectivity in how rapidly or slowly the states update
         So in summary, the learned input-dependent projection allows Δt, and thus the discrete dynamics, to become selective. The softplus and scalar parameter provide useful inductive biases on top of this flexibility.
-        The end result is discrete transition matrices that are selective on the input, enabling powerful sequence modeling capabilities.
+        The end Result is discrete transition matrices that are selective on the input, enabling powerful sequence modeling capabilities.
         Credit: Claude2 AI chatbot
         """
 

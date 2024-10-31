@@ -103,7 +103,7 @@ def convert_tfevents_to_csv(root_dir, alg_type, env_num, env_step, refresh=False
 
 
 def merge_csv(csv_files, root_dir, remove_zero=False):
-    """Merge result in csv_files into a single csv file."""
+    """Merge Result in csv_files into a single csv file."""
     assert len(csv_files) > 0
     if remove_zero:
         for v in csv_files.values():

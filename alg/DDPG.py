@@ -153,17 +153,18 @@ class DDPG:
         action = action.detach().squeeze().numpy()
         # action = self.actor(state).item()
         #给动作添加噪声，增加探索
-        action = action + self.sigma * np.random.randn(self.action_dim)
+        # action = action + self.sigma * np.random.randn(self.action_dim)
+        action = action + self.sigma * np.random.randn(len(action))
 
-        if action[0] > 1:
-            action[0] = action[0] -1
-        if action[0] < 0:
-            action[0] = action[0] + 1
-        if action[1] > 1:
-            action[1] = action[1] - 1
-        if action[1] < 0:
-            action[1] = action[1] + 1
-        for i in range(2,5):
+        # if action[0] > 1:
+        #     action[0] = action[0] -1
+        # if action[0] < 0:
+        #     action[0] = action[0] + 1
+        # if action[1] > 1:
+        #     action[1] = action[1] - 1
+        # if action[1] < 0:
+        #     action[1] = action[1] + 1
+        for i in range(0,2):
             if action[i] > 1:
                 action[i] = action[i] - 2
             if action[i] < -1:

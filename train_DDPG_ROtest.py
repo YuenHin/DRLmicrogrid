@@ -22,7 +22,7 @@ class test_DDPG():
         start_time = time.time()
         actor_lr = 3e-4
         critic_lr = 3e-3
-        num_episodes = 50
+        num_episodes = 100
         hidden_dim = 128
         gamma = 0.98
         tau = 0.005  # 软更新参数
@@ -54,18 +54,18 @@ class test_DDPG():
             agent.critic.load_state_dict(torch.load('.\Data\save_RL_model\DDPG_critic_network'+ '_' + str(train_time-1) + '.pkl'))
             agent.target_critic.load_state_dict(torch.load('.\Data\save_RL_model\DDPG_critic_network'+ '_' + str(train_time-1) + '.pkl'))
         '''
-        # agent.actor.load_state_dict(
-        #     torch.load('.\Data\save_RL_model\DDPG_actor_network_5000v6.0.pkl'))
-        # agent.target_actor.load_state_dict(
-        #     torch.load('.\Data\save_RL_model\DDPG_actor_network_5000v6.0.pkl'))
-        # agent.critic.load_state_dict(
-        #     torch.load('.\Data\save_RL_model\DDPG_critic_network_5000v6.0.pkl'))
-        # agent.target_critic.load_state_dict(
-        #     torch.load('.\Data\save_RL_model\DDPG_critic_network_5000v6.0.pkl'))
+        agent.actor.load_state_dict(
+            torch.load('.\Data\RL_RO\model\DDPG_actor_network' + '_3000v4.0.pkl'))
+        agent.target_actor.load_state_dict(
+            torch.load('.\Data\RL_RO\model\DDPG_actor_network' + '_3000v4.0.pkl'))
+        agent.critic.load_state_dict(
+            torch.load('.\Data\RL_RO\model\DDPG_critic_network' + '_3000v4.0.pkl'))
+        agent.target_critic.load_state_dict(
+            torch.load('.\Data\RL_RO\model\DDPG_critic_network' + '_3000v4.0.pkl'))
 
         storage_punishment_buffer = StoragePunishmentBuffer()
 
-        train_off_policy_agent_MG_RO(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, return_buffer, storage_punishment_buffer)
+        train_off_policy_agent_MG_ROtest(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, return_buffer, storage_punishment_buffer)
 
         episodes_list = list(range(len(return_buffer.operation_cost)))
         return_list = np.array([return_buffer.operation_cost, return_buffer.carbon_emission, return_buffer.carbon_emission_cost, return_buffer.profit, return_buffer.total_cost])
@@ -78,7 +78,7 @@ class test_DDPG():
         plt.plot(episodes_list, return_list[4])
         plt.xlabel('Episodes')
         plt.ylabel('Returns')
-        plt.title('DDPG on UIES return')
+        plt.title('DDPG on UIES total cost')
         # plt.show()
         # plt.savefig('.\Data\RL_RO\DDPG on {}'.format(title[0])+ str(train_time) +'0.png')
 
@@ -88,8 +88,8 @@ class test_DDPG():
         plt.plot(episodes_list, mv_return)
         plt.xlabel('Episodes')
         plt.ylabel('Returns')
-        plt.title('DDPG on UIES return')
-        plt.savefig('.\Data\RL_RO\DDPG on UIES return' + '_50.png')
+        plt.title('DDPG on UIES total cost')
+        plt.savefig('.\Data\RL_RO\DDPG on UIES total cost' + '_3000v4.0test.png')
         # plt.show()
         # plt.savefig('.\Data\save_RL_model\DDPG on {}'.format(title[0])+ str(train_time) +'1.png')
 
@@ -100,19 +100,19 @@ class test_DDPG():
         plt.ylabel('total Punishment')
         # plt.title('DDPG on {}'.format(title[0]))
         plt.title('DDPG on UIES Punishment')
-        plt.savefig('.\Data\RL_RO\DDPG on UIES Punishment' + '_50.png')
+        plt.savefig('.\Data\RL_RO\DDPG on UIES Punishment' + '_3000v4.0test.png')
         # plt.show()
         ###############################################################################
         # 保存到excel
-        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_50.xlsx", 1, 0, return_list[0])
-        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_50.xlsx", 2, 0, return_list[1])
-        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_50.xlsx", 3, 0, return_list[2])
-        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_50.xlsx", 4, 0, return_list[4])
-        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_50.xlsx", 5, 0, punishment_list)
+        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_3000v4.0test.xlsx", 1, 0, return_list[0])
+        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_3000v4.0test.xlsx", 2, 0, return_list[1])
+        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_3000v4.0test.xlsx", 3, 0, return_list[2])
+        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_3000v4.0test.xlsx", 4, 0, return_list[4])
+        writeDatatoExcel(".\Data\RL_RO\Result\DDPG_actor_RO_3000v4.0test.xlsx", 5, 0, punishment_list)
 
         # 保存模型参数
-        torch.save(agent.actor.state_dict(), '.\Data\RL_RO\model\DDPG_actor_network' + '_50.pkl')
-        torch.save(agent.critic.state_dict(), '.\Data\RL_RO\model\DDPG_critic_network' + '_50.pkl')
+        # torch.save(agent.actor.state_dict(), '.\Data\RL_RO\model\DDPG_actor_network' + '_2000v2.0.pkl')
+        # torch.save(agent.critic.state_dict(), '.\Data\RL_RO\model\DDPG_critic_network' + '_2000v2.0.pkl')
         # save_data(env.save_name+str(train_time), env.x, 2)
         #draw(env.env.MG)
 
@@ -120,7 +120,7 @@ class test_DDPG():
 # a =test_DDPG()
 # a.func()
 
-sigma = [0.8, 0.6, 0.4, 0.2, 0.4]
+sigma = [0.8, 0.6, 0.4, 0.2, 0]
 # sigma = [0.4]
 start_time = time.time()
 for i in range(len(sigma)-4):

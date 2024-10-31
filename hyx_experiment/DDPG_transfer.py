@@ -112,11 +112,11 @@ tau = 0.005  # 软更新参数
 buffer_size = 10000
 minimal_size = 1000
 batch_size = 64
-sigma = 0.01  # 高斯噪声标准差
+sigma = 0.1  # 高斯噪声标准差
 # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 device = torch.device("cpu")
 use_Model = False
-save_Model = True
+save_Model = False
 
 env_name = 'Pendulum-v1'
 # env_name = 'LunarLander-v2'
@@ -156,8 +156,8 @@ plt.plot(episodes_list, mv_return)
 plt.xlabel('Episodes')
 plt.ylabel('Returns')
 plt.title('DDPG on {}'.format(env_name))
-# plt.show()
+plt.show()
 
-plt.savefig('.\savefig\DDPG on {}'.format(str(num_episodes)+'_ori9.5')+'.png')
-
-agent.save_returnlist(str(num_episodes)+'_ori9.5', return_list)
+# plt.savefig('.\savefig\DDPG on {}'.format(str(num_episodes)+'_ori9.5')+'.png')
+#
+# agent.save_returnlist(str(num_episodes)+'_ori9.5', return_list)

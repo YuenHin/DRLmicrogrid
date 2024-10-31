@@ -165,7 +165,8 @@ class ES:
         B = np.array([
             [self.name + "E1", 1]
         ])
-        CreatConstraintsByText(1, B, 0, self.e, num)
+        # CreatConstraintsByText(1, B, 0, self.e, num)
+        CreatConstraintsByText(self.time_num, B, 0, self.e, num)
 
         "Charging power limits:"
         for i in range(self.time_num):
@@ -238,7 +239,7 @@ class ES:
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "ch_us" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), -self.ramping_limit]  # 强化学习，放开约束
+                [self.name + "S" + str(i + 2), -self.ramping_limit]
                 # [self.name + "S" + str(i + 2), -self.e]
             ])
             CreatConstraintsByText(1, B, -np.inf, 0, num)
@@ -246,20 +247,20 @@ class ES:
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "ch_ds" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), -self.ramping_limit]  # 强化学习，放开约束
+                [self.name + "S" + str(i + 2), -self.ramping_limit]
                 # [self.name + "S" + str(i + 2), -self.e]
             ])
             CreatConstraintsByText(1, B, -np.inf, 0, num)
 
         B = np.array([
             [self.name + "ch_us24", 1],
-            [self.name + "S24", -self.ramping_limit]  # 强化学习，放开约束
+            [self.name + "S24", -self.ramping_limit]
             # [self.name + "S24", -self.e]
         ])
         CreatConstraintsByText(1, B, -np.inf, 0, num)
         B = np.array([
             [self.name + "ch_ds24", 1],
-            [self.name + "S24", -self.ramping_limit]  # 强化学习，放开约束
+            [self.name + "S24", -self.ramping_limit]
             # [self.name + "S24", -self.e]
         ])
         CreatConstraintsByText(1, B, -np.inf, 0, num)
@@ -280,34 +281,34 @@ class ES:
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "dis_us" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), self.ramping_limit]  # 强化学习，放开约束
+                [self.name + "S" + str(i + 2), self.ramping_limit]
                 # [self.name + "S" + str(i + 2), self.e]
             ])
-            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)  # 强化学习，放开约束
+            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
             # CreatConstraintsByText(1, B, -np.inf, self.e, num)
 
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "dis_ds" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), self.ramping_limit]  # 强化学习，放开约束
+                [self.name + "S" + str(i + 2), self.ramping_limit]
                 # [self.name + "S" + str(i + 2), self.e]
             ])
-            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)  # 强化学习，放开约束
+            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
             # CreatConstraintsByText(1, B, -np.inf, self.e, num)
 
         B = np.array([
             [self.name + "dis_us24", 1],
-            [self.name + "S24", self.ramping_limit]  # 强化学习，放开约束
+            [self.name + "S24", self.ramping_limit]
             # [self.name + "S24", self.e]
         ])
-        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)  # 强化学习，放开约束
+        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
         # CreatConstraintsByText(1, B, -np.inf, self.e, num)
         B = np.array([
             [self.name + "dis_ds24", 1],
-            [self.name + "S24", self.ramping_limit]  # 强化学习，放开约束
+            [self.name + "S24", self.ramping_limit]
             # [self.name + "S24", self.e]
         ])
-        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)  # 强化学习，放开约束
+        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
         # CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
 
         for i in range(self.time_num):
@@ -341,8 +342,9 @@ class ES:
         B = np.array([
             [self.name + "E" + str(self.time_num), 1]
         ])
-        # CreatConstraintsByText(1, B, self.begin, self.begin, num)  # 强化学习，放开约束
-        CreatConstraintsByText(1, B, 0, np.inf, num)
+        CreatConstraintsByText(1, B, self.begin, self.begin, num)  # 强化学习，放开约束
+        # CreatConstraintsByText(1, B, self.begin, np.inf, num)
+        # CreatConstraintsByText(1, B, 0, np.inf, num)
 
         B = np.array([
             [self.name + "E1", -1],

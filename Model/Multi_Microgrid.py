@@ -38,6 +38,10 @@ class MMGs:
         operation_cost = 0
         profit = 0
         carbom_emission = 0
+        ramping_punishment = 0
+        punishment2 = 0
+        punishment3 = 0
+        punishment4 = 0
 
         for MG in self.MG:
             for node in MG.node:
@@ -45,34 +49,53 @@ class MMGs:
                     # pp生产成本
                     if devices.className == "CPP":
                         for i in range(devices.time_num):
-                            # operation_cost += devices.x[devices.time_num + i] * devices.production_price[i] * (24 / devices.time_num)
                             if devices.x[i] >= 0:
-                                operation_cost += devices.x[i] * devices.production_price[i] * (24 / devices.time_num)
+                                # operation_cost += device.x[self.step_time - 1] * device.production_price[self.step_time - 1] * (24 / device.time_num)
+                                operation_cost += devices.x[i] * devices.c[i] * (24 / devices.time_num)
+                                carbom_emission += devices.x[i] * 0.839 * (24 / devices.time_num)
                             else:
                                 profit += devices.x[i] * 0.315 * (24 / devices.time_num)
-                            carbom_emission += devices.x[devices.time_num + i] * 0.839 * (24 / devices.time_num)
-                            # profit += devices.x[devices.time_num * 2 + i] * 0.315 * (24 / devices.time_num)
                     # gw生产成本
                     if devices.className == "GW":
                         for i in range(devices.time_num):
-                            operation_cost += devices.x[i] * devices.production_price * (24 / devices.time_num)
+                            operation_cost += devices.x[i] * devices.c[i] * (24 / devices.time_num)
                             carbom_emission += devices.x[i] * 0.368 * (24 / devices.time_num)
                     # pv生产成本
                     # wt生产成本
                     if devices.className == "RT":
                         for i in range(devices.time_num):
-                            operation_cost += devices.x[i] * devices.production_price * (24 / devices.time_num)
+                            operation_cost += devices.x[i] * devices.c[i] * (24 / devices.time_num)
                             carbom_emission += devices.x[i] * 0.09 * (24 / devices.time_num)
                     # dg生产成本
                     if devices.className == "DG":
                         for i in range(devices.time_num):
-                            operation_cost += devices.x[i] * devices.production_price * (24 / devices.time_num)
+                            operation_cost += devices.x[i] * devices.c[i] * (24 / devices.time_num)
                             carbom_emission += devices.x[i] * 0.839 * (24 / devices.time_num)
                     # 储能碳排放
                     if devices.className == "S":
                         for i in range(devices.time_num):
                             carbom_emission += devices.x[devices.time_num * 2 + i] * 0.083 * (24 / devices.time_num)
                             carbom_emission += devices.x[devices.time_num * 3 + i] * 0.083 * (24 / devices.time_num)
+                            operation_cost += devices.x[devices.time_num * 1 + i] * devices.c[devices.time_num * 1 + i]
+                            operation_cost += devices.x[devices.time_num * 2 + i] * devices.c[devices.time_num * 2 + i]
+                            operation_cost += devices.x[devices.time_num * 3 + i] * devices.c[devices.time_num * 3 + i]
+                            operation_cost += devices.x[devices.time_num * 4 + i] * devices.c[devices.time_num * 4 + i]
+                            # 是否超出ramping_limit的约束，超出的部分乘一个系数
+                            # 当前容量等于0或者等于3000时，扣大分
+                            # t=24时容量如果小于最大容量的一半，扣大分
+                            if i == 0:
+                                ramping_p = abs(
+                                    devices.real_E[i] - (devices.e / 2)) - devices.ramping_limit
+                            else:
+                                ramping_p = abs(devices.real_E[i] - devices.real_E[i - 1]) - devices.ramping_limit
+                            if ramping_p > 0:
+                                ramping_punishment = ramping_p * 30
+                            punishment2 = (devices.real_E[i] <= 0 or devices.real_E[i] >= devices.e) * 250
+                            punishment4 = (devices.real_E[i] >= devices.e) * 150
+                            punishment3 = (i+1 == devices.time_num and devices.real_E[i] < (devices.e/2)) * 200
+                            # '''V11.0实验需要的代码：'''
+                            # ES_gapprice = 0.1  # 临时定的
+                            # operation_cost += abs(devices.real_E[i - 1] - devices.x[devices.time_num + i - 1]) * ES_gapprice * (24 / devices.time_num)
                     # tp碳排放
                     if devices.className == "TP":
                         for i in range(devices.time_num):
@@ -84,13 +107,15 @@ class MMGs:
 
         carbom_emission = carbom_emission * 0.001
         carbom_emission_cost = carbom_emission * 390.885
-
+        es_punishment = ramping_punishment + punishment2 + punishment3 + punishment4
         # print("opeation cost:", operation_cost)
         # print("carom emission:", carbom_emission)
         # print("carom emission cost:", carbom_emission_cost)
         # print("profit:", profit)
         # print("total cost:", operation_cost + carbom_emission_cost - profit)
-        return operation_cost, carbom_emission, carbom_emission_cost, profit, operation_cost + carbom_emission_cost - profit
+        total_cost = operation_cost - carbom_emission_cost + profit
+        total_cost += es_punishment
+        return -operation_cost, carbom_emission, -carbom_emission_cost, profit, -total_cost
 
 
 

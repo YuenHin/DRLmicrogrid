@@ -1119,7 +1119,7 @@ class ShadowHandKettle(BaseTask):
                 self.total_successes + (self.successes * self.reset_buf).sum()
             )
 
-            # The direct average shows the overall result more quickly, but slightly undershoots long term
+            # The direct average shows the overall Result more quickly, but slightly undershoots long term
             # policy performance.
             print(
                 "Direct average consecutive successes = {:.1f}".format(

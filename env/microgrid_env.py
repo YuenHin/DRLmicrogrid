@@ -58,19 +58,20 @@ class microgrid_env:
         S_e_t = 0  # 储能设备在第t步的剩余容量
         current_e_price = 0  # 第t步的电价
         self.flash_num = deepcopy(self.start_num)  # 深拷贝
-        self.mpc_num = deepcopy(self.start_num)
         self.step_time = 1
         for MG in self.env.MG:
             for node in MG.node:
                 for device in node.devices:
                     if device.className == 'D':
-                        P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        P1 = device.x[0] #############################################
                         P_min = device.p_min.min()
                         P_max = device.p_max.max()
                         norma_P1 = (P1 - P_min) / (P_max - P_min)  # 归一化
                         demand_P_total_t = demand_P_total_t + norma_P1
                     if device.className == 'RT':
-                        P1 = device.p[0]
+                        # P1 = device.p[0]
+                        P1 = device.x[0] #############################################
                         P_min = device.p_min.min()
                         P_max = device.p_max.max()
                         norma_P1 = (P1 - P_min) / (P_max - P_min)  # 归一化
@@ -114,12 +115,14 @@ class microgrid_env:
                 for device in node.devices:
                     if device.className == 'D':
                         P1 = device.stochas_P[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # P1 = device.x[0] ########################################
                         P_min = device.p_min.min()
                         P_max = device.p_max.max()
                         norma_P1 = (P1 - P_min) / (P_max - P_min)  # 归一化
                         demand_P_total_t = demand_P_total_t + norma_P1
                     if device.className == 'RT':
                         P1 = device.stochas_P[0]
+                        # P1 = device.x[0]  ########################################
                         P_min = device.p_min.min()
                         P_max = device.p_max.max()
                         norma_P1 = (P1 - P_min) / (P_max - P_min)  # 归一化
@@ -248,12 +251,18 @@ class microgrid_env:
                         # 是否超出ramping_limit的约束，超出的部分乘一个系数
                         # 当前容量等于0或者等于3000时，扣大分
                         # t=24时容量如果小于最大容量的一半，扣大分
+                        ''''''
+                        # v11.0实验，暂时注释这部分代码
                         ramping_p = abs(device.real_E[self.step_time - 1] - device.real_E[self.step_time - 2]) - device.ramping_limit
                         if ramping_p > 0:
                             ramping_punishment = ramping_p * 10
                         punishment2 = ( device.real_E[self.step_time - 1] <= 0 or device.real_E[self.step_time - 1] >= 3000 ) * 100
                         punishment4 = (device.real_E[self.step_time - 1] >= 3000) * 150
                         punishment3 = ( self.step_time == self.step_all and device.real_E[self.step_time - 1] < 1500) * 50
+
+                        # '''V11.0实验需要的代码：'''
+                        # ES_gapprice = 0.1  # 临时定的
+                        # operation_cost += abs(device.real_E[self.step_time - 1] - device.x[device.time_num + self.step_time - 1]) * ES_gapprice * (24 / device.time_num)
                     # tp碳排放
                     if device.className == "TP":
                         carbon_emission += device.x[self.step_time - 1] * 0.12 * (24 / device.time_num)
@@ -271,6 +280,85 @@ class microgrid_env:
         # )
 
         return reward, ramping_punishment, punishment2, punishment3
+
+    def __count_reward_new(self):
+        reward = 0
+        operation_cost = 0
+        profit = 0
+        carbon_emission = 0
+        ramping_punishment = 0
+        punishment2 = 0
+        punishment3 = 0
+        punishment4 = 0
+
+        for MG in self.env.MG:
+            for node in MG.node:
+                for device in node.devices:
+                    # cpp生产成本
+                    if device.className == "CPP":
+                        # operation_cost += device.x[self.step_time - 1] * device.production_price[self.step_time - 1] * (24 / device.time_num)
+                        if device.x[self.step_time - 1] >= 0:
+                            # operation_cost += device.x[self.step_time - 1] * device.production_price[self.step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                            carbon_emission += device.x[self.step_time - 1] * 0.839 * (24 / device.time_num)
+                        else:
+                            profit += device.x[self.step_time - 1] * 0.315 * (24 / device.time_num)
+
+                    # gw生产成本
+                    if device.className == "GW":
+                        operation_cost += device.x[self.step_time - 1] * device.production_price * (
+                                24 / device.time_num)
+                        carbon_emission += device.x[self.step_time - 1] * 0.368 * (24 / device.time_num)
+                    # pv生产成本
+                    # wt生产成本
+                    if device.className == "RT":
+                        # operation_cost += device.x[self.step_time - 1] * device.production_price * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                        carbon_emission += device.x[self.step_time - 1] * 0.09 * (24 / device.time_num)
+                    # dg生产成本
+                    if device.className == "DG":
+                        operation_cost += device.x[self.step_time - 1] * device.production_price * (
+                                24 / device.time_num)
+                        carbon_emission += device.x[self.step_time - 1] * 0.839 * (24 / device.time_num)
+                    # 储能碳排放
+                    if device.className == "S":
+                        carbon_emission += device.x[device.time_num * 2 + self.step_time - 1] * 0.083 * (24 / device.time_num)
+                        carbon_emission += device.x[device.time_num * 3 + self.step_time - 1] * 0.083 * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[device.time_num * 1 + self.step_time - 1]
+                        operation_cost += device.x[device.time_num * 2 + self.step_time - 1] * device.c[device.time_num * 2 + self.step_time - 1]
+                        operation_cost += device.x[device.time_num * 3 + self.step_time - 1] * device.c[device.time_num * 3 + self.step_time - 1]
+                        operation_cost += device.x[device.time_num * 4 + self.step_time - 1] * device.c[device.time_num * 4 + self.step_time - 1]
+
+                        # 是否超出ramping_limit的约束，超出的部分乘一个系数
+                        # 当前容量等于0或者等于3000时，扣大分
+                        # t=24时容量如果小于最大容量的一半，扣大分
+                        if self.step_time == 1:
+                            ramping_p = abs(device.real_E[self.step_time - 1] - (device.e/2)) - device.ramping_limit
+                        else:
+                            ramping_p = abs(device.real_E[self.step_time - 1] - device.real_E[self.step_time - 2]) - device.ramping_limit
+                        if ramping_p >= 0:
+                            ramping_punishment = ramping_p * 30
+                        punishment2 = (device.real_E[self.step_time - 1] <= 0 or device.real_E[self.step_time - 1] >= device.e) * 250
+                        punishment4 = (device.real_E[self.step_time - 1] >= device.e) * 150
+                        punishment3 = (self.step_time == self.step_all and device.real_E[self.step_time - 1] < (device.e/2)) * 200
+
+                        punishment2 += (device.real_E[self.step_time - 1] <= device.e * 0.1) * 50 # 低于10%也惩罚
+
+
+
+                    # tp碳排放
+                    if device.className == "TP":
+                        carbon_emission += device.x[self.step_time - 1] * 0.12 * (24 / device.time_num)
+                    # ctp碳排放
+                    if device.className == "CTP":
+                        carbon_emission += device.x[self.step_time - 1] * 0.181 * (24 / device.time_num)
+
+        carbon_emission = carbon_emission * 0.001
+        carbom_emission_cost = carbon_emission * 390.885
+        # reward = -(operation_cost + carbom_emission_cost - profit + punishment2 + punishment3 + ramping_punishment + punishment4)
+        reward = operation_cost - carbom_emission_cost + profit - punishment2 - punishment3 - punishment4 - ramping_punishment
+        print("es_punishment:", punishment2 + punishment3 + punishment4 + ramping_punishment)
+        return reward, ramping_punishment, punishment2, punishment3+punishment4
 
     # 三级设备：DG、CPP、GW、EC 我这里的动作、名称和状态应该是一个数组（多个智能体）
     # 先使用单智能体控制SE_e试试
@@ -401,6 +489,8 @@ class microgrid_env:
             done, action_ = self.__get_action_SE(action, cur_episode)
             if done == True:
                 return self.x, np.array([0]), True, None, action_
+            '''
+            V11.0实验，先注释这部分代码
             # 使用MILP验证执行动作后有无解，并得到该环境下的其他设备的真实控制值
             res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
             done = False
@@ -413,13 +503,14 @@ class microgrid_env:
 
             x_callBack(res, self.env, self.save_name, flag=False)
             self.x = res.x
+            '''
             # 记录三级设备的真实控制状态
             self.__remenber_CPPGWECDG()
 
             # 接下来进行t+1时刻RT和Demand随机性的添加
             self.step_time += 1  ############################################################################
             if self.step_time < 25:
-                self.__stochastic_factor_setting_RED()  # 这里需要获取下一步的负荷的总需求功率和可再生能源的总出力功率
+                # self.__stochastic_factor_setting_RED()  # 这里需要获取下一步的负荷的总需求功率和可再生能源的总出力功率
 
                 demand_P_total_t = 0  # 所有Demand设备在第t步的功率需求总和
                 RT_P_total_t = 0  # 所有可再生能源在第t步的出力功率总和
@@ -430,13 +521,15 @@ class microgrid_env:
                     for node in MG.node:
                         for device in node.devices:
                             if device.className == 'D':
-                                demand_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t时刻的功率需求
+                                # demand_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t时刻的功率需求
+                                demand_P = device.x[self.step_time - 1] ######################################################
                                 P_min = device.p_min.min()
                                 P_max = device.p_max.max()
                                 norma_P = (demand_P - P_min) / (P_max - P_min)  # 归一化，处理后的值在0到1之间
                                 demand_P_total_t = demand_P_total_t + norma_P
                             if device.className == 'RT':
-                                RT_P = device.stochas_P[self.step_time - 1]
+                                # RT_P = device.stochas_P[self.step_time - 1]
+                                RT_P = device.x[self.step_time - 1] ######################################################
                                 P_min = device.p_min.min()
                                 P_max = device.p_max.max()
                                 norma_RT_P = (RT_P - P_min) / (P_max - P_min)  # 归一化，处理后的值在0到1之间
@@ -456,15 +549,99 @@ class microgrid_env:
 
             # 计算奖励
             reward, ramping_punishment, punishment2, punishment3 = self.__count_reward()
+            # print('reward:',reward)
             reward += 20
             ramping_punishment +=ramping_punishment
             punishment2 += punishment2
             punishment3 += punishment3
             if self.step_time == self.step_all:
-                a, b, c, d, total_cost = self.env.countCost()
-                reward += 2000 - total_cost
+                # a, b, c, d, total_cost = self.env.countCost()
+                # reward += 2000 - total_cost
                 done = True
                 storage_punishment_buffer.add(ramping_punishment, punishment2, punishment3)
+                #计算MILP的结果
+            # 更新步长
+            self.step_time += 1
+
+            return state, reward, done, True, action_
+
+    def step_SAC(self, action, cur_episode, storage_punishment_buffer):
+        while True:
+            # 执行动作
+            done, action_ = self.__get_action_SE(action, cur_episode)
+            if done == True:
+                return self.x, np.array([0]), True, None, action_
+
+            # 使用MILP验证执行动作后有无解，并得到该环境下的其他设备的真实控制值
+            res = EndCount_notPrint(-self.C, self.intergrality, self.flash_num)
+            done = False
+            if res.success == False:
+                # PrintBounds(self.flash_num)
+                print("无解了！！！！！！！！！")
+                return None, np.array([0]), done, False, action_
+            # self.__remember_S()
+            self.__get_action_SE_nocontrol()
+
+            x_callBack(res, self.env, self.save_name, flag=False)
+            self.x = res.x
+
+            # 记录三级设备的真实控制状态
+            self.__remenber_CPPGWECDG()
+
+            # 接下来进行t+1时刻RT和Demand随机性的添加
+            self.step_time += 1  ############################################################################
+            if self.step_time < 25:
+                self.__stochastic_factor_setting_RED()  # 这里需要获取下一步的负荷的总需求功率和可再生能源的总出力功率
+
+                demand_P_total_t = 0  # 所有Demand设备在第t步的功率需求总和
+                RT_P_total_t = 0  # 所有可再生能源在第t步的出力功率总和
+                S_e_t = 0  # 储能设备在第t步的剩余容量
+                current_e_price = 0  # 第t步的电价
+                current_t = self.step_time / self.step_all  # 处理后的值在0到1之间
+                for MG in self.env.MG:
+                    for node in MG.node:
+                        for device in node.devices:
+                            if device.className == 'D':
+                                demand_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t时刻的功率需求
+                                # demand_P = device.x[self.step_time - 1] ######################################################
+                                P_min = device.p_min.min()
+                                P_max = device.p_max.max()
+                                norma_P = (demand_P - P_min) / (P_max - P_min)  # 归一化，处理后的值在0到1之间
+                                demand_P_total_t = demand_P_total_t + norma_P
+                            if device.className == 'RT':
+                                RT_P = device.stochas_P[self.step_time - 1]
+                                # RT_P = device.x[self.step_time - 1] ######################################################
+                                P_min = device.p_min.min()
+                                P_max = device.p_max.max()
+                                norma_RT_P = (RT_P - P_min) / (P_max - P_min)  # 归一化，处理后的值在0到1之间
+                                RT_P_total_t = RT_P_total_t + norma_RT_P
+                            if device.className == 'S':
+                                E = device.real_E[self.step_time - 2]
+                                norma_E = E / device.storagr_limit  # 归一化，处理后的值在0到1之间
+                                S_e_t = S_e_t + norma_E
+                            if device.className == 'CPP':
+                                current_e_price = device.production_price[self.step_time - 1]
+                state = [current_t, demand_P_total_t, RT_P_total_t, S_e_t, current_e_price]
+            if self.step_time == 25:
+                # 将t=1的state作为t=25的state
+                # t=1的state在上一级函数可以获取
+                state = None
+            self.step_time -= 1  #######################################################################################
+
+            # 计算奖励
+            reward, ramping_punishment, punishment2, punishment3_4 = self.__count_reward_new()
+            # print('reward:',reward)
+            # reward += 20
+            ramping_punishment +=ramping_punishment
+            punishment2 += punishment2
+            punishment3_4 += punishment3_4
+            if self.step_time == self.step_all:
+                # a, b, c, d, total_cost = self.env.countCost()
+                # reward += 2000 - total_cost
+                if ramping_punishment + punishment2 + punishment3_4 == 0:
+                    reward += 200
+                done = True
+                storage_punishment_buffer.add(ramping_punishment, punishment2, punishment3_4)
                 #计算MILP的结果
             # 更新步长
             self.step_time += 1

@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 
@@ -96,180 +98,189 @@ class MMGs:
         punishment2 = 0
         punishment3 = 0
         punishment4 = 0
+        ramping_p = 0
         for MG in self.MG:
             for node in MG.node:
                 for device in node.devices:
                     # cpp生产成本
                     if device.className == "CPP":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
                             # CPP的惩罚项
-                            gap_punishment += device.p_gap[step_time - 1] * 1
+                            gap_punishment += device.p_gap[step_time] * 1
 
                     # gw生产成本
                     if device.className == "GW":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
                             # GW的惩罚项
-                            gap_punishment += device.p_gap[step_time - 1] * 1
+                            gap_punishment += device.p_gap[step_time] * 1
 
                     # pv生产成本
                     # wt生产成本
                     if device.className == "RT":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
 
                     # 储能成本
                     if device.className == "S":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 1 + step_time - 1] * device.c[
-                                device.time_num * 1 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 2 + step_time - 1] * device.c[
-                                device.time_num * 2 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 3 + step_time - 1] * device.c[
-                                device.time_num * 3 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 4 + step_time - 1] * device.c[
-                                device.time_num * 4 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 5 + step_time - 1] * device.c[
-                                device.time_num * 5 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 6 + step_time - 1] * device.c[
-                                device.time_num * 6 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 7 + step_time - 1] * device.c[
-                                device.time_num * 7 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 8 + step_time - 1] * device.c[
-                                device.time_num * 8 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 9 + step_time - 1] * device.c[
-                                device.time_num * 9 + step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[
+                                device.time_num * 1 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 2 + step_time] * device.c[
+                                device.time_num * 2 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 3 + step_time] * device.c[
+                                device.time_num * 3 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 4 + step_time] * device.c[
+                                device.time_num * 4 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 5 + step_time] * device.c[
+                                device.time_num * 5 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 6 + step_time] * device.c[
+                                device.time_num * 6 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 7 + step_time] * device.c[
+                                device.time_num * 7 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 8 + step_time] * device.c[
+                                device.time_num * 8 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 9 + step_time] * device.c[
+                                device.time_num * 9 + step_time] * (24 / device.time_num)
                             # 是否超出ramping_limit的约束，超出的部分乘一个系数
                             # 当前容量等于0时，扣大分
                             # t=24时容量如果小于最大容量的一半，扣大分
-                            ramping_p = abs(device.real_E[step_time - 1] - device.real_E[
-                                step_time - 2]) - device.ramping_limit
-                            if ramping_p > 0:
-                                ramping_punishment = ramping_p * 40
-                            punishment2 = (device.real_E[step_time - 1] <= 0) * 200
-                            punishment4 = (device.real_E[step_time - 1] >= device.e) * 300
-                            punishment3 = (step_time == device.time_num and device.real_E[
-                                step_time - 1] < device.e / 2) * 100
+                            if device.type != 'c':
+                                if step_time == 0:
+                                    ramping_p = abs(device.real_E[step_time] - (device.e / 2)) - device.ramping_limit
+                                else:
+                                    ramping_p = abs(device.real_E[step_time] - device.real_E[step_time - 1]) - device.ramping_limit
+                                if ramping_p > 0:
+                                    ramping_punishment += ramping_p * 40
+                                # punishment4 += (device.real_E[step_time] >= device.e) * 300
+                                punishment2 += (device.real_E[step_time] <= 0) * 200
+                                punishment3 += (step_time+1 == device.time_num and device.real_E[step_time] < device.e / 2) * 100
+
+                                a = device.time_num - math.ceil(device.e / 2 / device.ramping_limit)
+                                if step_time+1 - a > 0 and step_time < 23:
+                                    b = step_time+1 - a
+                                    if device.real_E[step_time] < device.ramping_limit * b:
+                                        punishment3 += 100
 
                     # 能量转化设备成本
                     if device.className == "er":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                     24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 1 + step_time - 1] * device.c[
-                                device.time_num * 1 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 2 + step_time - 1] * device.c[
-                                device.time_num * 2 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 3 + step_time - 1] * device.c[
-                                device.time_num * 3 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 4 + step_time - 1] * device.c[
-                                device.time_num * 4 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 5 + step_time - 1] * device.c[
-                                device.time_num * 5 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 6 + step_time - 1] * device.c[
-                                device.time_num * 6 + step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[
+                                device.time_num * 1 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 2 + step_time] * device.c[
+                                device.time_num * 2 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 3 + step_time] * device.c[
+                                device.time_num * 3 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 4 + step_time] * device.c[
+                                device.time_num * 4 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 5 + step_time] * device.c[
+                                device.time_num * 5 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 6 + step_time] * device.c[
+                                device.time_num * 6 + step_time] * (24 / device.time_num)
 
                     if device.className == "eb":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                     24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 1 + step_time - 1] * device.c[
-                                device.time_num * 1 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 2 + step_time - 1] * device.c[
-                                device.time_num * 2 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 3 + step_time - 1] * device.c[
-                                device.time_num * 3 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 4 + step_time - 1] * device.c[
-                                device.time_num * 4 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 5 + step_time - 1] * device.c[
-                                device.time_num * 5 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 6 + step_time - 1] * device.c[
-                                device.time_num * 6 + step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[
+                                device.time_num * 1 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 2 + step_time] * device.c[
+                                device.time_num * 2 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 3 + step_time] * device.c[
+                                device.time_num * 3 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 4 + step_time] * device.c[
+                                device.time_num * 4 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 5 + step_time] * device.c[
+                                device.time_num * 5 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 6 + step_time] * device.c[
+                                device.time_num * 6 + step_time] * (24 / device.time_num)
 
                     if device.className == "cchp":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                     24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 1 + step_time - 1] * device.c[
-                                device.time_num * 1 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 2 + step_time - 1] * device.c[
-                                device.time_num * 2 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 3 + step_time - 1] * device.c[
-                                device.time_num * 3 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 4 + step_time - 1] * device.c[
-                                device.time_num * 4 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 5 + step_time - 1] * device.c[
-                                device.time_num * 5 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 6 + step_time - 1] * device.c[
-                                device.time_num * 6 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 7 + step_time - 1] * device.c[
-                                device.time_num * 7 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 8 + step_time - 1] * device.c[
-                                device.time_num * 8 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 9 + step_time - 1] * device.c[
-                                device.time_num * 9 + step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[
+                                device.time_num * 1 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 2 + step_time] * device.c[
+                                device.time_num * 2 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 3 + step_time] * device.c[
+                                device.time_num * 3 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 4 + step_time] * device.c[
+                                device.time_num * 4 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 5 + step_time] * device.c[
+                                device.time_num * 5 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 6 + step_time] * device.c[
+                                device.time_num * 6 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 7 + step_time] * device.c[
+                                device.time_num * 7 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 8 + step_time] * device.c[
+                                device.time_num * 8 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 9 + step_time] * device.c[
+                                device.time_num * 9 + step_time] * (24 / device.time_num)
 
                     # 负荷
                     if device.className == "D":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
 
                     # 柔性负荷
                     if device.className == "FL":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
 
                     # 灵活性需求
                     if device.className == "FD":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                         24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 1 + step_time - 1] * device.c[
-                                device.time_num * 1 + step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[
+                                device.time_num * 1 + step_time] * (24 / device.time_num)
 
                     # 灵活性分析
                     if device.className == "FA":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time - 1] * device.c[step_time - 1] * (
+                            operation_cost += device.x[step_time] * device.c[step_time] * (
                                     24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 1 + step_time - 1] * device.c[
-                                device.time_num * 1 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 2 + step_time - 1] * device.c[
-                                device.time_num * 2 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 3 + step_time - 1] * device.c[
-                                device.time_num * 3 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 4 + step_time - 1] * device.c[
-                                device.time_num * 4 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 5 + step_time - 1] * device.c[
-                                device.time_num * 5 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 6 + step_time - 1] * device.c[
-                                device.time_num * 6 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 7 + step_time - 1] * device.c[
-                                device.time_num * 7 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 8 + step_time - 1] * device.c[
-                                device.time_num * 8 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 9 + step_time - 1] * device.c[
-                                device.time_num * 9 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 10 + step_time - 1] * device.c[
-                                device.time_num * 10 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 11 + step_time - 1] * device.c[
-                                device.time_num * 11 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 12 + step_time - 1] * device.c[
-                                device.time_num * 12 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 13 + step_time - 1] * device.c[
-                                device.time_num * 13 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 14 + step_time - 1] * device.c[
-                                device.time_num * 14 + step_time - 1] * (24 / device.time_num)
-                            operation_cost += device.x[device.time_num * 15 + step_time - 1] * device.c[
-                                device.time_num * 15 + step_time - 1] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[
+                                device.time_num * 1 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 2 + step_time] * device.c[
+                                device.time_num * 2 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 3 + step_time] * device.c[
+                                device.time_num * 3 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 4 + step_time] * device.c[
+                                device.time_num * 4 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 5 + step_time] * device.c[
+                                device.time_num * 5 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 6 + step_time] * device.c[
+                                device.time_num * 6 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 7 + step_time] * device.c[
+                                device.time_num * 7 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 8 + step_time] * device.c[
+                                device.time_num * 8 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 9 + step_time] * device.c[
+                                device.time_num * 9 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 10 + step_time] * device.c[
+                                device.time_num * 10 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 11 + step_time] * device.c[
+                                device.time_num * 11 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 12 + step_time] * device.c[
+                                device.time_num * 12 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 13 + step_time] * device.c[
+                                device.time_num * 13 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 14 + step_time] * device.c[
+                                device.time_num * 14 + step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 15 + step_time] * device.c[
+                                device.time_num * 15 + step_time] * (24 / device.time_num)
 
 
         es_punishment = ramping_punishment + punishment2 + punishment3 + punishment4
@@ -277,10 +288,11 @@ class MMGs:
         total_cost = operation_cost + es_punishment + gap_punishment
         print("operation cost:", operation_cost)
         print("total cost:", total_cost)
-        print("milp operation cost:", milp_operation_cost)
+        print("milp operation cost:", 67275.2084)
         print("total es_punishment:", es_punishment)
         print("total gap_punishment:", gap_punishment)
         return operation_cost, es_punishment, gap_punishment, 0, total_cost
+
     def fix_SE_DG(self, num):
         for MG in self.MG:
             for node in MG.node:

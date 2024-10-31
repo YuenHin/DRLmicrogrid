@@ -386,7 +386,7 @@ class ExtraCatalog(Property, Enum):
     def update_detect_extreme_state(sim):
         """
         Check whether the simulation is going through excessive values before it returns NaN values.
-        Store the result in detect_extreme_state property.
+        Store the Result in detect_extreme_state property.
         """
         extreme_velocity = sim.get_property_value(JsbsimCatalog.velocities_eci_velocity_mag_fps) >= 1e10
         extreme_rotation = (

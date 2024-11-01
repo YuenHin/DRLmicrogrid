@@ -8,12 +8,7 @@ from tools.drawStorage import drawStorage
 class ES:
     def __init__(self, name, type, id, storage_price, storage_limit, storage_limit_min, lifetimes, self_discharging,
                  charging_rate, discharging_rate, time_num, begin=None):
-        self.end_location_bl = None
-        self.begin_location_bl = None
-        self.first_location_bl = None
-        self.first_location = None
-        self.begin_location = None
-        self.end_location = None
+
         self.className = 'S'
         self.name = name
         "string"
@@ -102,8 +97,8 @@ class ES:
         if self.type == "e":
             for i in range(self.time_num):
                 # 运维成本和调节成本
-                self.c[i + self.time_num * 2] = 0.043 + 0.008 - 0.0035
-                self.c[i + self.time_num * 3] = 0.043 + 0.008 - 0.0035
+                self.c[i + self.time_num * 2] = 0.023 - 0.0035
+                self.c[i + self.time_num * 3] = 0.023 - 0.0035
                 # 灵活供给&缺额惩罚
                 self.c[i + self.time_num * 5] = 0.009
                 self.c[i + self.time_num * 6] = 0.009
@@ -119,8 +114,8 @@ class ES:
         if self.type == "th":
             for i in range(self.time_num):
                 # 运维成本和调节成本
-                self.c[i + self.time_num * 2] = 0.056 + 0.015 - 0.0025
-                self.c[i + self.time_num * 3] = 0.056 + 0.015 - 0.0025
+                self.c[i + self.time_num * 2] = 0.036 - 0.0025
+                self.c[i + self.time_num * 3] = 0.036 - 0.0025
                 # 灵活供给
                 self.c[i + self.time_num * 5] = 0.013
                 self.c[i + self.time_num * 6] = 0.013
@@ -136,8 +131,8 @@ class ES:
         if self.type == "c":
             for i in range(self.time_num):
                 # 运行功率
-                self.c[i + self.time_num * 2] = 0.06 + 0.012 - 0.0025
-                self.c[i + self.time_num * 3] = 0.06 + 0.012 - 0.0025
+                self.c[i + self.time_num * 2] = 0.04 - 0.0025
+                self.c[i + self.time_num * 3] = 0.04 - 0.0025
                 # 灵活供给
                 self.c[i + self.time_num * 5] = 0.015
                 self.c[i + self.time_num * 6] = 0.015
@@ -157,9 +152,6 @@ class ES:
         self.ramping_limit = self.e * 0.055
 
     def constraints(self, num):
-        # 起始位置
-        self.begin_location = len(num.A)
-        self.begin_location_bl = len(num.bl)
 
         "Energy storaed limited"
         B = np.array([
@@ -342,9 +334,9 @@ class ES:
         B = np.array([
             [self.name + "E" + str(self.time_num), 1]
         ])
-        CreatConstraintsByText(1, B, self.begin, self.begin, num)  # 强化学习，放开约束
+        # CreatConstraintsByText(1, B, self.begin, self.begin, num)  # 强化学习，放开约束
         # CreatConstraintsByText(1, B, self.begin, np.inf, num)
-        # CreatConstraintsByText(1, B, 0, np.inf, num)
+        CreatConstraintsByText(1, B, 0, np.inf, num)
 
         B = np.array([
             [self.name + "E1", -1],
@@ -398,11 +390,6 @@ class ES:
                 [self.name + "S" + str(i + 1), -1],
             ])
             CreatConstraintsByText(1, B, 0, np.inf, num)
-
-
-        # 起始位置
-        self.end_location = len(num.A)
-        self.end_location_bl = len(num.bl)
 
     def draw(self):
         x = self.x[self.time_num:self.time_num * 2]

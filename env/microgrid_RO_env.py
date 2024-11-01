@@ -18,7 +18,6 @@ class microgrid_RO_env:
         self.save_name = "zzy_RO"
         self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=True)
         self.flash_num = deepcopy(self.start_num)
-        self.mpc_num = deepcopy(self.start_num)
         # self.start_num_ =self.start_num
         # self.flash_num = self.start_num_
         # for i in range(len(self.flash_num.params)):
@@ -164,8 +163,8 @@ class microgrid_RO_env:
                 for device in node.devices:
                     if device.className == 'D' and device.type == 'e' and device.name != 'load_e_ex':
                         # D_P1 = device.p[0]  # 获取该负荷设备在t=1时刻的功率需求
-                        # D_P1 = device.real_x[0]  # 获取该负荷设备在t=1时刻的功率需求
-                        D_P1 = device.x[0]
+                        D_P1 = device.real_x[0]  # 获取该负荷设备在t=1时刻的功率需求
+                        # D_P1 = device.x[0]
                         D_P_min = device.p_min.min()
                         D_P_max = device.p_max.max()
                         D_norma_P1 = (D_P1 - D_P_min) / (D_P_max - D_P_min)  # 归一化

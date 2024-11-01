@@ -262,116 +262,116 @@ def getFlexibility(type, state, params, results):
 不同不确定集下，各个设备的运行功率及灵活性供给能力
 """
 
-# 设置字体
-font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
-font_prop = font_manager.FontProperties(fname=font_path)
-
-# 处理数据
-path = r"C:\software\Github\DRLmicrogrid\Model_zzy\results_ro.xlsx"
-dataset = pd.read_excel(path)
-
-params = dataset.iloc[:, 0]
-results = dataset.iloc[:, 1]
-
-series_array = pd.Series(params)
-params = series_array[~series_array.isna() & (series_array != '')].values
-
-series_array0 = pd.Series(results)
-results = series_array0[~series_array0.isna() & (series_array0 != '')].values
-
-# 数据准备
-x = np.arange(0, 24)  # 24个柱体的x坐标
-y1 = np.random.randint(10, 30, size=24)  # 第一根折线的y值
-y2 = np.random.randint(5, 25, size=24)   # 第二根折线的y值
-
-"电力子系统"
-# # 向上灵活性供需
-# fd_ud, storage_ch_ds, storage_dis_us, flex_load, cchp_us, eb_ds, er_ds = getFlexibility(type="e", state="up",
-#                                                                                         params=params, results=results)
-# # 向下灵活性供需
-# fd_dd, storage_ch_us, storage_dis_ds, cchp_ds, eb_us, er_us = getFlexibility(type="e", state="down",
-#                                                                              params=params, results=results)
+# # 设置字体
+# font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
+# font_prop = font_manager.FontProperties(fname=font_path)
 #
-# up_layers = np.concatenate((storage_ch_ds, storage_dis_us, flex_load, cchp_us, eb_ds, er_ds))
+# # 处理数据
+# path = r"C:\software\Github\DRLmicrogrid\Model_zzy\results_ro.xlsx"
+# dataset = pd.read_excel(path)
+#
+# params = dataset.iloc[:, 0]
+# results = dataset.iloc[:, 1]
+#
+# series_array = pd.Series(params)
+# params = series_array[~series_array.isna() & (series_array != '')].values
+#
+# series_array0 = pd.Series(results)
+# results = series_array0[~series_array0.isna() & (series_array0 != '')].values
+#
+# # 数据准备
+# x = np.arange(0, 24)  # 24个柱体的x坐标
+# y1 = np.random.randint(10, 30, size=24)  # 第一根折线的y值
+# y2 = np.random.randint(5, 25, size=24)   # 第二根折线的y值
+#
+# "电力子系统"
+# # # 向上灵活性供需
+# # fd_ud, storage_ch_ds, storage_dis_us, flex_load, cchp_us, eb_ds, er_ds = getFlexibility(type="e", state="up",
+# #                                                                                         params=params, results=results)
+# # # 向下灵活性供需
+# # fd_dd, storage_ch_us, storage_dis_ds, cchp_ds, eb_us, er_us = getFlexibility(type="e", state="down",
+# #                                                                              params=params, results=results)
+# #
+# # up_layers = np.concatenate((storage_ch_ds, storage_dis_us, flex_load, cchp_us, eb_ds, er_ds))
+# # up_layers = up_layers.reshape(-1, 24)
+# # up_layers = up_layers.T
+# #
+# # down_layers = np.concatenate((storage_ch_us, storage_dis_ds, cchp_ds, eb_us, er_us))
+# # down_layers = down_layers.reshape(-1, 24)
+# # down_layers = down_layers.T
+#
+# "天然气子系统"
+# # # 向上灵活性供需
+# # fd_ud, cchp_ds, flex_load = getFlexibility(type="g", state="up", params=params, results=results)
+# # # 向下灵活性供需
+# # fd_dd, cchp_us = getFlexibility(type="g", state="down", params=params, results=results)
+#
+# # up_layers = np.concatenate((cchp_ds, flex_load))
+# # up_layers = up_layers.reshape(-1, 24)
+# # up_layers = up_layers.T
+# #
+# # down_layers = np.concatenate((cchp_us))
+# # down_layers = down_layers.reshape(-1, 24)
+# # down_layers = down_layers.T
+#
+# "热能子系统"
+# # 向上灵活性供需
+# fd_ud, flex_load, cchp_us, eb_us, storage_ch_ds, storage_dis_us = getFlexibility(type="th", state="up",
+#                                                                                    params=params, results=results)
+# # 向下灵活性供需
+# fd_dd, cchp_ds, eb_ds, storage_ch_us, storage_dis_ds = getFlexibility(type="th", state="down",
+#                                                                  params=params, results=results)
+#
+# up_layers = np.concatenate((flex_load, cchp_us, eb_us, storage_ch_ds, storage_dis_us))
 # up_layers = up_layers.reshape(-1, 24)
 # up_layers = up_layers.T
 #
-# down_layers = np.concatenate((storage_ch_us, storage_dis_ds, cchp_ds, eb_us, er_us))
+# down_layers = np.concatenate((cchp_ds, eb_ds, storage_ch_us, storage_dis_ds))
 # down_layers = down_layers.reshape(-1, 24)
 # down_layers = down_layers.T
-
-"天然气子系统"
-# # 向上灵活性供需
-# fd_ud, cchp_ds, flex_load = getFlexibility(type="g", state="up", params=params, results=results)
-# # 向下灵活性供需
-# fd_dd, cchp_us = getFlexibility(type="g", state="down", params=params, results=results)
-
-# up_layers = np.concatenate((cchp_ds, flex_load))
-# up_layers = up_layers.reshape(-1, 24)
-# up_layers = up_layers.T
 #
-# down_layers = np.concatenate((cchp_us))
-# down_layers = down_layers.reshape(-1, 24)
-# down_layers = down_layers.T
-
-"热能子系统"
-# 向上灵活性供需
-fd_ud, flex_load, cchp_us, eb_us, storage_ch_ds, storage_dis_us = getFlexibility(type="th", state="up",
-                                                                                   params=params, results=results)
-# 向下灵活性供需
-fd_dd, cchp_ds, eb_ds, storage_ch_us, storage_dis_ds = getFlexibility(type="th", state="down",
-                                                                 params=params, results=results)
-
-up_layers = np.concatenate((flex_load, cchp_us, eb_us, storage_ch_ds, storage_dis_us))
-up_layers = up_layers.reshape(-1, 24)
-up_layers = up_layers.T
-
-down_layers = np.concatenate((cchp_ds, eb_ds, storage_ch_us, storage_dis_ds))
-down_layers = down_layers.reshape(-1, 24)
-down_layers = down_layers.T
-
-"冷能子系统"
-# # 向上灵活性供需
-# fd_ud, storage_ch_ds, storage_dis_us, er_us = getFlexibility(type="c", state="up", params=params, results=results)
-# # 向下灵活性供需
-# fd_dd, storage_ch_us, storage_dis_ds, er_ds = getFlexibility(type="c", state="down", params=params, results=results)
-
-# up_layers = np.concatenate((storage_ch_ds, storage_dis_us, er_us))
-# up_layers = up_layers.reshape(-1, 24)
-# up_layers = up_layers.T
+# "冷能子系统"
+# # # 向上灵活性供需
+# # fd_ud, storage_ch_ds, storage_dis_us, er_us = getFlexibility(type="c", state="up", params=params, results=results)
+# # # 向下灵活性供需
+# # fd_dd, storage_ch_us, storage_dis_ds, er_ds = getFlexibility(type="c", state="down", params=params, results=results)
 #
-# down_layers = np.concatenate((storage_ch_us, storage_dis_ds, er_ds))
-# down_layers = down_layers.reshape(-1, 24)
-# down_layers = down_layers.T
-
-# 绘图
-bottom = np.zeros(24)  # 叠加的底部起始位置
-
-# for i in range(up_layers.shape[1]):
-#     plt.bar(x, up_layers[:, i], bottom=bottom, label=f'正层{i+1}' if i == 0 else "")
-#     bottom += up_layers[:, i]
-
-bottom_down = np.zeros(24)  # 负半轴叠加的底部起始位置
-
-for i in range(down_layers.shape[1]):
-    plt.bar(x, down_layers[:, i], bottom=bottom_down, label=f'负层{i+1}' if i == 0 else "")
-    bottom_down += down_layers[:, i]
+# # up_layers = np.concatenate((storage_ch_ds, storage_dis_us, er_us))
+# # up_layers = up_layers.reshape(-1, 24)
+# # up_layers = up_layers.T
+# #
+# # down_layers = np.concatenate((storage_ch_us, storage_dis_ds, er_ds))
+# # down_layers = down_layers.reshape(-1, 24)
+# # down_layers = down_layers.T
 #
-# # 绘制折线
-# plt.plot(x, fd_ud, marker='o', color='#990000', label='折线2')  # 深红色
-# plt.plot(x, fd_dd, marker='o', color='#006699', label='折线3')  # 蓝绿色
+# # 绘图
+# bottom = np.zeros(24)  # 叠加的底部起始位置
 #
-# 设置图形属性
-plt.xlabel('时间尺度', fontproperties=font_prop)
-plt.ylabel('功率', fontproperties=font_prop)
-plt.title('供需关系图', fontproperties=font_prop)
-plt.xticks([0, 6, 12, 18, 24])  # 设置x轴刻度为1到24
-plt.legend(prop=font_prop)
-plt.grid(False)
-
-# 显示图形
-plt.tight_layout()
-plt.show()
+# # for i in range(up_layers.shape[1]):
+# #     plt.bar(x, up_layers[:, i], bottom=bottom, label=f'正层{i+1}' if i == 0 else "")
+# #     bottom += up_layers[:, i]
+#
+# bottom_down = np.zeros(24)  # 负半轴叠加的底部起始位置
+#
+# for i in range(down_layers.shape[1]):
+#     plt.bar(x, down_layers[:, i], bottom=bottom_down, label=f'负层{i+1}' if i == 0 else "")
+#     bottom_down += down_layers[:, i]
+# #
+# # # 绘制折线
+# # plt.plot(x, fd_ud, marker='o', color='#990000', label='折线2')  # 深红色
+# # plt.plot(x, fd_dd, marker='o', color='#006699', label='折线3')  # 蓝绿色
+# #
+# # 设置图形属性
+# plt.xlabel('时间尺度', fontproperties=font_prop)
+# plt.ylabel('功率', fontproperties=font_prop)
+# plt.title('供需关系图', fontproperties=font_prop)
+# plt.xticks([0, 6, 12, 18, 24])  # 设置x轴刻度为1到24
+# plt.legend(prop=font_prop)
+# plt.grid(False)
+#
+# # 显示图形
+# plt.tight_layout()
+# plt.show()
 
 """
 不同的不确定集
@@ -380,52 +380,52 @@ plt.show()
 """
 区间概率不确定集
 """
-# # 设置字体
-# font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
-# font_prop = font_manager.FontProperties(fname=font_path)
-#
-# # 数据准备
-# x = np.arange(1, 25)  # 24个柱体的x坐标
-# # path = r"C:\software\Github\DRLmicrogrid\Data\uncertainty\load_e.xlsx"
+# 设置字体
+font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
+font_prop = font_manager.FontProperties(fname=font_path)
+
+# 数据准备
+x = np.arange(1, 25)  # 24个柱体的x坐标
+path = r"C:\software\Github\DRLmicrogrid\Data\uncertainty\load_e.xlsx"
 # path = r"C:\software\Github\DRLmicrogrid\Data\uncertainty\pv.xlsx"
-# dataset = pd.read_excel(path)
-# min = dataset['min'].values
-# max = dataset['max'].values
-# mu = dataset['mu'].values
-# real_value = dataset['real_value'].values
-# min = min[0:24]
-# max = max[0:24]
-# mu = mu[0:24]
-# real_value = real_value[0:24]
-#
-# predicted_min = min  # 随机生成预测最小值
-# predicted_max = max  # 随机生成预测最大值
-# predicted_values = mu  # 随机生成预测值
-# actual_values = real_value  # 随机生成真实值
-#
-# # 创建填充区域
-# plt.fill_between(x, predicted_min, predicted_max, color='lightblue', alpha=0.5)
-#
-# # 绘制预测值最大值和最小值的折线
-# plt.plot(x, predicted_max, color='#003366', label='区间上界')  # 深蓝色
-# plt.plot(x, predicted_min, color='#990000', label='区间下界')  # 深红色
-# plt.plot(x, predicted_values, color='#999999', label='预测值')  # 柔和橙色
-#
-# # 绘制预测值和真实值的点
-# # plt.scatter(x, predicted_values, color='#BEB8DC', label='预测值', marker='o')  # 柔和蓝色
-# plt.scatter(x, actual_values, color='#FFBE7A', label='真实值', marker='o', s=20)  # 柔和橙色
-#
-# # 设置图形属性
-# plt.xlabel('时间尺度', fontproperties=font_prop)
-# plt.ylabel('出力功率', fontproperties=font_prop)
-# plt.title('区间概率不确定集', fontproperties=font_prop)
-# plt.xticks([0, 6, 12, 18, 24])  # 设置x轴刻度为1到24
-# plt.grid(False)
-# plt.legend(prop=font_prop)
-#
-# # 显示图形
-# plt.tight_layout()
-# plt.show()
+dataset = pd.read_excel(path)
+min = dataset['min'].values
+max = dataset['max'].values
+mu = dataset['mu'].values
+real_value = dataset['real_value'].values
+min = min[0:24]
+max = max[0:24]
+mu = mu[0:24]
+real_value = real_value[0:24]
+
+predicted_min = min  # 随机生成预测最小值
+predicted_max = max  # 随机生成预测最大值
+predicted_values = mu  # 随机生成预测值
+actual_values = real_value  # 随机生成真实值
+
+# 创建填充区域
+plt.fill_between(x, predicted_min, predicted_max, color='lightblue', alpha=0.5)
+
+# 绘制预测值最大值和最小值的折线
+plt.plot(x, predicted_max, color='#003366', label='区间上界')  # 深蓝色
+plt.plot(x, predicted_min, color='#990000', label='区间下界')  # 深红色
+plt.plot(x, predicted_values, color='#999999', label='预测值')  # 柔和橙色
+
+# 绘制预测值和真实值的点
+# plt.scatter(x, predicted_values, color='#BEB8DC', label='预测值', marker='o')  # 柔和蓝色
+plt.scatter(x, actual_values, color='#FFBE7A', label='真实值', marker='o', s=20)  # 柔和橙色
+
+# 设置图形属性
+plt.xlabel('时间尺度', fontproperties=font_prop)
+plt.ylabel('出力功率', fontproperties=font_prop)
+plt.title('区间概率不确定集', fontproperties=font_prop)
+plt.xticks([0, 6, 12, 18, 24])  # 设置x轴刻度为1到24
+plt.grid(False)
+plt.legend(prop=font_prop)
+
+# 显示图形
+plt.tight_layout()
+plt.show()
 
 """
 盒式不确定集
@@ -496,7 +496,7 @@ plt.show()
 # # 处理数据
 # path = r"C:\software\Github\DRLmicrogrid\Model_zzy\results_ro.xlsx"
 # dataset = pd.read_excel(path)
-
+#
 # params = dataset.iloc[:, 0]
 # results = dataset.iloc[:, 1]
 #
@@ -542,14 +542,14 @@ plt.show()
 # # negative_layers = negative_layers.T
 #
 # "冷能子系统"
-# title = "冷能子系统"
-# load, storage_ch, storage_dis, er = getEnergySystemData(type='c', params=params, results=results)
-# positive_layers = np.concatenate((storage_dis, er))  # 正半轴
-# positive_layers = positive_layers.reshape(-1, 24)
-# positive_layers = positive_layers.T
-# negative_layers = np.concatenate((load, storage_ch))  # 负半轴
-# negative_layers = negative_layers.reshape(-1, 24)
-# negative_layers = negative_layers.T
+# # title = "冷能子系统"
+# # load, storage_ch, storage_dis, er = getEnergySystemData(type='c', params=params, results=results)
+# # positive_layers = np.concatenate((storage_dis, er))  # 正半轴
+# # positive_layers = positive_layers.reshape(-1, 24)
+# # positive_layers = positive_layers.T
+# # negative_layers = np.concatenate((load, storage_ch))  # 负半轴
+# # negative_layers = negative_layers.reshape(-1, 24)
+# # negative_layers = negative_layers.T
 #
 #
 # # 莫兰迪色系配色（淡雅、柔和的颜色）

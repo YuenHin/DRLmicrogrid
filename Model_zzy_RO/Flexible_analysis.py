@@ -292,7 +292,6 @@ class FA:
                     ]))
 
                 if self.nodes[i].devices[j].className == "FD" and self.nodes[i].devices[j].type == "th":
-                    for k in range(self.time_num):
                         B = np.append(B, np.array([
                             [self.nodes[i].devices[j].name + "UD1", 1],
                         ]))

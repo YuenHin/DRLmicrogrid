@@ -10,10 +10,7 @@ import pandas as pd
 
 class RT:
     def __init__(self, name, type, id, production_price, production_total, time_num, stochastic_value=25):
-        self.begin_location = None
-        self.begin_location_bl = None
-        self.end_location = None
-        self.end_location_bl = None
+
         self.name = name
         self.id = id
 
@@ -31,9 +28,19 @@ class RT:
         self.p = np.zeros(time_num)
         self.p_min = np.zeros(time_num)
         self.p_max = np.zeros(time_num)
+        self.p_mu = np.zeros(time_num)
 
         self.p_rampingh_up = np.zeros(time_num)
         self.p_rampingh_down = np.zeros(time_num)
+
+        self.randoms_pv = np.array([0.17585667, 0.11310877, 0.13890614, 0.04171659, 0.15476271, 0.06063636,
+                                    0.21186455, 0.24243415, 0.23833435, 0.26983087, 0.07053308, 0.01336584,
+                                    0.02009157, 0.20643886, 0.09236406, 0.04600884, 0.2080278,  0.21979565,
+                                    0.23064161, 0.08826133, 0.11075521, 0.10486894, 0.16470218, 0.26452832])
+        self.randoms_wt = np.array([0.16749573, 0.2123105,  0.25994513, 0.10613856, 0.16723538, 0.24197309,
+                                    0.19656779, 0.22821717, 0.24671185, 0.24990843, 0.02937662, 0.0436565,
+                                    0.21153729, 0.20440689, 0.09889093, 0.24154307, 0.07688684, 0.06677246,
+                                    0.28295787, 0.16837925, 0.22980433, 0.03781076, 0.06734404, 0.10276821])
 
         self.params = np.array([""])
 
@@ -51,7 +58,12 @@ class RT:
         self.constraint_num = 0
 
         self.stochas_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率
-
+        if self.type == 'PV':
+            for i in range(self.time_num):
+                self.stochas_P[i] = max(self.p_mu[i] * (1 - 0.01 * self.randoms_pv[i]), self.p_min[i])
+        elif self.type == 'WT':
+            for i in range(self.time_num):
+                self.stochas_P[i] = max(self.p_mu[i] * (1 - 0.01 * self.randoms_wt[i]), self.p_min[i])
     def __init(self):
         self.__params_named()
         self.__set_intergrality()
@@ -72,12 +84,12 @@ class RT:
         if self.type == "WT":
             self.c = np.zeros(len(self.params))
             for i in range(len(self.c)):
-                self.c[i] = -(self.production_price + 0.0896 - 0.05)
+                self.c[i] = 0.0896 - 0.05
 
         if self.type == "PV":
             self.c = np.zeros(len(self.params))
             for i in range(len(self.c)):
-                self.c[i] = -(self.production_price + 0.0896 - 0.05)
+                self.c[i] = 0.0896 - 0.05
 
     def __getData(self):
         "导入可再生能源产能"
@@ -123,6 +135,8 @@ class RT:
         self.p_min = self.p_min[:self.time_num]
         self.p_max = dataset['max'].values
         self.p_max = self.p_max[:self.time_num]
+        self.p_mu = dataset['mu'].values
+        self.p_mu = self.p_mu[:self.time_num]
 
     def __getPVData(self):
         dataset = pd.read_excel(r"./Data\uncertainty\pv.xlsx")
@@ -132,6 +146,8 @@ class RT:
         self.p_min = self.p_min[:self.time_num]
         self.p_max = dataset['max'].values
         self.p_max = self.p_max[:self.time_num]
+        self.p_mu = dataset['mu'].values
+        self.p_mu = self.p_mu[:self.time_num]
 
     def __getHPData(self):
         dataset = pd.read_excel(r"./Data\uncertainty\hp.xlsx")
@@ -141,18 +157,27 @@ class RT:
         self.p_min = self.p_min[:self.time_num]
         self.p_max = dataset['max'].values
         self.p_max = self.p_max[:self.time_num]
+        self.p_mu = dataset['mu'].values
+        self.p_mu = self.p_mu[:self.time_num]
 
     def constraints(self, num):
-        # 起始位置
-        self.begin_location = len(num.A)
-        self.begin_location_bl = len(num.bl)
 
         "Production limits:"
-        for i in range(self.time_num):
-            B = np.array([
-                [self.name + "P" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, B, self.p_min[i], self.p_max[i], num)
+        if self.type == "PV":
+            for i in range(self.time_num):
+                B = np.array([
+                    [self.name + "P" + str(i + 1), 1]
+                ])
+                CreatConstraintsByText(1, B, self.p_min[i], max(self.p_mu[i] * (1 - 0.01 * self.randoms_pv[i]), self.p_min[i]),
+                                       num)
+
+        if self.type == "WT":
+            for i in range(self.time_num):
+                B = np.array([
+                    [self.name + "P" + str(i + 1), 1]
+                ])
+                CreatConstraintsByText(1, B, self.p_min[i], max(self.p_mu[i] * (1 - 0.01 *  self.randoms_wt[i]), self.p_min[i]),
+                                       num)
 
         "Ramping limits:"
         # B = np.array([
@@ -231,13 +256,14 @@ class RT:
             self.real_x[step - 1] = self.p_min[step - 1]
         '''
         # self.real_x[step - 1] = random.uniform(self.p_min[step - 1], self.p_max[step - 1])
-        self.real_x[step - 1] = self.p_max[step - 1]
+        # self.real_x[step - 1] = self.p_max[step - 1]
+        self.real_x[step - 1] = self.stochas_P[step - 1]
         B = np.array([
             [self.name + "P" + str(step), 1],
         ])
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
 
-        self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录这一步增加随机性后的功率
+        # self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录这一步增加随机性后的功率
 
     def stochastic_perfect(self, step, num):
         # 我需要控制不确定变化后不会跳出范围
@@ -453,7 +479,7 @@ class HP:
     def __set_c(self):
         self.c = np.zeros(len(self.params))
         for i in range(self.time_num, self.time_num * 2):
-            self.c[i] = -(self.production_price + 0.04 - 0.02)
+            self.c[i] = 0.0673 - 0.025
 
     # 拿到可再生能源数据
     def __getdata(self):

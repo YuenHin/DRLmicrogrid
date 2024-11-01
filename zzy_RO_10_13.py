@@ -13,7 +13,7 @@ from Model_zzy_RO.GasWell import GW
 from Model_zzy_RO.Demand_RO import D
 from Model_zzy_RO.RenewableProductionUnit_RO import RT, HP
 from Model_zzy_RO.Storage import ES
-from Model_zzy_RO.Conversion_units import CCHP, EB, ER, PG
+from Model_zzy_RO.Conversion_units import CCHP, EB, ER
 from tools.Logic import MMGs_logic, x_callBack, draw
 from tools.MILP import PrintBounds, EndCount
 from Model_zzy_RO.Microgrid import MG

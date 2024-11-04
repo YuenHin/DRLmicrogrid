@@ -69,6 +69,19 @@ class D:
 
         self.stochas_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率
 
+        if self.type == 'e':
+            for i in range(self.time_num):
+                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i])
+        elif self.type == 'g':
+            for i in range(self.time_num):
+                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i])
+        elif self.type == 'th':
+            for i in range(self.time_num):
+                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i])
+        elif self.type == 'c':
+            for i in range(self.time_num):
+                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i])
+
     def __init(self):
         self.__params_named()
         self.__set_intergrality()
@@ -199,36 +212,36 @@ class D:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i]),
-                #                        self.p_max[i], num)
-                CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+                # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
 
         if self.type == "g":
             for i in range(self.time_num):
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i]),
-                #                        self.p_max[i], num)
-                CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+                # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
 
         if self.type == "th":
             for i in range(self.time_num):
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i]),
-                #                        self.p_max[i], num)
-                CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+                # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
 
         if self.type == "c":
             for i in range(self.time_num):
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i]),
-                #                        self.p_max[i], num)
-                CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i]),
+                                       self.p_max[i], num)
+                # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
         """
         ramping limits
         """
@@ -338,13 +351,13 @@ class D:
         '''
         # self.real_x[step - 1] = random.uniform(self.p_min[step - 1], self.p_max[step - 1])
         # self.real_x[step - 1] = self.p_min[step - 1]
-        self.real_x[step - 1] = self.p_mu[step - 1]
+        self.real_x[step - 1] = self.stochas_P[step - 1]
         B = np.array([
             [self.name + "P" + str(step), 1],
         ])
         CreatConstraintsByText(1, B, self.real_x[step - 1], self.real_x[step - 1], num)
 
-        self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录当前时间步增加随机性后的功率
+        # self.stochas_P[step - 1] = self.real_x[step - 1]  # 记录当前时间步增加随机性后的功率
 
 
     def re_train(self, step, num):

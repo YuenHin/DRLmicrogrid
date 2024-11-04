@@ -119,15 +119,15 @@ class FD:
 
         if self.type == "e":
             for i in range(self.time_num):
-                self.c[i] = 0.01
-                self.c[i + self.time_num * 1] = 0.01
+                self.c[i] = 0.1
+                self.c[i + self.time_num * 1] = 0.1
                 # self.c[i + self.time_num * 2] = 0.1
                 # self.c[i + self.time_num * 3] = 0.1
 
         if self.type == "g":
             for i in range(self.time_num):
-                self.c[i] = 0.01
-                self.c[i + self.time_num * 1] = 0.01
+                self.c[i] = 0.1
+                self.c[i + self.time_num * 1] = 0.1
                 # self.c[i + self.time_num * 2] = 0.1
                 # self.c[i + self.time_num * 3] = 0.1
 
@@ -135,15 +135,15 @@ class FD:
             for i in range(self.time_num):
                 # self.c[i + self.time_num * 2] = 0.1        # -0.043
                 # self.c[i + self.time_num * 3] = 0.1
-                self.c[i] = 0.01
-                self.c[i + self.time_num * 1] = 0.01
+                self.c[i] = 0.1
+                self.c[i + self.time_num * 1] = 0.1
 
         if self.type == "c":
             for i in range(self.time_num):
                 # self.c[i + self.time_num * 2] = 0.1            # -0.036
                 # self.c[i + self.time_num * 3] = 0.1
-                self.c[i] = 0.01
-                self.c[i + self.time_num * 1] = 0.01
+                self.c[i] = 0.1
+                self.c[i + self.time_num * 1] = 0.1
 
     def constraints(self, num):
 
@@ -177,6 +177,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "WT" or self.net_load_sets[i].devices[j].type == "PV":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "P" + str(k + 1), -1],
+                                [self.net_load_sets[i].devices[j].name + "P" + str(k + 2), 1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_min[k+1] - self.predict_load[k], np.inf, num)
@@ -191,6 +192,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "WT" or self.net_load_sets[i].devices[j].type == "PV":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "P" + str(k + 1), -1],
+                                [self.net_load_sets[i].devices[j].name + "P" + str(k + 2), 1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_max[k + 1] - self.predict_load[k], np.inf, num)
@@ -205,6 +207,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "WT" or self.net_load_sets[i].devices[j].type == "PV":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "P" + str(k + 1), -2],
+                                [self.net_load_sets[i].devices[j].name + "P" + str(k + 2), 2],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_max[k + 1] + self.net_load_min[k + 1] - 2 * self.predict_load[k], np.inf, num)
@@ -226,6 +229,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "WT" or self.net_load_sets[i].devices[j].type == "PV":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "P" + str(k + 1), 1],
+                                [self.net_load_sets[i].devices[j].name + "P" + str(k + 2), -1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_min[k + 1], np.inf, num)
@@ -240,6 +244,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "WT" or self.net_load_sets[i].devices[j].type == "PV":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "P" + str(k + 1), 1],
+                                [self.net_load_sets[i].devices[j].name + "P" + str(k + 2), -1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_max[k + 1], np.inf, num)
@@ -254,6 +259,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "WT" or self.net_load_sets[i].devices[j].type == "PV":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "P" + str(k + 1), 2],
+                                [self.net_load_sets[i].devices[j].name + "P" + str(k + 2), -2],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, 2 * self.predict_load[k] - self.net_load_max[k + 1] - self.net_load_min[k + 1], np.inf, num)
@@ -266,7 +272,19 @@ class FD:
             B = np.array([
                 [self.name + "DD24", 1],
             ])
-            CreatConstraintsByText(1, B, 498.2124343, 498.2124343, num)
+            CreatConstraintsByText(1, B, 428.2124343, 428.2124343, num)
+
+        # if self.type == "e":
+        #     B = np.array([
+        #         [self.name + "Z_UD1", 1],
+        #         [self.name + "UD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
+        #     B = np.array([
+        #         [self.name + "Z_DD1", 1],
+        #         [self.name + "DD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
 
         "热能子系统向上灵活性需求"
         if self.type == "th":
@@ -285,6 +303,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "HP":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 1), -1],
+                                [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 2), 1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_min[k+1] - self.predict_load[k], np.inf, num)
@@ -299,6 +318,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "HP":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 1), -1],
+                                [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 2), 1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_max[k + 1] - self.predict_load[k], np.inf, num)
@@ -313,6 +333,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "HP":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 1), -2],
+                                [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 2), 2],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.net_load_max[k + 1] + self.net_load_min[k + 1] - 2 * self.predict_load[k], np.inf, num)
@@ -334,6 +355,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "HP":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 1), 1],
+                                [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 2), -1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_min[k + 1], np.inf, num)
@@ -348,6 +370,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "HP":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 1), 1],
+                                [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 2), -1],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, self.predict_load[k] - self.net_load_max[k + 1], np.inf, num)
@@ -362,6 +385,7 @@ class FD:
                         if self.net_load_sets[i].devices[j].type == "HP":
                             B = np.append(B, np.array([
                                 [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 1), 2],
+                                [self.net_load_sets[i].devices[j].name + "output_h" + str(k + 2), -2],
                             ]))
                 B = B.reshape(int(len(B) / 2), 2)
                 CreatConstraintsByText(1, B, 2 * self.predict_load[k] - self.net_load_max[k + 1] - self.net_load_min[k + 1], np.inf, num)
@@ -370,11 +394,23 @@ class FD:
             B = np.array([
                 [self.name + "UD24", 1],
             ])
-            CreatConstraintsByText(1, B, 432.453534265, 432.453534265, num)
+            CreatConstraintsByText(1, B, 43.453534265, 43.453534265, num)
             B = np.array([
                 [self.name + "DD24", 1],
             ])
-            CreatConstraintsByText(1, B, 0, 0, num)
+            CreatConstraintsByText(1, B, 57.25245635, 57.25245635, num)
+
+        # if self.type == "th":
+        #     B = np.array([
+        #         [self.name + "Z_UD1", 1],
+        #         [self.name + "UD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
+        #     B = np.array([
+        #         [self.name + "Z_DD1", 1],
+        #         [self.name + "DD1", -1]
+        #     ])
+        #     CreatConstraintsByText(self.time_num, B, 0, 0, num)
 
         "气能子系统向上灵活性需求"
         if self.type == "g":

@@ -46,8 +46,8 @@ load_c_01 = D("load_c_01", "c", p_total=1100, id=1, MG_id=1, ramping_rate=0.15, 
 load_h_01 = D("load_h_01", "th", p_total=20000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 load_g_01 = D("load_g_01", "g", p_total=48000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 
-"额外负荷，强化学习用"
-load_e_ex = D_ex("load_e_ex", "e", 100000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
+# "额外负荷，强化学习用"
+# load_e_ex = D_ex("load_e_ex", "e", 100000, id=1, MG_id=1, ramping_rate=0.15, time_num=time, stochastic_value=10)
 
 "可再生能源"
 pv_01 = RT("pv_01", type="PV", id=1, production_price=0.005, production_total=2000, time_num=time)
@@ -104,7 +104,7 @@ storage_c_01 = ES("storage_c_01", type="c", id=1, storage_price=0.05, storage_li
 "供能端"
 cpp_01 = CPP("cpp_01", id=1, total_production=500000, production_price=1, time_num=time)
 # cpp_02 = CPP("cpp_02", id=1, total_production=5000, production_price=-1, time_num=time)
-gw_01 = GW("gw_01", id=1, total_production=100000, production_price=1.2, time_num=time)
+gw_01 = GW("gw_01", id=1, total_production=16000, production_price=1.2, time_num=time)
 
 "柔性负荷"
 fl_e_01 = FL("fl_e_01", type="e", limit=500, time_num=time)
@@ -115,7 +115,7 @@ fl_h_01 = FL("fl_h_01", type="th", limit=300, time_num=time)
 """
 区域1
 """
-node_e_01 = Node("node_e_01", devices=np.array([load_e_01, cpp_01, pv_01, wt_01, storage_e_01, fl_e_01, load_e_ex]),
+node_e_01 = Node("node_e_01", devices=np.array([load_e_01, cpp_01, pv_01, wt_01, storage_e_01, fl_e_01]),
                  sLine=np.array([line_er_e_01, line_eb_e_01, line_hp_e_01]), rLine=np.array([line_cchp_e_01]), time_num=time,
                  type="e")
 node_c_01 = Node("node_c_01", devices=np.array([load_c_01, storage_c_01]), sLine=np.array([]), rLine=np.array([line_er_c_01]), time_num=time,
@@ -318,7 +318,7 @@ df = pd.DataFrame({
     'params': num.params,
     'value': results.x
 })
-path = "D:\HeYuanxing\BaiduSyncdisk\DRLmicrogrid\Model_zzy_RO\\results_ro.xlsx"
+path = "D:\HeYuanxing\BaiduSyncdisk\DRLmicrogrid\Model_zzy_RO\\results_ro2.xlsx"
 df.to_excel(path, index=False)
 '''
 

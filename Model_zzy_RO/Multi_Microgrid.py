@@ -288,7 +288,7 @@ class MMGs:
         total_cost = operation_cost + es_punishment + gap_punishment
         print("operation cost:", operation_cost)
         print("total cost:", total_cost)
-        print("milp operation cost:", 67275.2084)
+        print("milp operation cost:", 76378.7175)
         print("total es_punishment:", es_punishment)
         print("total gap_punishment:", gap_punishment)
         return operation_cost, es_punishment, gap_punishment, 0, total_cost

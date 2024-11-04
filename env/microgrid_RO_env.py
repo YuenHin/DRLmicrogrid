@@ -16,7 +16,7 @@ class microgrid_RO_env:
         self.con_add_num = 12  # 这是？
         self.env = MMGs
         self.save_name = "zzy_RO"
-        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=True)
+        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=False)
         self.flash_num = deepcopy(self.start_num)
         # self.start_num_ =self.start_num
         # self.flash_num = self.start_num_
@@ -59,7 +59,7 @@ class microgrid_RO_env:
         self.afterReset = True
 
         self.rl_res = None  # 记录强化学习的求解结果
-        self.min_operation = 70000
+        self.min_operation = 80000
 
     def reset(self):
         demand_e_total_t = 0  # 所有Demand(e)设备在第t步的功率需求总和
@@ -509,6 +509,7 @@ class microgrid_RO_env:
     def step3(self, action, cur_episode, storage_punishment_buffer):
         done = False
         action_ = action
+        # action = [0, 0]
         # res = EndCount(self.C, self.intergrality, self.flash_num)
         # 执行动作
         # 先执行储能的动作
@@ -521,6 +522,10 @@ class microgrid_RO_env:
         if res.success == False:
             PrintBounds(self.flash_num)
             print("储能动作后无解了！！！！！！！！！")
+            for MG in self.env.MG:
+                for node in MG.node:
+                    for device in node.devices:
+                        print(device.className)
             return None, np.array([0]), done, False, action_
         x_callBack(res, self.env, self.save_name, flag=False)
         self.x = res.x

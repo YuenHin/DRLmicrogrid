@@ -38,7 +38,7 @@ class ES:
         self.self_discharging = self_discharging
         "%/hours"
 
-        self.e = 0
+        self.e = self.storage_limit
         self.charging_max = None
         self.discharging_max = None
 
@@ -46,6 +46,25 @@ class ES:
         self.charging_rate = charging_rate
         # 放电效率
         self.discharging_rate = discharging_rate
+
+        # 葱一样的柱子搞成一个ramping
+        # 需要一个人random
+        self.randoms_ch_us = np.array([0.24851727, 0.03739422, -0.09191158, 0.00893554, -0.29600178, 0.0596546,
+                                       -0.22886036, 0.01212567, 0.128045, 0.11692753, -0.04133845, -0.11306276,
+                                       0.28413274, -0.12880762, -0.26353677, 0.27066543, 0.15701774, 0.18188486,
+                                       0.09516315, 0.01044985, -0.13600274, 0.22347429, 0.00928955, -0.13478322])
+        self.randoms_ch_ds = np.array([-0.2316746,  -0.171143,   -0.13346602,  0.09881519, -0.07429107, -0.27868075,
+                                       -0.10334106,  0.22687573, -0.23047181,  0.15514376,  0.11487653,  0.15455269,
+                                       0.06842947, -0.12176454,  0.27524408,  0.25005093, -0.06035696, -0.27607277,
+                                       -0.0027325,  -0.12132561,  0.0417038,   0.17613344, -0.02879777, -0.10891241])
+        self.randoms_dis_us = np.array([0.13106457, -0.22243633, -0.18905384,  0.10561013,  0.01943447, -0.2621602,
+                                        -0.08631154,  0.00847533,  0.23719053,  0.21944282,  0.06451267,  0.1198098,
+                                        0.21208015, -0.27660178, -0.01655773, 0.20274194, -0.09415135,  0.24744209,
+                                        0.11152833, -0.08412433,  0.10216065, -0.05073274,  0.28595126, -0.18825898])
+        self.randoms_dis_ds = np.array([0.05828629,  0.23471519, -0.25958544, -0.1079146,  -0.0048018,  -0.23394671,
+                                        0.02820027, -0.10859014,  0.14840945,  0.01650291,  0.22561462,  0.24100637,
+                                        0.15958893, -0.07053523,  0.26013171,  0.27469844, -0.20316884,  0.22391081,
+                                        0.28548823, -0.29475551,  0.1447116,  -0.06451897, -0.20676269, -0.10050451])
 
         self.params = np.array([""])
 
@@ -109,7 +128,7 @@ class ES:
                 # self.c[i + self.time_num * 7] = 0.029
                 # self.c[i + self.time_num * 8] = 0.029
                 # 运行损耗
-                self.c[i + self.time_num * 9] = self.storage_limit * 0.0005
+                self.c[i + self.time_num * 9] = self.storage_limit * 0.005
 
         if self.type == "th":
             for i in range(self.time_num):
@@ -126,7 +145,7 @@ class ES:
                 # self.c[i + self.time_num * 7] = 0.024
                 # self.c[i + self.time_num * 8] = 0.024
                 # 运维损耗
-                self.c[i + self.time_num * 9] = self.storage_limit * 0.0007
+                self.c[i + self.time_num * 9] = self.storage_limit * 0.007
 
         if self.type == "c":
             for i in range(self.time_num):
@@ -143,13 +162,15 @@ class ES:
                 # self.c[i + self.time_num * 7] = 0.022
                 # self.c[i + self.time_num * 8] = 0.022
                 # 运维损耗
-                self.c[i + self.time_num * 9] = self.storage_limit * 0.0008
+                self.c[i + self.time_num * 9] = self.storage_limit * 0.008
 
     def __getData(self):
-        self.e = self.e + self.storage_limit
-        self.charging_max = self.e * 0.065
-        self.discharging_max = self.e * 0.065
-        self.ramping_limit = self.e * 0.055
+        # self.e = self.e + self.storage_limit
+        self.charging_max = self.e * 0.0623345
+        self.discharging_max = self.e * 0.0634637
+        self.ramping_limit = self.e * 0.06234
+
+        self.max = self.e * 0.3931231
 
     def constraints(self, num):
 
@@ -157,8 +178,23 @@ class ES:
         B = np.array([
             [self.name + "E1", 1]
         ])
-        # CreatConstraintsByText(1, B, 0, self.e, num)
         CreatConstraintsByText(self.time_num, B, 0, self.e, num)
+        '''
+        "初始约束"
+        B = np.array([
+            [self.name + "P1", 1]
+        ])
+        CreatConstraintsByText(1, B, -self.ramping_limit, self.ramping_limit, num)
+        '''
+        "充放电最大约束"
+        for i in range(self.time_num):
+            B = np.array([
+                [self.name + "P" + str(i + 1), 1]
+            ])
+            # CreatConstraintsByText(1, B, -self.max, self.max, num)
+            CreatConstraintsByText(1, B, -self.e, self.e, num)
+
+        #########################################################
 
         "Charging power limits:"
         for i in range(self.time_num):
@@ -170,7 +206,6 @@ class ES:
         for i in range(self.time_num):
             B = np.array([
                 [self.name + "CP" + str(i + 1), 1],
-                # [self.name + "S" + str(i + 1), -self.charging_max]  # 强化学习，放开充放电约束
                 [self.name + "S" + str(i + 1), -self.e]
             ])
             CreatConstraintsByText(1, B, -np.inf, 0, num)
@@ -185,14 +220,28 @@ class ES:
         for i in range(self.time_num):
             B = np.array([
                 [self.name + "DP" + str(i + 1), 1],
-                # [self.name + "S" + str(i + 1), self.discharging_max]  # 强化学习，放开充放电约束
                 [self.name + "S" + str(i + 1), self.e]
             ])
-            # CreatConstraintsByText(1, B, 0, self.discharging_max, num)  # 强化学习，放开充放电约束
             CreatConstraintsByText(1, B, 0, self.e, num)
 
-        self.first_location = len(num.A)
-        self.first_location_bl = len(num.bl)
+        #################################################################
+
+        "ramping limits"
+        for i in range(self.time_num-1):
+            B = np.array([
+                [self.name + "CP" + str(i + 1), -1],
+                [self.name + "CP" + str(i + 2), 1]
+            ])
+            CreatConstraintsByText(1, B, -np.inf, self.charging_max, num)
+
+        for i in range(self.time_num-1):
+            B = np.array([
+                [self.name + "DP" + str(i + 1), -1],
+                [self.name + "DP" + str(i + 2), 1]
+            ])
+            CreatConstraintsByText(1, B, -np.inf, self.discharging_max, num)
+
+        #############################################################################
 
         "Charging Flexible Analysis"
         for i in range(self.time_num):
@@ -200,14 +249,12 @@ class ES:
                 [self.name + "CP" + str(i+1), 1],
                 [self.name + "ch_us" + str(i+1), 1]
             ])
-            # CreatConstraintsByText(1, B, 0, self.charging_max, num)  # 强化学习，放开约束
             CreatConstraintsByText(1, B, 0, self.e, num)
         for i in range(self.time_num):
             B = np.array([
                 [self.name + "CP" + str(i+1), 1],
                 [self.name + "ch_ds" + str(i+1), -1]
             ])
-            # CreatConstraintsByText(1, B, -self.charging_max, self.charging_max, num)  # 强化学习，放开约束
             CreatConstraintsByText(1, B, -self.e, self.e, num)
 
         "Discharging Flexible Analysis"
@@ -216,44 +263,40 @@ class ES:
                 [self.name + "DP" + str(i+1), 1],
                 [self.name + "dis_us" + str(i+1), 1]
             ])
-            # CreatConstraintsByText(1, B, 0, self.discharging_max, num)  # 强化学习，放开约束
             CreatConstraintsByText(1, B, 0, self.e, num)
         for i in range(self.time_num):
             B = np.array([
                 [self.name + "DP" + str(i+1), 1],
                 [self.name + "dis_ds" + str(i+1), -1]
             ])
-            # CreatConstraintsByText(1, B, -self.discharging_max, self.discharging_max, num)  # 强化学习，放开约束
             CreatConstraintsByText(1, B, -self.e, self.e, num)
+
+##############################################################################################
 
         "Flexible Constraints"
         "充电"
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "ch_us" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), -self.ramping_limit]
-                # [self.name + "S" + str(i + 2), -self.e]
+                [self.name + "S" + str(i + 2), -self.ramping_limit * (1 + self.randoms_ch_us[i])]
             ])
             CreatConstraintsByText(1, B, -np.inf, 0, num)
 
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "ch_ds" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), -self.ramping_limit]
-                # [self.name + "S" + str(i + 2), -self.e]
+                [self.name + "S" + str(i + 2), -self.ramping_limit * (1 + self.randoms_ch_ds[i])]
             ])
             CreatConstraintsByText(1, B, -np.inf, 0, num)
 
         B = np.array([
             [self.name + "ch_us24", 1],
-            [self.name + "S24", -self.ramping_limit]
-            # [self.name + "S24", -self.e]
+            [self.name + "S24", -self.ramping_limit * (1 + self.randoms_ch_us[23])]
         ])
         CreatConstraintsByText(1, B, -np.inf, 0, num)
         B = np.array([
             [self.name + "ch_ds24", 1],
-            [self.name + "S24", -self.ramping_limit]
-            # [self.name + "S24", -self.e]
+            [self.name + "S24", -self.ramping_limit * (1 + self.randoms_ch_ds[23])]
         ])
         CreatConstraintsByText(1, B, -np.inf, 0, num)
 
@@ -273,35 +316,27 @@ class ES:
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "dis_us" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), self.ramping_limit]
-                # [self.name + "S" + str(i + 2), self.e]
+                [self.name + "S" + str(i + 2), self.ramping_limit * (1 + self.randoms_dis_us[i])]
             ])
-            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
-            # CreatConstraintsByText(1, B, -np.inf, self.e, num)
+            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit*(1 + self.randoms_dis_us[i]), num)
 
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "dis_ds" + str(i + 1), 1],
-                [self.name + "S" + str(i + 2), self.ramping_limit]
-                # [self.name + "S" + str(i + 2), self.e]
+                [self.name + "S" + str(i + 2), self.ramping_limit * (1 + self.randoms_dis_ds[i])]
             ])
-            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
-            # CreatConstraintsByText(1, B, -np.inf, self.e, num)
+            CreatConstraintsByText(1, B, -np.inf, self.ramping_limit*(1 + self.randoms_dis_ds[i]), num)
 
         B = np.array([
             [self.name + "dis_us24", 1],
-            [self.name + "S24", self.ramping_limit]
-            # [self.name + "S24", self.e]
+            [self.name + "S24", self.ramping_limit * (1 + self.randoms_dis_us[23])]
         ])
-        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
-        # CreatConstraintsByText(1, B, -np.inf, self.e, num)
+        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit*(1 + self.randoms_dis_us[23]), num)
         B = np.array([
             [self.name + "dis_ds24", 1],
-            [self.name + "S24", self.ramping_limit]
-            # [self.name + "S24", self.e]
+            [self.name + "S24", self.ramping_limit * (1 + self.randoms_dis_ds[23])]
         ])
-        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
-        # CreatConstraintsByText(1, B, -np.inf, self.ramping_limit, num)
+        CreatConstraintsByText(1, B, -np.inf, self.ramping_limit*(1 + self.randoms_dis_ds[23]), num)
 
         for i in range(self.time_num):
             B = np.array([
@@ -315,7 +350,7 @@ class ES:
             ])
             CreatConstraintsByText(1, B, 0, np.inf, num)
 
-
+########################################################################################################
 
         "Energy balance in the storage unit"
         B = np.array([
@@ -336,21 +371,19 @@ class ES:
         ])
         # CreatConstraintsByText(1, B, self.begin, self.begin, num)  # 强化学习，放开约束
         # CreatConstraintsByText(1, B, self.begin, np.inf, num)
-        CreatConstraintsByText(1, B, 0, np.inf, num)
+        CreatConstraintsByText(1, B, 0, self.e, num)
 
-        B = np.array([
-            [self.name + "E1", -1],
-            [self.name + "E2", 1],
-        ])
-        # CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)  # 强化学习，放开约束
-        CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.e, num)
-
-        B = np.array([
-            [self.name + "E1", 1],
-            [self.name + "E2", -1],
-        ])
-        # CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)  # 强化学习，放开约束
-        CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.e, num)
+        # B = np.array([
+        #     [self.name + "E1", -1],
+        #     [self.name + "E2", 1],
+        # ])
+        # CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
+        #
+        # B = np.array([
+        #     [self.name + "E1", 1],
+        #     [self.name + "E2", -1],
+        # ])
+        # CreatConstraintsByText(self.time_num - 1, B, -np.inf, self.ramping_limit, num)
 
         "State"
         B = np.array([
@@ -376,6 +409,7 @@ class ES:
             [self.name + "state1", 1]
         ])
         CreatConstraintsByText(1, B, 0, 0, num)
+
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "state" + str(i + 2), 1],
@@ -383,6 +417,7 @@ class ES:
                 [self.name + "S" + str(i + 1), 1],
             ])
             CreatConstraintsByText(1, B, 0, np.inf, num)
+
         for i in range(self.time_num - 1):
             B = np.array([
                 [self.name + "state" + str(i + 2), 1],
@@ -399,9 +434,19 @@ class ES:
     def get_action(self, step, num, action, cur_episode):
         action_ = action
         if step == 1:
-            self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
+            # self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
+            # self.real_x[self.time_num + step - 1] = self.begin + action * 90
+            if action >= 0:
+                self.real_x[self.time_num + step - 1] = self.begin + 1 * self.ramping_limit
+            else:
+                self.real_x[self.time_num + step - 1] = self.begin + 1 * self.ramping_limit
         else:
-            self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
+            # self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
+            # self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * 90
+            if action >= 0:
+                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + 1 * self.ramping_limit
+            else:
+                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + 1 * self.ramping_limit
 
         # if self.real_x[self.time_num + step - 1] > self.e or self.real_x[self.time_num + step - 1] < 0:
         #     return True, action_

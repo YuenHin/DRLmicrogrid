@@ -97,7 +97,7 @@ storage_c_01 = ES("storage_c_01", type="c", id=1, storage_price=0.05, storage_li
 "供能端"
 cpp_01 = CPP("cpp_01", id=1, total_production=50000, production_price=1, time_num=time)
 # cpp_02 = CPP("cpp_02", id=1, total_production=5000, production_price=-1, time_num=time)
-gw_01 = GW("gw_01", id=1, total_production=10000, production_price=1.2, time_num=time)
+gw_01 = GW("gw_01", id=1, total_production=12000, production_price=1.2, time_num=time)
 
 "柔性负荷"
 fl_e_01 = FL("fl_e_01", type="e", limit=500, time_num=time)

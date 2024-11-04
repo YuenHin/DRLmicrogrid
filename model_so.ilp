@@ -1,0 +1,10 @@
+\ Model RO_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ R15020: hp_01output_h1 >= 235.9099748571424
+ R15115: hp_01output_h1 <= 94.36398994285692
+Bounds
+ hp_01output_h1 free
+End

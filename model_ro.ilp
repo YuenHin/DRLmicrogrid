@@ -3,6 +3,12 @@
 Minimize
  
 Subject To
- R15351: fd_eUD2 <= -21.95576380370994
+ R10684: load_g_01P12 >= 958.8604372317146
+ R10733: gw_01P12 <= 833.3333333333334
+ R10781: fl_g_01RP12 <= 83.4886445179913
+ R11018: - load_g_01P12 + gw_01P12 + fl_g_01RP12 - line_cchp_g_01P12 >= 0
 Bounds
+ load_g_01P12 free
+ gw_01P12 free
+ fl_g_01RP12 free
 End

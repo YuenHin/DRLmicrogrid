@@ -437,16 +437,16 @@ class ES:
             # self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
             # self.real_x[self.time_num + step - 1] = self.begin + action * 90
             if action >= 0:
-                self.real_x[self.time_num + step - 1] = self.begin + 1 * self.ramping_limit
+                self.real_x[self.time_num + step - 1] = self.begin - 1 * self.ramping_limit
             else:
-                self.real_x[self.time_num + step - 1] = self.begin + 1 * self.ramping_limit
+                self.real_x[self.time_num + step - 1] = self.begin - 1 * self.ramping_limit
         else:
             # self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
             # self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * 90
             if action >= 0:
-                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + 1 * self.ramping_limit
+                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] - 1 * self.ramping_limit
             else:
-                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + 1 * self.ramping_limit
+                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] - 1 * self.ramping_limit
 
         # if self.real_x[self.time_num + step - 1] > self.e or self.real_x[self.time_num + step - 1] < 0:
         #     return True, action_

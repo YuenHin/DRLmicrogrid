@@ -289,12 +289,15 @@ y2 = np.random.randint(5, 25, size=24)   # 第二根折线的y值
 # 向上灵活性供需
 fd_ud, storage_ch_ds, storage_dis_us, flex_load, cchp_us, eb_ds, er_ds = getFlexibility(type="e", state="up",
                                                                                         params=params, results=results)
-fd_ud_color = np.array(["#14517C", "#96C37D", "#9DC3E7", "#8481BA", "#C497B2", "#A9B8C6"])
+# fd_ud_color = np.array(["#14517C", "#96C37D", "#9DC3E7", "#8481BA", "#C497B2", "#A9B8C6"])
+fd_ud_color = np.array(["#e5e2b8", "#6f9fb7", "#c2d8de", "#e3ae7b", "#c6624b", "#970529", "#305287"])
 fd_ud_name = np.array(["充电", "放电", "柔性负荷", "CCHP", "EB", "ER"])
 print(f"flex_load:{flex_load}")
 # 向下灵活性供需
 fd_dd, storage_ch_us, storage_dis_ds, cchp_ds, eb_us, er_us = getFlexibility(type="e", state="down",
                                                                              params=params, results=results)
+fd_dd_color = np.array(["#e5e2b8", "#6f9fb7", "#c2d8de", "#e3ae7b", "#c6624b", "#970529", "#305287"])
+fd_dd_name = np.array(["充电", "放电", "CCHP", "EB", "ER"])
 
 up_layers = np.concatenate((storage_ch_ds, storage_dis_us, flex_load, cchp_us, eb_ds, er_ds))
 up_layers = up_layers.reshape(-1, 24)

@@ -1,0 +1,125 @@
+\ Model RO_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ R211: storage_e_01E10 <= 2000
+ R1169: - 0.998 storage_e_01E10 + storage_e_01E11 - 0.9 storage_e_01CP11
+   + 1.111111111111111 storage_e_01DP11 <= 0
+ R1457: fl_e_01RP11 <= 308.903
+ R2264: - load_e_01P11 + cpp_01P11 + pv_01P11 + wt_01P11 - storage_e_01CP11
+   + storage_e_01DP11 + fl_e_01RP11 - line_er_e_01P11 - line_eb_e_01P11
+   - line_hp_e_01P11 + line_cchp_e_01P11 >= 0
+ R2312: load_c_01P11 >= 54.67111062537136
+ R3415: storage_c_01P11 - storage_c_01CP11 + storage_c_01DP11 <= 0
+ R3794: - load_c_01P11 - storage_c_01CP11 + storage_c_01DP11
+   + line_er_c_01P11 >= 0
+ R3842: er_01input_e11 - 0.8 er_01output_c11 >= 0
+ R4031: - line_er_e_01P11 + er_01input_e11 <= 0
+ R4078: er_01output_c11 - line_er_c_01P11 >= 0
+ R5082: load_h_01P11 >= 857.1572214303626
+ R5084: load_h_01P12 >= 893.7889356719911
+ R5129: storage_h_01E10 <= 2000
+ R6087: - 0.985 storage_h_01E10 + storage_h_01E11 - 0.85 storage_h_01CP11
+   + 1.176470588235294 storage_h_01DP11 <= 0
+ R6089: - 0.985 storage_h_01E11 + storage_h_01E12 - 0.85 storage_h_01CP12
+   + 1.176470588235294 storage_h_01DP12 <= 0
+ R6375: fl_h_01RP11 <= 85.6635714285714
+ R6377: fl_h_01RP12 <= 89.2385714285714
+ R6992: - load_h_01P11 - storage_h_01CP11 + storage_h_01DP11 + fl_h_01RP11
+   + line_eb_h_01P11 + line_cchp_h_01P11 + line_hp_h_01P11 >= 0
+ R6994: - load_h_01P12 - storage_h_01CP12 + storage_h_01DP12 + fl_h_01RP12
+   + line_eb_h_01P12 + line_cchp_h_01P12 + line_hp_h_01P12 >= 0
+ R7040: eb_01input_e11 - 1.176470588235294 eb_01output_h11 >= 0
+ R7042: eb_01input_e12 - 1.176470588235294 eb_01output_h12 >= 0
+ R7089: - eb_01input_e11 + eb_01input_e12 - 0.35 eb_01S12 <= 0
+ R7275: eb_01S12 <= 1
+ R7321: - line_eb_e_01P11 + eb_01input_e11 <= 0
+ R7368: eb_01output_h11 - line_eb_h_01P11 >= 0
+ R7370: eb_01output_h12 - line_eb_h_01P12 >= 0
+ R10676: load_g_01P11 >= 792.6173641137749
+ R10727: gw_01P12 <= 1333.333333333333
+ R10773: fl_g_01RP11 <= 79.206751021453
+ R10775: fl_g_01RP12 <= 83.4886445179913
+ R11010: - load_g_01P11 + gw_01P11 + fl_g_01RP11 - line_cchp_g_01P11 >= 0
+ R11012: - load_g_01P12 + gw_01P12 + fl_g_01RP12 - line_cchp_g_01P12 >= 0
+ R11058: cchp_01input_g11 - 2 cchp_01output_e11 - 1.25 cchp_01output_h11
+   >= 0
+ R11060: cchp_01input_g12 - 2 cchp_01output_e12 - 1.25 cchp_01output_h12
+   >= 0
+ R11199: - line_cchp_g_01P11 + cchp_01input_g11 <= 0
+ R11201: - line_cchp_g_01P12 + cchp_01input_g12 <= 0
+ R11246: cchp_01output_e11 - line_cchp_e_01P11 >= 0
+ R11248: cchp_01output_e12 - line_cchp_e_01P12 >= 0
+ R11294: cchp_01output_h11 - line_cchp_h_01P11 >= 0
+ R11296: cchp_01output_h12 - line_cchp_h_01P12 >= 0
+ R14984: hp_01input_e11 - 0.2222222222222222 hp_01output_h11 >= 0
+ R15055: hp_01output_h11 <= 347.41868477366
+ R15059: hp_01output_h12 <= 365.637364897496
+ R15129: - line_hp_e_01P11 + hp_01input_e11 <= 0
+ R15176: hp_01output_h11 - line_hp_h_01P11 >= 0
+ R15178: hp_01output_h12 - line_hp_h_01P12 >= 0
+ R18536: load_e_01P11 >= 3089.220758414105
+ R18539: pv_01P11 <= 452.4606403203759
+ R18541: wt_01P11 <= 417.6419807322129
+ R18548: storage_e_01E11 >= 2000
+ R18553: cpp_01P11 <= 1991.863733977885
+ R18555: gw_01P11 <= 1287.621966686309
+ R18566: load_g_01P12 >= 835.9812058105091
+ R18570: storage_h_01E12 >= 2000
+Bounds
+ load_e_01P11 free
+ cpp_01P11 free
+ pv_01P11 free
+ wt_01P11 free
+ storage_e_01E10 free
+ storage_e_01E11 free
+ storage_e_01DP11 free
+ fl_e_01RP11 free
+ line_er_e_01P11 free
+ line_eb_e_01P11 free
+ line_hp_e_01P11 free
+ load_c_01P11 free
+ storage_c_01CP11 free
+ storage_c_01DP11 free
+ er_01input_e11 free
+ er_01output_c11 free
+ line_er_c_01P11 free
+ load_h_01P11 free
+ load_h_01P12 free
+ storage_h_01E10 free
+ storage_h_01E11 free
+ storage_h_01E12 free
+ storage_h_01CP12 free
+ fl_h_01RP11 free
+ fl_h_01RP12 free
+ eb_01input_e11 free
+ eb_01input_e12 free
+ eb_01output_h11 free
+ eb_01output_h12 free
+ eb_01S12 free
+ line_eb_h_01P11 free
+ line_eb_h_01P12 free
+ load_g_01P11 free
+ load_g_01P12 free
+ gw_01P11 free
+ gw_01P12 free
+ fl_g_01RP11 free
+ fl_g_01RP12 free
+ line_cchp_g_01P11 free
+ line_cchp_g_01P12 free
+ cchp_01input_g11 free
+ cchp_01input_g12 free
+ cchp_01output_e11 free
+ cchp_01output_e12 free
+ cchp_01output_h11 free
+ cchp_01output_h12 free
+ line_cchp_e_01P11 free
+ line_cchp_h_01P11 free
+ line_cchp_h_01P12 free
+ hp_01input_e11 free
+ hp_01output_h11 free
+ hp_01output_h12 free
+ line_hp_h_01P11 free
+ line_hp_h_01P12 free
+End

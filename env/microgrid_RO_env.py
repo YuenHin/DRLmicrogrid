@@ -7,6 +7,9 @@ import time
 import os
 from copy import deepcopy
 
+import gurobipy as gp
+from gurobipy import GRB
+
 
 class microgrid_RO_env:
     def __init__(self, MMGs, step_all):
@@ -16,7 +19,7 @@ class microgrid_RO_env:
         self.con_add_num = 12  # 这是？
         self.env = MMGs
         self.save_name = "zzy_RO"
-        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=False)
+        self.C, self.intergrality, self.start_num = MMGs_logic(self.env, self.save_name, flag=True)
         self.flash_num = deepcopy(self.start_num)
         # self.start_num_ =self.start_num
         # self.flash_num = self.start_num_
@@ -520,12 +523,13 @@ class microgrid_RO_env:
         res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解
         done = False
         if res.success == False:
-            PrintBounds(self.flash_num)
+            # PrintBounds(self.flash_num)
+            res_gurobi = self.__get_guribo_result(self.C, self.intergrality, self.flash_num)
             print("储能动作后无解了！！！！！！！！！")
-            for MG in self.env.MG:
-                for node in MG.node:
-                    for device in node.devices:
-                        print(device.className)
+            # for MG in self.env.MG:
+            #     for node in MG.node:
+            #         for device in node.devices:
+            #             print(device.className)
             return None, np.array([0]), done, False, action_
         x_callBack(res, self.env, self.save_name, flag=False)
         self.x = res.x
@@ -689,3 +693,212 @@ class microgrid_RO_env:
                         device.remember_realValue(self.step_time, self.flash_num)
 
 
+
+    def __get_guribo_result(self, C, integrality, num):
+
+        "打印约束"
+        # PrintBounds(num)
+
+        A = num.A
+        params = num.params
+        A = A.reshape((int(len(A) / len(params)), len(params)))
+        bl = num.bl
+        bu = num.bu
+        c = C
+
+        model = gp.Model("RO")
+
+        # 创建决策变量
+        vars = model.addVars(range(len(params)), vtype=gp.GRB.CONTINUOUS)
+        for i in range(len(params)):
+            vars[i].varName = params[i]
+
+        # 设置目标函数
+        model.setObjective(gp.quicksum(c[i] * vars[i] for i in range(len(c))), gp.GRB.MINIMIZE)
+
+        # 设置约束
+        for j in range(A.shape[0]):
+            model.addConstr(gp.quicksum(A[j, i] * vars[i] for i in range(len(params))) >= bl[j])
+            model.addConstr(gp.quicksum(A[j, i] * vars[i] for i in range(len(params))) <= bu[j])
+
+        "求解RO问题"
+        model.optimize()
+
+        if model.status != gp.GRB.OPTIMAL:
+            model.computeIIS()
+            model.write("model_ro_notorch.ilp")
+
+        "保存问题的解"
+        var_values = np.zeros(len(vars))
+        for i in range(len(vars)):
+            var_values[i] = vars[i].x
+
+        return var_values
+
+
+    def step3_notorch(self, action, cur_episode, storage_punishment_buffer):
+        done = False
+        action_ = action
+        # action = [0, 0]
+        # res = EndCount(self.C, self.intergrality, self.flash_num)
+        # 执行动作
+        # 先执行储能的动作
+        done, action_ = self.__get_action_SE(action, cur_episode)  # 控制电储和热储
+
+        if done == True:
+            return self.x, np.array([0]), True, None, action_
+        res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解
+
+        # res = self.__get_guribo_result(self.C, self.intergrality, self.flash_num)
+
+        done = False
+        # if res.success == False:
+        #     PrintBounds(self.flash_num)
+        #     print("储能动作后无解了！！！！！！！！！")
+        #     for MG in self.env.MG:
+        #         for node in MG.node:
+        #             for device in node.devices:
+        #                 print(device.className)
+        #     return None, np.array([0]), done, False, action_
+        # x_callBack(res, self.env, self.save_name, flag=False)
+        # self.x = res
+
+        '''
+        # 再执行CPP和GW的动作
+        done, action_ = self.__get_action_CPPGW(action, cur_episode)
+        if done == True:
+            return self.x, np.array([0]), True, None, action_
+        res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解，并得到该环境下的其他设备的真实控制值
+        done = False
+        if res.success == False:
+            # PrintBounds(self.flash_num)
+            print("CPP和GW动作后无解了！！！！！！！！！")
+            return None, np.array([0]), done, False, action_
+
+        x_callBack(res, self.env, self.save_name, flag=False)
+        self.x = res.x
+        '''
+        # 记录设备的真实控制状态
+        self.__remember_CPPGW()  # CPP和GW
+        # self.__remember_conversion_unit()  # CCHP,EB,ER
+        # self.__remember_FaFlFd()  # FA,FL,FD
+        # self.__remember_S()  # S_e,S_th,S_c
+
+
+        # 接下来进行t+1时刻RT和Demand随机性的添加
+        self.step_time += 1  ############################################################################
+        if self.step_time < 25:
+            self.__stochastic_factor_setting_RED()
+
+            # 这里需要获取下一步的负荷的总需求功率和可再生能源的总出力功率
+            demand_e_total_t = 0  # 所有Demand(e)设备在第t步的功率需求总和
+            demand_th_total_t = 0  # 所有Demand(th)设备在第t步的功率需求总和
+            demand_c_total_t = 0  # 所有Demand(c)设备在第t步的功率需求总和
+            demand_g_total_t = 0  # 所有Demand(g)设备在第t步的功率需求总和
+            RT_P_total_t = 0  # 所有可再生能源在第t步的出力功率总和
+            S_e_t = 0  # 电储能设备在第t步的剩余容量
+            S_th_t = 0  # 热储能设备在第t步的剩余容量
+            S_c_t = 0  # 冷储能设备在第t步的剩余容量
+            current_e_price = 0  # 第t步的电价
+            current_g_price = 0  # 第t步的天然气价格
+            current_t = self.step_time / self.step_all  # 处理后的值在0到1之间
+            for MG in self.env.MG:
+                for node in MG.node:
+                    for device in node.devices:
+                        if device.className == 'D' and device.type == 'e' and device.name != 'load_e_ex':
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
+                            D_P_min = device.p_min.min()
+                            D_P_max = device.p_max.max()
+                            D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
+                            demand_e_total_t = demand_e_total_t + D_norma_P1
+                        elif device.className == 'D' and device.type == 'th':
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
+                            D_P_min = device.p_min.min()
+                            D_P_max = device.p_max.max()
+                            D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
+                            demand_th_total_t = demand_th_total_t + D_norma_P1
+                        elif device.className == 'D' and device.type == 'c':
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
+                            D_P_min = device.p_min.min()
+                            D_P_max = device.p_max.max()
+                            D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
+                            demand_c_total_t = demand_c_total_t + D_norma_P1
+                        elif device.className == 'D' and device.type == 'g':
+                            # D_P = device.stochas_P[self.step_time - 1]  # 获取该负荷设备在t=1时刻的功率需求
+                            # D_P = device.p[self.step_time - 1]
+                            D_P = device.real_x[self.step_time - 1]
+                            D_P_min = device.p_min.min()
+                            D_P_max = device.p_max.max()
+                            D_norma_P1 = (D_P - D_P_min) / (D_P_max - D_P_min)  # 归一化
+                            demand_g_total_t = demand_g_total_t + D_norma_P1
+                        elif device.className == 'RT' and device.type != 'HP':
+                            # RT_P1 = device.stochas_P[self.step_time - 1]
+                            # RT_P1 = device.p[self.step_time - 1]
+                            # RT_P1 = device.real_x[self.step_time - 1]
+                            RT_P1 = device.p_max[self.step_time - 1]
+                            RT_P_min = device.p_min.min()
+                            if RT_P_min < 0:
+                                RT_P_min = 0
+                            RT_P_max = device.p_max.max()
+                            RT_norma_P1 = (RT_P1 - RT_P_min) / (RT_P_max - RT_P_min)  # 归一化
+                            RT_P_total_t = RT_P_total_t + RT_norma_P1
+                        elif device.className == 'RT' and device.type == 'HP':
+                            # RT_P1 = device.p[self.step_time - 1]
+                            RT_P1 = device.p_max[self.step_time - 1]
+                            RT_P_min = device.p_min.min()
+                            if RT_P_min < 0:
+                                RT_P_min = 0
+                            RT_P_max = device.p_max.max()
+                            RT_norma_P1 = (RT_P1 - RT_P_min) / (RT_P_max - RT_P_min)  # 归一化
+                            RT_P_total_t = RT_P_total_t + RT_norma_P1
+                        elif device.className == 'S' and device.type == 'e':
+                            E_e = device.real_E[self.step_time - 2]
+                            norma_E_e = E_e / device.storage_limit  # 归一化，处理后的值在0到1之间
+                            S_e_t = S_e_t + norma_E_e
+                        elif device.className == 'S' and device.type == 'th':
+                            E_th = device.real_E[self.step_time - 2]
+                            norma_E_th = E_th / device.storage_limit  # 归一化
+                            S_th_t = S_th_t + norma_E_th
+                        elif device.className == 'S' and device.type == 'c':
+                            E_c = device.real_E[self.step_time - 2]
+                            norma_E_c = E_c / device.storage_limit  # 归一化
+                            S_c_t = S_c_t + norma_E_c
+                        elif device.className == 'CPP':
+                            current_e_price = device.production_price[self.step_time - 1]
+                        elif device.className == 'GW':
+                            current_g_price = device.production_price[self.step_time - 1]
+            # 状态：    当前时间t     电价               天然气价格       电能需求               热能需求            冷能需求         天然气需求      可再生能源总出力 电储容量 热储容量 冷储容量
+            state = [current_t, current_e_price, current_g_price, demand_e_total_t, demand_th_total_t,
+                     demand_c_total_t, demand_g_total_t, RT_P_total_t, S_e_t, S_th_t, S_c_t]
+
+        if self.step_time == 25:
+            # 将t=1的state作为t=25的state
+            # t=1的state在上一级函数可以获取
+            state = None
+        self.step_time -= 1  #######################################################################################
+
+        # 计算奖励
+        reward, es_punishment, gap_punishment = self.__count_reward()
+        if es_punishment == 0:
+            reward += 100
+        print("-------------es_punishment:", es_punishment)
+        # reward += 20
+        # es_punishment +=es_punishment
+        if self.step_time == self.step_all:
+            # a, b, c, d, total_cost = self.env.countCost()
+            # reward += 2000 - total_cost
+            # reward = res.fun + es_punishment + gap_punishment
+            done = True
+            storage_punishment_buffer.add(es_punishment, gap_punishment, 0)
+            # print("-------------gap_punishment:", gap_punishment)
+            self.rl_res = res
+        # 更新步长
+        self.step_time += 1
+
+        return state, reward, done, True, action_

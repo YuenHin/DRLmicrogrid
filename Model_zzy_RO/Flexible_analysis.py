@@ -97,18 +97,58 @@ class FA:
     def __set_C(self):
         self.c = np.zeros(len(self.params))
         # 电力子系统
+        # for i in range(0, 6):  # 0点至6点
+        #     self.c[i] = -0.8 * 0.5 * 0.7
+        # for i in range(6, 13):  # 7点至13点
+        #     self.c[i] = -0.8 * 1.8 * 0.7
+        # for i in range(13, 16):  # 14点至16点
+        #     self.c[i] = -0.8 * 0.7
+        # for i in range(16, 22):  # 17点至22点
+        #     self.c[i] = -0.8 * 1.8 * 0.7
+        # for i in range(22, 24):     # 22点至24点
+        #     self.c[i] = -0.8 * 0.5 * 0.7
         for i in range(self.time_num):
             self.c[i] = -0.028
             self.c[i + self.time_num] = -0.028
         # 天然气子系统
+        # for i in range(0, 6):
+        #     self.c[i] = -0.7 * 0.9 * 0.8
+        # for i in range(6, 13):
+        #     self.c[i] = -0.7 * 1.1 * 0.8
+        # for i in range(13, 16):
+        #     self.c[i] = -0.7 * 0.8
+        # for i in range(16, 22):
+        #     self.c[i] = -0.7 * 1.1 * 0.8
+        # for i in range(22, 24):
+        #     self.c[i] = -0.7 * 0.9 * 0.8
         for i in range(self.time_num):
             self.c[i + self.time_num * 2] = -0.02
             self.c[i + self.time_num * 3] = -0.02
         # 热能子系统
+        # for i in range(0, 6):
+        #     self.c[i] = -0.7 * 0.9 * 0.7
+        # for i in range(6, 13):
+        #     self.c[i] = -0.7 * 1.1 * 0.7
+        # for i in range(13, 16):
+        #     self.c[i] = -0.7 * 0.8
+        # for i in range(16, 22):
+        #     self.c[i] = -0.7 * 1.1 * 0.7
+        # for i in range(22, 24):
+        #     self.c[i] = -0.7 * 0.9 * 0.7
         for i in range(self.time_num):
             self.c[i + self.time_num * 4] = -0.023
             self.c[i + self.time_num * 5] = -0.023
         # 冷能子系统
+        # for i in range(0, 6):
+        #     self.c[i] = -0.7 * 0.9 * 0.7
+        # for i in range(6, 13):
+        #     self.c[i] = -0.7 * 1.1 * 0.7
+        # for i in range(13, 16):
+        #     self.c[i] = -0.7 * 0.8
+        # for i in range(16, 22):
+        #     self.c[i] = -0.7 * 1.1 * 0.7
+        # for i in range(22, 24):
+        #     self.c[i] = -0.7 * 0.9 * 0.7
         for i in range(self.time_num):
             self.c[i + self.time_num * 6] = -0.021
             self.c[i + self.time_num * 7] = -0.021

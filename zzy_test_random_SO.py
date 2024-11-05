@@ -7,30 +7,30 @@ import pandas as pd
 import gurobipy as gp
 from gurobipy import GRB
 
-from Model_zzy.Node import Node
-from Model_zzy.ConventionalPowerPlants_area import CPP
-from Model_zzy.GasWell import GW
-from Model_zzy.Demand_RO import D
-from Model_zzy.RenewableProductionUnit_RO import RT, HP
-from Model_zzy.Storage import ES
-from Model_zzy.Conversion_units import CCHP, EB, ER
+from Model_zzy.random_so.Node import Node
+from Model_zzy.random_so.ConventionalPowerPlants_area import CPP
+from Model_zzy.random_so.GasWell import GW
+from Model_zzy.random_so.Demand_RO import D
+from Model_zzy.random_so.RenewableProductionUnit_RO import RT, HP
+from Model_zzy.random_so.Storage import ES
+from Model_zzy.random_so.Conversion_units import CCHP, EB, ER
 from Tools.two_stage_robust import two_stage_RO
 from tools.Logic import MMGs_logic, x_callBack, draw
 from tools.MILP import PrintBounds, EndCount
-from Model_zzy.Microgrid import MG
-from Model_zzy.Multi_Microgrid import MMGs
-from Model_zzy.Line import Line
+from Model_zzy.random_so.Microgrid import MG
+from Model_zzy.random_so.Multi_Microgrid import MMGs
+from Model_zzy.random_so.Line import Line
 from MILP import PrintBounds
-from Model_zzy.Flexible_load import FL
-from Model_zzy.Flexible_demand import FD
-from Model_zzy.Flexible_analysis import FA
+from Model_zzy.random_so.Flexible_load import FL
+from Model_zzy.random_so.Flexible_demand import FD
+from Model_zzy.random_so.Flexible_analysis import FA
 from Model_zzy.Tools.divide_num import DivideNum
 from datetime import datetime
 
 
 "时间尺度"
 time = 24
-path = "zzy_test_tsRO"
+path = "zzy_test_random_SO"
 
 """
 所有源网荷储
@@ -316,7 +316,7 @@ df = pd.DataFrame({
     'params': num.params,
     'value': results.x
 })
-path = "C:\\software\\Github\\DRLmicrogrid\\Model_zzy\\results_ro.xlsx"
+path = "C:\\software\\Github\\DRLmicrogrid\\Model_zzy\\random_so\\results_random_so.xlsx"
 df.to_excel(path, index=False)
 
 

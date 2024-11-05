@@ -291,10 +291,10 @@ Gurobi求解
 MILP求解
 """
 "求解所需参数"
-C, integrality, num = MMGs_logic(UIES, path, flag=False)
+C, integrality, num = MMGs_logic(UIES, path, flag=True)
 
 "打印约束"
-PrintBounds(num)
+# PrintBounds(num)
 
 # 开始记录时间
 start_time = datetime.now()

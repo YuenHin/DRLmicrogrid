@@ -260,7 +260,7 @@ print(f"C的形状：{C.shape}")
 print(f"intergrality的形状：{integrality.shape}")
 
 "打印约束"
-PrintBounds(num)
+# PrintBounds(num)
 
 "计算结果"
 results = EndCount(C, integrality, num)

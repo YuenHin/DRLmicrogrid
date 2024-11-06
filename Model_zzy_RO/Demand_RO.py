@@ -71,16 +71,16 @@ class D:
 
         if self.type == 'e':
             for i in range(self.time_num):
-                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i])
+                self.stochas_P[i] = min(self.p_max[i] * (1 - 0.01 * self.randoms_e[i]), self.p_max[i])
         elif self.type == 'g':
             for i in range(self.time_num):
-                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i])
+                self.stochas_P[i] = min(self.p_max[i] * (1 - 0.01 * self.randoms_g[i]), self.p_max[i])
         elif self.type == 'th':
             for i in range(self.time_num):
-                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i])
+                self.stochas_P[i] = min(self.p_max[i] * (1 - 0.01 * self.randoms_h[i]), self.p_max[i])
         elif self.type == 'c':
             for i in range(self.time_num):
-                self.stochas_P[i] = min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i])
+                self.stochas_P[i] = min(self.p_max[i] * (1 - 0.01 * self.randoms_c[i]), self.p_max[i])
 
     def __init(self):
         self.__params_named()
@@ -212,7 +212,9 @@ class D:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i]),
+                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_e[i]), self.p_max[i]),
+                #                        self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_max[i] * (1 - 0.01 * self.randoms_e[i]), self.p_max[i]),
                                        self.p_max[i], num)
                 # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
 
@@ -221,7 +223,9 @@ class D:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i]),
+                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_g[i]), self.p_max[i]),
+                #                        self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_max[i] * (1 - 0.01 * self.randoms_g[i]), self.p_max[i]),
                                        self.p_max[i], num)
                 # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
 
@@ -230,7 +234,9 @@ class D:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i]),
+                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_h[i]), self.p_max[i]),
+                #                        self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_max[i] * (1 - 0.01 * self.randoms_h[i]), self.p_max[i]),
                                        self.p_max[i], num)
                 # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
 
@@ -239,7 +245,9 @@ class D:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i]),
+                # CreatConstraintsByText(1, B, min(self.p_mu[i] * (1 + 0.01 * self.randoms_c[i]), self.p_max[i]),
+                #                        self.p_max[i], num)
+                CreatConstraintsByText(1, B, min(self.p_max[i] * (1 - 0.01 * self.randoms_c[i]), self.p_max[i]),
                                        self.p_max[i], num)
                 # CreatConstraintsByText(1, B, min(self.p_mu[i], self.p_max[i]), self.p_max[i], num)
         """

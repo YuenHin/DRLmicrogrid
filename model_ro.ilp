@@ -3,12 +3,8 @@
 Minimize
  
 Subject To
- R10684: load_g_01P12 >= 958.8604372317146
- R10733: gw_01P12 <= 833.3333333333334
- R10781: fl_g_01RP12 <= 83.4886445179913
- R11018: - load_g_01P12 + gw_01P12 + fl_g_01RP12 - line_cchp_g_01P12 >= 0
+ R0: load_e_01P1 >= 1600.649499459574
+ R18337: load_e_01P1 <= 1578.665162851287
 Bounds
- load_g_01P12 free
- gw_01P12 free
- fl_g_01RP12 free
+ load_e_01P1 free
 End

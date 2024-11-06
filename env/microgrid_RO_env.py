@@ -1,7 +1,7 @@
 import math
 
 from tools.Logic import MMGs_logic, x_callBack, draw, save_data
-from tools.MILP import EndCount, PrintBounds,EndCount_notPrint
+from tools.MILP import EndCount, PrintBounds, EndCount_notPrint
 import numpy as np
 import time
 import os
@@ -9,6 +9,8 @@ from copy import deepcopy
 
 import gurobipy as gp
 from gurobipy import GRB
+
+import pandas as pd
 
 
 class microgrid_RO_env:
@@ -28,7 +30,8 @@ class microgrid_RO_env:
         # print(self.flash_num.params)
         # PrintBounds(self.flash_num)
         # self.observation_space = self.start_num.params
-        self.observation_space = ['current_t', 'current_e_price', 'current_g_price', 'demand_e_total_t', 'demand_th_total_t', 'demand_c_total_t', 'demand_g_total_t', 'RT_P_total_t',
+        self.observation_space = ['current_t', 'current_e_price', 'current_g_price', 'demand_e_total_t',
+                                  'demand_th_total_t', 'demand_c_total_t', 'demand_g_total_t', 'RT_P_total_t',
                                   'S_e_t', 'S_th_t', 'S_c_t']
         # self.action_space = np.array([len(self.observation_space)])
         # self.action_space = np.array(['CPP_P', 'GW_P', 'S_e', 'S_th', 'S_c'])
@@ -62,7 +65,7 @@ class microgrid_RO_env:
         self.afterReset = True
 
         self.rl_res = None  # 记录强化学习的求解结果
-        self.min_operation = 80000
+        self.min_operation = 91170
 
     def reset(self):
         demand_e_total_t = 0  # 所有Demand(e)设备在第t步的功率需求总和
@@ -128,8 +131,9 @@ class microgrid_RO_env:
                         current_g_price = device.production_price[0]
         current_t = 1
         current_t = current_t / self.step_all
-        #状态：    当前时间t     电价               天然气价格       电能需求               热能需求            冷能需求         天然气需求      可再生能源总出力 电储容量 热储容量 冷储容量
-        state = [current_t, current_e_price, current_g_price, demand_e_total_t, demand_th_total_t, demand_c_total_t, demand_g_total_t, RT_P_total_t, S_e_t, S_th_t, S_c_t]
+        # 状态：    当前时间t     电价               天然气价格       电能需求               热能需求            冷能需求         天然气需求      可再生能源总出力 电储容量 热储容量 冷储容量
+        state = [current_t, current_e_price, current_g_price, demand_e_total_t, demand_th_total_t, demand_c_total_t,
+                 demand_g_total_t, RT_P_total_t, S_e_t, S_th_t, S_c_t]
         return state
 
     # 一级设备：不确定性数据载入一级设备（RE、D）
@@ -140,7 +144,8 @@ class microgrid_RO_env:
             for node in MG.node:
                 for device in node.devices:
                     if ((device.className == "RT" and (device.type == "PV" or device.type == "WT")) or
-                            (device.className == "D" and (device.type == "e" or device.type == "g" or device.type == "th" or device.type == "c"))):
+                            (device.className == "D" and (
+                                    device.type == "e" or device.type == "g" or device.type == "th" or device.type == "c"))):
                         device.stochastic(self.step_time, self.flash_num)
 
     def first_stochastic_factor_setting_RED(self):
@@ -148,8 +153,9 @@ class microgrid_RO_env:
         for MG in self.env.MG:
             for node in MG.node:
                 for device in node.devices:
-                    if ((device.className == "RT" and( device.type == "PV" or device.type == "WT")) or
-                            (device.className == "D" and (device.type == "e" or device.type == "g" or device.type == "th" or device.type == "c"))):
+                    if ((device.className == "RT" and (device.type == "PV" or device.type == "WT")) or
+                            (device.className == "D" and (
+                                    device.type == "e" or device.type == "g" or device.type == "th" or device.type == "c"))):
                         device.stochastic(self.step_time, self.flash_num)
         demand_e_total_t = 0  # 所有Demand(e)设备在第t步的功率需求总和
         demand_th_total_t = 0  # 所有Demand(th)设备在第t步的功率需求总和
@@ -250,8 +256,8 @@ class microgrid_RO_env:
                 for device in node.devices:
                     if device.className == "S" and device.type == "e":
                         done, action_[0] = device.get_action(self.step_time, self.flash_num, action[0], cur_episode)
-                    elif device.className == "S" and device.type == "th":
-                        done, action_[1] = device.get_action(self.step_time, self.flash_num, action[1], cur_episode)
+                    # elif device.className == "S" and device.type == "th":
+                    #     done, action_[1] = device.get_action(self.step_time, self.flash_num, action[1], cur_episode)
         return done, action_
 
     # 二级设备：储能+DG
@@ -309,7 +315,7 @@ class microgrid_RO_env:
         for MG in self.env.MG:
             for node in MG.node:
                 for device in node.devices:
-                    if device.className == "S":
+                    if device.className == "S" and (device.type == "c" or device.type == "h"):
                         device.remember_realValue(self.step_time, self.flash_num)
 
     # 调试设备
@@ -346,49 +352,72 @@ class microgrid_RO_env:
                 for device in node.devices:
                     # cpp生产成本
                     if device.className == "CPP":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
                         # CPP的惩罚项
                         gap_punishment += device.p_gap[self.step_time - 1] * 1.5
 
                     # gw生产成本
                     if device.className == "GW":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
                         # GW的惩罚项
                         gap_punishment += device.p_gap[self.step_time - 1] * 1.5
 
                     # pv生产成本
                     # wt生产成本
-                    if device.className == "RT":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                    if device.className == "RT" and (device.type == "PV" or device.type == "WT"):
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
+
+                    # HP生产成本
+                    if device.className == "RT" and device.type == "HP":
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[
+                            device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
 
                     # 储能成本
                     if device.className == "S":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 2 + self.step_time - 1] * device.c[device.time_num * 2 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 3 + self.step_time - 1] * device.c[device.time_num * 3 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 4 + self.step_time - 1] * device.c[device.time_num * 4 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 5 + self.step_time - 1] * device.c[device.time_num * 5 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 6 + self.step_time - 1] * device.c[device.time_num * 6 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 7 + self.step_time - 1] * device.c[device.time_num * 7 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 8 + self.step_time - 1] * device.c[device.time_num * 8 + self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 9 + self.step_time - 1] * device.c[device.time_num * 9 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[
+                            device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 2 + self.step_time - 1] * device.c[
+                            device.time_num * 2 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 3 + self.step_time - 1] * device.c[
+                            device.time_num * 3 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 4 + self.step_time - 1] * device.c[
+                            device.time_num * 4 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 5 + self.step_time - 1] * device.c[
+                            device.time_num * 5 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 6 + self.step_time - 1] * device.c[
+                            device.time_num * 6 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 7 + self.step_time - 1] * device.c[
+                            device.time_num * 7 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 8 + self.step_time - 1] * device.c[
+                            device.time_num * 8 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 9 + self.step_time - 1] * device.c[
+                            device.time_num * 9 + self.step_time - 1] * (24 / device.time_num)
                         # 是否超出ramping_limit的约束，超出的部分乘一个系数
                         # 当前容量等于0时，扣大分
                         # t=24时容量如果小于最大容量的一半，扣大分
                         if device.type != 'c':
                             if self.step_time == 1:
-                                ramping_p = abs(device.real_E[self.step_time - 1] - (device.e/2)) - device.ramping_limit
+                                ramping_p = abs(
+                                    device.real_E[self.step_time - 1] - (device.e / 2)) - device.ramping_limit
                             else:
-                                ramping_p = abs(device.real_E[self.step_time - 1] - device.real_E[self.step_time - 2]) - device.ramping_limit
+                                ramping_p = abs(device.real_E[self.step_time - 1] - device.real_E[
+                                    self.step_time - 2]) - device.ramping_limit
                             if ramping_p > 0:
                                 ramping_punishment += ramping_p * 500
                             punishment2 += (device.real_E[self.step_time - 1] <= 0) * 1000
                             # punishment4 += (device.real_E[self.step_time - 1] >= device.e) * 1000
                             # if self.step_time == 24:
                             #     print("24")
-                            punishment3 += (self.step_time == self.step_all and device.real_E[self.step_time-1] < device.e/2) * 10000
-                            a = device.time_num - math.ceil(device.e/2 / device.ramping_limit)
+                            punishment3 += (self.step_time == self.step_all and device.real_E[
+                                self.step_time - 1] < device.e / 2) * 10000
+                            a = device.time_num - math.ceil(device.e / 2 / device.ramping_limit)
                             if self.step_time - a > 0 and self.step_time < 24:
                                 b = self.step_time - a
                                 if device.real_E[self.step_time - 1] < device.ramping_limit * b:
@@ -397,7 +426,7 @@ class microgrid_RO_env:
                     # 能量转化设备成本
                     if device.className == "er":
                         operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
-                                    24 / device.time_num)
+                                24 / device.time_num)
                         operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[
                             device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
                         operation_cost += device.x[device.time_num * 2 + self.step_time - 1] * device.c[
@@ -413,7 +442,7 @@ class microgrid_RO_env:
 
                     if device.className == "eb":
                         operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
-                                    24 / device.time_num)
+                                24 / device.time_num)
                         operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[
                             device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
                         operation_cost += device.x[device.time_num * 2 + self.step_time - 1] * device.c[
@@ -429,7 +458,7 @@ class microgrid_RO_env:
 
                     if device.className == "cchp":
                         operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
-                                    24 / device.time_num)
+                                24 / device.time_num)
                         operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[
                             device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
                         operation_cost += device.x[device.time_num * 2 + self.step_time - 1] * device.c[
@@ -451,16 +480,20 @@ class microgrid_RO_env:
 
                     # 负荷
                     if device.className == "D":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
 
                     # 柔性负荷
                     if device.className == "FL":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
 
                     # 灵活性需求
                     if device.className == "FD":
-                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (24 / device.time_num)
-                        operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
+                        operation_cost += device.x[self.step_time - 1] * device.c[self.step_time - 1] * (
+                                    24 / device.time_num)
+                        operation_cost += device.x[device.time_num * 1 + self.step_time - 1] * device.c[
+                            device.time_num * 1 + self.step_time - 1] * (24 / device.time_num)
 
                     # 灵活性分析
                     if device.className == "FA":
@@ -523,8 +556,14 @@ class microgrid_RO_env:
         res = EndCount_notPrint(self.C, self.intergrality, self.flash_num)  # 使用MILP验证执行动作后有无解
         done = False
         if res.success == False:
-            # PrintBounds(self.flash_num)
+            PrintBounds(self.flash_num)
             res_gurobi = self.__get_guribo_result(self.C, self.intergrality, self.flash_num)
+            df = pd.DataFrame({
+                'params': self.flash_num.params,
+                'value': res_gurobi
+            })
+            path = "D:\HeYuanxing\BaiduSyncdisk\DRLmicrogrid\Data\RL_RO\Result\\res_gurobi.xlsx"
+            df.to_excel(path, index=False)
             print("储能动作后无解了！！！！！！！！！")
             # for MG in self.env.MG:
             #     for node in MG.node:
@@ -550,11 +589,10 @@ class microgrid_RO_env:
         self.x = res.x
         '''
         # 记录设备的真实控制状态
-        self.__remember_CPPGW()  # CPP和GW
+        # self.__remember_CPPGW()  # CPP和GW
         # self.__remember_conversion_unit()  # CCHP,EB,ER
         # self.__remember_FaFlFd()  # FA,FL,FD
         # self.__remember_S()  # S_e,S_th,S_c
-
 
         # 接下来进行t+1时刻RT和Demand随机性的添加
         self.step_time += 1  ############################################################################
@@ -611,8 +649,8 @@ class microgrid_RO_env:
                         elif device.className == 'RT' and device.type != 'HP':
                             # RT_P1 = device.stochas_P[self.step_time - 1]
                             # RT_P1 = device.p[self.step_time - 1]
-                            # RT_P1 = device.real_x[self.step_time - 1]
-                            RT_P1 = device.p_max[self.step_time - 1]
+                            RT_P1 = device.real_x[self.step_time - 1]
+                            # RT_P1 = device.p_max[self.step_time - 1]
                             RT_P_min = device.p_min.min()
                             if RT_P_min < 0:
                                 RT_P_min = 0
@@ -621,7 +659,8 @@ class microgrid_RO_env:
                             RT_P_total_t = RT_P_total_t + RT_norma_P1
                         elif device.className == 'RT' and device.type == 'HP':
                             # RT_P1 = device.p[self.step_time - 1]
-                            RT_P1 = device.p_max[self.step_time - 1]
+                            # RT_P1 = device.p_max[self.step_time - 1]
+                            RT_P1 = device.random_P[self.step_time - 1]
                             RT_P_min = device.p_min.min()
                             if RT_P_min < 0:
                                 RT_P_min = 0
@@ -657,7 +696,7 @@ class microgrid_RO_env:
         # 计算奖励
         reward, es_punishment, gap_punishment = self.__count_reward()
         if es_punishment == 0:
-            reward += 100
+            reward += 200
         print("-------------es_punishment:", es_punishment)
         # reward += 20
         # es_punishment +=es_punishment
@@ -692,8 +731,6 @@ class microgrid_RO_env:
                     if device.className == 'FA' or device.className == 'FD' or device.className == 'FL':
                         device.remember_realValue(self.step_time, self.flash_num)
 
-
-
     def __get_guribo_result(self, C, integrality, num):
 
         "打印约束"
@@ -707,7 +744,24 @@ class microgrid_RO_env:
         c = C
 
         model = gp.Model("RO")
+        '''
+        # 定义需要精确匹配的字符串列表
+        binary_identifiers = ["storage_e_01state", "storage_e_01S",
+                              "storage_c_01state", "storage_c_01S",
+                              "storage_h_01state", "storage_h_01S"]  # 区分大小写
+        vars = {}
+        i = 0
+        for param in params:
+            # 检查 param 是否包含任意一个指定的字符串（区分大小写）
+            if any(identifier in param for identifier in binary_identifiers):
+                vtype = gp.GRB.BINARY
+            else:
+                vtype = gp.GRB.CONTINUOUS
 
+            # 创建变量并指定名称
+            vars[i] = model.addVar(vtype=vtype, name=param)
+            i += 1
+        '''
         # 创建决策变量
         vars = model.addVars(range(len(params)), vtype=gp.GRB.CONTINUOUS)
         for i in range(len(params)):
@@ -734,7 +788,6 @@ class microgrid_RO_env:
             var_values[i] = vars[i].x
 
         return var_values
-
 
     def step3_notorch(self, action, cur_episode, storage_punishment_buffer):
         done = False
@@ -783,7 +836,6 @@ class microgrid_RO_env:
         # self.__remember_conversion_unit()  # CCHP,EB,ER
         # self.__remember_FaFlFd()  # FA,FL,FD
         # self.__remember_S()  # S_e,S_th,S_c
-
 
         # 接下来进行t+1时刻RT和Demand随机性的添加
         self.step_time += 1  ############################################################################

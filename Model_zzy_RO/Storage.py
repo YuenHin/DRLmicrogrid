@@ -426,6 +426,15 @@ class ES:
             ])
             CreatConstraintsByText(1, B, 0, np.inf, num)
 
+        ###############################################################################
+        if self.type == 'c':
+            # 因为强化学习没有控制冷储
+            # 给冷储添加t=24时容量大于一半的约束
+            B = np.array([
+                [self.name + "E" + str(self.time_num), 1],
+            ])
+            CreatConstraintsByText(1, B, self.e/2, np.inf, num)
+
     def draw(self):
         x = self.x[self.time_num:self.time_num * 2]
         p = self.x[:self.time_num]
@@ -434,19 +443,19 @@ class ES:
     def get_action(self, step, num, action, cur_episode):
         action_ = action
         if step == 1:
-            # self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
+            self.real_x[self.time_num + step - 1] = self.begin + action * self.ramping_limit
             # self.real_x[self.time_num + step - 1] = self.begin + action * 90
-            if action >= 0:
-                self.real_x[self.time_num + step - 1] = self.begin - 1 * self.ramping_limit
-            else:
-                self.real_x[self.time_num + step - 1] = self.begin - 1 * self.ramping_limit
+            # if action >= 0:
+            #     self.real_x[self.time_num + step - 1] = self.begin + 1 * self.ramping_limit
+            # else:
+            #     self.real_x[self.time_num + step - 1] = self.begin - 1 * self.ramping_limit
         else:
-            # self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
+            self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * self.ramping_limit
             # self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + action * 90
-            if action >= 0:
-                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] - 1 * self.ramping_limit
-            else:
-                self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] - 1 * self.ramping_limit
+            # if action >= 0:
+            #     self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] + 1 * self.ramping_limit
+            # else:
+            #     self.real_x[self.time_num + step - 1] = self.real_x[self.time_num + step - 2] - 1 * self.ramping_limit
 
         # if self.real_x[self.time_num + step - 1] > self.e or self.real_x[self.time_num + step - 1] < 0:
         #     return True, action_

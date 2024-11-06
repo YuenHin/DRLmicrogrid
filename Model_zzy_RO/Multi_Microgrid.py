@@ -105,25 +105,27 @@ class MMGs:
                     # cpp生产成本
                     if device.className == "CPP":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time] * device.c[step_time] * (
-                                        24 / device.time_num)
+                            operation_cost += device.x[step_time] * device.c[step_time] * (24 / device.time_num)
                             # CPP的惩罚项
                             gap_punishment += device.p_gap[step_time] * 1
 
                     # gw生产成本
                     if device.className == "GW":
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time] * device.c[step_time] * (
-                                        24 / device.time_num)
+                            operation_cost += device.x[step_time] * device.c[step_time] * (24 / device.time_num)
                             # GW的惩罚项
                             gap_punishment += device.p_gap[step_time] * 1
 
                     # pv生产成本
                     # wt生产成本
-                    if device.className == "RT":
+                    if device.className == "RT" and (device.type == "PV" or device.type == "WT"):
                         for step_time in range(device.time_num):
-                            operation_cost += device.x[step_time] * device.c[step_time] * (
-                                        24 / device.time_num)
+                            operation_cost += device.x[step_time] * device.c[step_time] * (24 / device.time_num)
+
+                    if device.className == "RT" and device.type == "HP":
+                        for step_time in range(device.time_num):
+                            operation_cost += device.x[step_time] * device.c[step_time] * (24 / device.time_num)
+                            operation_cost += device.x[device.time_num * 1 + step_time] * device.c[device.time_num * 1 +step_time] * (24 / device.time_num)
 
                     # 储能成本
                     if device.className == "S":
@@ -157,16 +159,16 @@ class MMGs:
                                 else:
                                     ramping_p = abs(device.real_E[step_time] - device.real_E[step_time - 1]) - device.ramping_limit
                                 if ramping_p > 0:
-                                    ramping_punishment += ramping_p * 40
+                                    ramping_punishment += ramping_p * 50
                                 # punishment4 += (device.real_E[step_time] >= device.e) * 300
                                 punishment2 += (device.real_E[step_time] <= 0) * 200
-                                punishment3 += (step_time+1 == device.time_num and device.real_E[step_time] < device.e / 2) * 100
+                                punishment3 += (step_time+1 == device.time_num and device.real_E[step_time] < device.e / 2) * 400
 
                                 a = device.time_num - math.ceil(device.e / 2 / device.ramping_limit)
                                 if step_time+1 - a > 0 and step_time < 23:
                                     b = step_time+1 - a
                                     if device.real_E[step_time] < device.ramping_limit * b:
-                                        punishment3 += 100
+                                        punishment3 += 300
 
                     # 能量转化设备成本
                     if device.className == "er":
@@ -288,7 +290,7 @@ class MMGs:
         total_cost = operation_cost + es_punishment + gap_punishment
         print("operation cost:", operation_cost)
         print("total cost:", total_cost)
-        print("milp operation cost:", 76378.7175)
+        print("milp operation cost:", 89160.7224)
         print("total es_punishment:", es_punishment)
         print("total gap_punishment:", gap_punishment)
         return operation_cost, es_punishment, gap_punishment, 0, total_cost

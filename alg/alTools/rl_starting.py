@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import numpy as np
-# import torch
+import torch
 import collections
 import random
 import pandas as pd
@@ -347,15 +347,18 @@ def train_off_policy_agent_MG_RO(env, agent, num_episodes, replay_buffer, minima
                 operation_cost, es_punishment, gap_punishment, profit, total_cost = env.env.countCost_RO(env.res)
                 return_buffer.add(operation_cost, es_punishment, gap_punishment, profit, total_cost)
 
-                # if env.rl_res is not None and es_punishment == 0 and operation_cost < env.min_operation:
-                if True:
+                if env.rl_res is not None and es_punishment == 0 and operation_cost < env.min_operation:
+                # if True:
                     env.min_operation = operation_cost
                     df = pd.DataFrame({
                         'params': env.flash_num.params,
-                        'value': env.rl_res.x
+                        'value': env.rl_res.x,
+                        'milp_operation_cost': env.rl_res.fun,
+                        'rl_total_cost': total_cost,
+                        'rl_operation_cost': operation_cost
                     })
                     path = "D:\HeYuanxing\BaiduSyncdisk\DRLmicrogrid\Data\RL_RO\Result\\results_ddpg_ro.xlsx"
-                    # df.to_excel(path, index=False)
+                    df.to_excel(path, index=False)
                     # sys.exit(0)
                 if (i_episode + 1) % ave_num == 0:
                     pbar.set_postfix({'episode': '%.3f' % (num_episodes / 10 * i + i_episode + 1),

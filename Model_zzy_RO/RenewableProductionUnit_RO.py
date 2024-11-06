@@ -60,10 +60,11 @@ class RT:
         self.stochas_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率
         if self.type == 'PV':
             for i in range(self.time_num):
-                self.stochas_P[i] = max(self.p_mu[i] * (1 - 0.01 * self.randoms_pv[i]), self.p_min[i])
+                self.stochas_P[i] = max(self.p_min[i] * (1 + 0.01 * self.randoms_pv[i]), self.p_min[i])
         elif self.type == 'WT':
             for i in range(self.time_num):
-                self.stochas_P[i] = max(self.p_mu[i] * (1 - 0.01 * self.randoms_wt[i]), self.p_min[i])
+                self.stochas_P[i] = max(self.p_min[i] * (1 + 0.01 * self.randoms_wt[i]), self.p_min[i])
+
     def __init(self):
         self.__params_named()
         self.__set_intergrality()
@@ -168,7 +169,9 @@ class RT:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                CreatConstraintsByText(1, B, self.p_min[i], max(self.p_mu[i] * (1 - 0.01 * self.randoms_pv[i]), self.p_min[i]),
+                # CreatConstraintsByText(1, B, self.p_min[i], max(self.p_mu[i] * (1 - 0.01 * self.randoms_pv[i]), self.p_min[i]),
+                #                        num)
+                CreatConstraintsByText(1, B, self.p_min[i], max(self.p_min[i] * (1 + 0.01 * self.randoms_pv[i]), self.p_min[i]),
                                        num)
 
         if self.type == "WT":
@@ -176,7 +179,9 @@ class RT:
                 B = np.array([
                     [self.name + "P" + str(i + 1), 1]
                 ])
-                CreatConstraintsByText(1, B, self.p_min[i], max(self.p_mu[i] * (1 - 0.01 *  self.randoms_wt[i]), self.p_min[i]),
+                # CreatConstraintsByText(1, B, self.p_min[i], max(self.p_mu[i] * (1 - 0.01 *  self.randoms_wt[i]), self.p_min[i]),
+                #                        num)
+                CreatConstraintsByText(1, B, self.p_min[i], max(self.p_min[i] * (1 + 0.01 * self.randoms_wt[i]), self.p_min[i]),
                                        num)
 
         "Ramping limits:"
@@ -389,10 +394,7 @@ class RT:
 
 class HP:
     def __init__(self, name, type, id, production_price, production_total, time_num, line_e, line_h, stochastic_value=10):
-        self.begin_location = None
-        self.end_location = None
-        self.begin_location_bl = None
-        self.end_location_bl = None
+
         self.className = "RT"
         self.type = "HP"
 
@@ -441,6 +443,11 @@ class HP:
         self.p_rampingh_up = np.zeros(self.time_num)
         self.p_rampingh_down = np.zeros(self.time_num)
 
+        self.randoms_hp = np.array([0.17585667, 0.11310877, 0.13890614, 0.04171659, 0.15476271, 0.06063636,
+                                    0.19656779, 0.22821717, 0.24671185, 0.24990843, 0.02937662, 0.0436565,
+                                    0.21153729, 0.20440689, 0.09889093, 0.24154307, 0.07688684, 0.06677246,
+                                    0.23064161, 0.08826133, 0.11075521, 0.10486894, 0.16470218, 0.26452832])
+
         self.ramping_up = 300
         self.ramping_down = 300
 
@@ -458,6 +465,11 @@ class HP:
 
         # 约束所在位置
         self.constraint_num = 0
+
+        # 给强化学习用的
+        self.random_P = np.zeros(self.time_num)  # 记录每一步增加随机性后的功率
+        for i in range(self.time_num):
+            self.random_P[i] = max(self.p_min[i] * (1 + 0.01 * self.randoms_hp[i]), self.p_min[i])
 
     def __init(self):
         self.__params_name()
@@ -492,6 +504,8 @@ class HP:
         self.p_max = dataset['max'].values
         self.p_max = self.p_max[:self.time_num]
 
+        self.p = self.p * (1 - 0.07)
+
         # 数据清洗
         for i in range(len(self.p)):
             if self.p[i] < 0:
@@ -507,9 +521,6 @@ class HP:
 
 
     def constraints(self, constraint_information_class):
-        # 起始位置
-        self.begin_location = len(constraint_information_class.A)
-        self.begin_location_bl = len(constraint_information_class.bl)
 
         # 性能系数约束
         coefficient_constraint_h = np.array([
@@ -520,14 +531,14 @@ class HP:
 
         # 最大/最小功率约束
         for i in range(self.time_num):
-            power_constraint_e = np.array([
-                [self.name + "input_e" + str(i + 1), 1]
-            ])
-            CreatConstraintsByText(1, power_constraint_e, self.min[i], self.max[i], constraint_information_class)
+            # power_constraint_e = np.array([
+            #     [self.name + "input_e" + str(i + 1), 1]
+            # ])
+            # CreatConstraintsByText(1, power_constraint_e, self.min[i], self.max[i], constraint_information_class)
             power_constraint_h = np.array([
                 [self.name + "output_h" + str(i + 1), 1]
             ])
-            CreatConstraintsByText(1, power_constraint_h, self.p_min[i], self.p_max[i],
+            CreatConstraintsByText(1, power_constraint_h, self.p_min[i], max(self.p_min[i] * (1 + 0.01 * self.randoms_hp[i]), self.p_min[i]),
                                    constraint_information_class)
 
         # 爬坡与滑坡功率约束(固定的)

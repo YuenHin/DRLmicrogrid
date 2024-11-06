@@ -255,7 +255,7 @@ Gurobi求解
 MILP求解
 """
 "求解所需参数"
-C, integrality, num = MMGs_logic(UIES, path, flag=False)
+C, integrality, num = MMGs_logic(UIES, path, flag=True)
 print(f"C的形状：{C.shape}")
 print(f"intergrality的形状：{integrality.shape}")
 

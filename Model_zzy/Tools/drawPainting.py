@@ -34,8 +34,8 @@ def getEnergySystemData(type, params, results):
         # 需求侧
         load = "load_e_01P"
         storage_ch = "storage_e_01CP"
-        eb = "eb_01output_e"
-        er = "er_01output_e"
+        eb = "eb_01input_e"
+        er = "er_01input_e"
         hp = "hp_01input_e"
 
         # 供给侧
@@ -605,138 +605,6 @@ def getStorageResult(type, params, results):
 功率平衡图
 """
 # 设置字体
-# font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
-# font_prop = font_manager.FontProperties(fname=font_path)
-#
-# # 处理数据
-# path = r"C:\software\Github\DRLmicrogrid\Model_zzy\results_ro.xlsx"
-# dataset = pd.read_excel(path)
-#
-# params = dataset.iloc[:, 0]
-# results = dataset.iloc[:, 1]
-#
-# series_array = pd.Series(params)
-# params = series_array[~series_array.isna() & (series_array != '')].values
-#
-# series_array0 = pd.Series(results)
-# results = series_array0[~series_array0.isna() & (series_array0 != '')].values
-#
-# # 数据准备
-# num_bars = 24  # 柱体数量
-# num_layers = 5  # 每个柱体的叠层数量
-
-"电力子系统"
-# title = "电力子系统"
-# load, storage_ch, eb, er, hp, storage_dis, flex_load, pv, wt, cchp, cpp = getEnergySystemData(type='e', params=params,
-#                                                                                               results=results)
-# positive_layers = np.concatenate((cpp, storage_dis, flex_load, pv, wt))  # 正半轴
-# positive_layers = positive_layers.reshape(-1, 24)
-# positive_layers = positive_layers.T
-# negative_layers = np.concatenate((load, storage_ch, eb, er, hp))  # 负半轴
-# negative_layers = negative_layers.reshape(-1, 24)
-# negative_layers = negative_layers.T
-#
-# # positive_color = np.array(["#934B43", "#6f9fb7", "#c2d8de", "#e5e2b8", "#c6624b"])
-# # negative_color = np.array(["#14517C", '#B0C4DE', '#c6624b', "#e3ae7b", '#D3D3D3'])
-# positive_color = np.array(["#C74436", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
-# negative_color = np.array(["#1C3C63", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
-# positive_name = np.array(["外购电", "放能", "柔性负荷", "PV", "WT"])
-# negative_name = np.array(["电负荷", "充能", "EB", "ER", "GSHP"])
-
-#
-# "天然气子系统"
-# title = "天然气子系统"
-# load, cchp, flex_load, gw = getEnergySystemData(type='g', params=params, results=results)
-# positive_layers = np.concatenate((gw, flex_load))  # 正半轴
-# positive_layers = positive_layers.reshape(-1, 24)
-# positive_layers = positive_layers.T
-# negative_layers = np.concatenate((load, cchp))  # 负半轴
-# negative_layers = negative_layers.reshape(-1, 24)
-# negative_layers = negative_layers.T
-#
-# positive_color = np.array(["#C74436", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
-# negative_color = np.array(["#1C3C63", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
-# positive_name = np.array(["外购气", "柔性负荷"])
-# negative_name = np.array(["气负荷", "CCHP"])
-
-
-"热能子系统"
-# title = "热能子系统"
-# load, storage_ch, storage_dis, flex_load, hp, eb = getEnergySystemData(type='th', params=params, results=results)
-# positive_layers = np.concatenate((storage_dis, flex_load, hp, eb))  # 正半轴
-# positive_layers = positive_layers.reshape(-1, 24)
-# positive_layers = positive_layers.T
-# negative_layers = np.concatenate((load, storage_ch))  # 负半轴
-# negative_layers = negative_layers.reshape(-1, 24)
-# negative_layers = negative_layers.T
-#
-# positive_color = np.array(["#C74436", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
-# negative_color = np.array(["#1C3C63", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
-# positive_name = np.array(["放能", "柔性负荷", "GSHP", "EB"])
-# negative_name = np.array(["热负荷", "充能"])
-
-#
-# "冷能子系统"
-# title = "冷能子系统"
-# load, storage_ch, storage_dis, er = getEnergySystemData(type='c', params=params, results=results)
-# positive_layers = np.concatenate((storage_dis, er))  # 正半轴
-# positive_layers = positive_layers.reshape(-1, 24)
-# positive_layers = positive_layers.T
-# negative_layers = np.concatenate((load, storage_ch))  # 负半轴
-# negative_layers = negative_layers.reshape(-1, 24)
-# negative_layers = negative_layers.T
-#
-# positive_color = np.array(["#C74436", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
-# negative_color = np.array(["#1C3C63", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
-# positive_name = np.array(["放能", "ER"])
-# negative_name = np.array(["冷负荷", "充能"])
-#
-#
-
-# # 创建叠加柱体的正半轴
-# x = np.arange(0, num_bars)  # x坐标（1到24）
-# bottom = np.zeros(num_bars)  # 叠加的底部起始位置
-#
-# # 绘图
-# fig, ax = plt.subplots(figsize=(6, 3))
-#
-# for i in range(positive_layers.shape[1]):
-#     ax.bar(x, positive_layers[:, i], bottom=bottom, color=positive_color[i], alpha=0.8, label=positive_name[i])
-#     bottom += positive_layers[:, i]  # 更新底部位置
-#
-# # 创建叠加柱体的负半轴
-# bottom_neg = np.zeros(num_bars)  # 负半轴叠加的底部起始位置
-#
-# for i in range(negative_layers.shape[1]):
-#     ax.bar(x, -negative_layers[:, i], bottom=-bottom_neg, color=negative_color[i], alpha=0.7, label=negative_name[i])
-#     bottom_neg += negative_layers[:, i]  # 更新负半轴的底部位置
-#
-#
-# # 设置图形属性
-# ax.set_xlabel('时间尺度/h', fontproperties=font_prop, fontsize=12.5)
-# ax.set_ylabel('功率/KW', fontproperties=font_prop, fontsize=12.5)
-# ax.set_title(f'{title}功率平衡图', fontproperties=font_prop, fontsize=12.5)
-# ax.set_xticks([0, 6, 12, 18, 24])  # 设置x轴刻度为1到24
-# ax.axhline(0, color='black', linewidth=0.8)  # 添加水平基线
-# ax.legend(prop=font_prop, loc="upper center", bbox_to_anchor=(0.5, -0.27), ncol=5, fontsize=11)  # 添加图例
-# ax.grid(False)
-#
-# # 调整图形的边距
-# plt.subplots_adjust(top=1, bottom=0.6)  # 减少顶部边距，增加底部边距
-#
-# # 显示图形
-# plt.tight_layout()
-# plt.show()
-
-
-"""
-————————————实验3——————————————
-"""
-
-"""
-储能与外网供能对比
-"""
-# 设置字体
 font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
 font_prop = font_manager.FontProperties(fname=font_path)
 
@@ -753,70 +621,115 @@ params = series_array[~series_array.isna() & (series_array != '')].values
 series_array0 = pd.Series(results)
 results = series_array0[~series_array0.isna() & (series_array0 != '')].values
 
+# 数据准备
+num_bars = 24  # 柱体数量
+num_layers = 5  # 每个柱体的叠层数量
 
-# 时间数据
-time = np.array([0, 6, 12, 18, 24])
+"电力子系统"
+# title = "电力子系统"
+# load, storage_ch, eb, er, hp, storage_dis, flex_load, pv, wt, cchp, cpp = getEnergySystemData(type='e', params=params,
+#                                                                                               results=results)
+# positive_layers = np.concatenate((storage_dis, flex_load, pv, wt))  # 正半轴
+# positive_layers = positive_layers.reshape(-1, 24)
+# positive_layers = positive_layers.T
+# negative_layers = np.concatenate((storage_ch, eb, er, hp))  # 负半轴
+# negative_layers = negative_layers.reshape(-1, 24)
+# negative_layers = negative_layers.T
+# #F7E5C5
+# # positive_color = np.array(["#934B43", "#6f9fb7", "#c2d8de", "#e5e2b8", "#c6624b"])
+# # negative_color = np.array(["#14517C", '#B0C4DE', '#c6624b', "#e3ae7b", '#D3D3D3'])
+# # positive_color = np.array(["#C6634B", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
+# # negative_color = np.array(["#6F9FB7", '#970529', '#F7E5B6', "#F7E1ED", '#2F5E8C'])
+# positive_color = np.array(["#970529", "#6F9FB7", "#C2D8DE", "#C6624B"])
+# negative_color = np.array(["#305287", '#E3AE7B', '#E5E2B8', "#6BA3CB"])
+# positive_name = np.array(["放能", "柔性负荷", "PV", "WT"])
+# negative_name = np.array(["充能", "EB", "ER", "GSHP"])
 
-"————储能————"
 
-# 电能子系统
-CP, DP, CP_US, CP_DS, DP_US, DP_DS, E = getStorageResult(type='e', params=params, results=results)
-title = "储电装置"
+#
+# "天然气子系统"
+# title = "天然气子系统"
+# load, cchp, flex_load, gw = getEnergySystemData(type='g', params=params, results=results)
+# positive_layers = np.concatenate((gw, flex_load))  # 正半轴
+# positive_layers = positive_layers.reshape(-1, 24)
+# positive_layers = positive_layers.T
+# negative_layers = np.concatenate((load, cchp))  # 负半轴
+# negative_layers = negative_layers.reshape(-1, 24)
+# negative_layers = negative_layers.T
+#
+# positive_color = np.array(["#C6634B", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
+# negative_color = np.array(["#6F9FB7", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
+# positive_name = np.array(["外购气", "柔性负荷"])
+# negative_name = np.array(["气负荷", "CCHP"])
 
-# 热能子系统
-# CP, DP, CP_US, CP_DS, DP_US, DP_DS, storage_power = getStorageResult(type='th', params=params, results=results)
-# title = "储热装置"
 
-# 冷能子系统
-# CP, DP, CP_US, CP_DS, DP_US, DP_DS, storage_power = getStorageResult(type='c', params=params, results=results)
-# title = "储冷装置"
+"热能子系统"
+# title = "热能子系统"
+# load, storage_ch, storage_dis, flex_load, hp, eb = getEnergySystemData(type='th', params=params, results=results)
+# positive_layers = np.concatenate((storage_dis, flex_load, hp, eb))  # 正半轴
+# positive_layers = positive_layers.reshape(-1, 24)
+# positive_layers = positive_layers.T
+# negative_layers = np.concatenate((load, storage_ch))  # 负半轴
+# negative_layers = negative_layers.reshape(-1, 24)
+# negative_layers = negative_layers.T
+#
+# positive_color = np.array(["#C6634B", "#E9D898", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
+# negative_color = np.array(["#E3AE7B", '#2F5E8C', "#6F9FB7", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
+# positive_name = np.array(["放能", "柔性负荷", "GSHP", "EB"])
+# negative_name = np.array(["热负荷", "充能"])
 
-"————外网供能————"
-# 外网供能数据
-CPP_name = "cpp_01P"
-GW_name = "gw_01P"
+#
+"冷能子系统"
+title = "冷能子系统"
+load, storage_ch, storage_dis, er = getEnergySystemData(type='c', params=params, results=results)
+positive_layers = np.concatenate((storage_dis, er))  # 正半轴
+positive_layers = positive_layers.reshape(-1, 24)
+positive_layers = positive_layers.T
+negative_layers = np.concatenate((load, storage_ch))  # 负半轴
+negative_layers = negative_layers.reshape(-1, 24)
+negative_layers = negative_layers.T
 
-CPP = getDecisionVariableResult(CPP_name, params, results)
-GW = getDecisionVariableResult(GW_name, params, results)
+positive_color = np.array(["#C6634B", "#6BA3CB", "#9CC8E0", "#E9D898", "#FFA458"])
+negative_color = np.array(["#E3AE7B", '#970529', '#F7E5B6', "#FF8C4A", '#2F5E8C'])
+positive_name = np.array(["放能", "ER"])
+negative_name = np.array(["冷负荷", "充能"])
+#
+#
 
+# 创建叠加柱体的正半轴
+x = np.arange(0, num_bars)  # x坐标（1到24）
+bottom = np.zeros(num_bars)  # 叠加的底部起始位置
+
+# 绘图
 fig, ax = plt.subplots(figsize=(6, 3))
-x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23])
-# 绘制设备运行区间
-# ax.fill_between(time, equipment_operation, label='设备运行区间', alpha=0.3, color='lightblue')
-# 绘制充电
-ax.bar(x, CP, label='充电', color='#82B0D2')
-# ax.plot(x, CP, label='充电', color='#82B0D2')
-zero = np.zeros(24)
-CP_L_US = CP - CP_DS
-DP_L_DS = -DP + DP_DS
 
-for i in range(24):
-    if CP_L_US[i] <=0:
-        CP_L_US[i] = zero[i]
-    if DP_L_DS[i] >=0:
-        DP_L_DS[i] = zero[i]
+for i in range(positive_layers.shape[1]):
+    ax.bar(x, positive_layers[:, i], bottom=bottom, color=positive_color[i], alpha=0.8, label=positive_name[i])
+    bottom += positive_layers[:, i]  # 更新底部位置
 
-# 绘制充电灵活备用区间
-ax.fill_between(x, CP_L_US, CP + CP_US, label='充能灵活备用区间', alpha=0.3, color='gray')
+# 创建叠加柱体的负半轴
+bottom_neg = np.zeros(num_bars)  # 负半轴叠加的底部起始位置
 
-# 绘制放电
-ax.bar(x, -DP, label='放电', color='#8ECFC9')
-# 绘制放电灵活备用区间
-ax.fill_between(x, DP_L_DS, -DP - DP_US, label='放能灵活备用区间', alpha=0.3, color='gray')
-# 绘制SOC
-# plt.plot(E, label='SOC', color='green')
+for i in range(negative_layers.shape[1]):
+    ax.bar(x, -negative_layers[:, i], bottom=-bottom_neg, color=negative_color[i], alpha=0.8, label=negative_name[i])
+    bottom_neg += negative_layers[:, i]  # 更新负半轴的底部位置
 
+
+# 设置图形属性
 ax.set_xlabel('时间尺度/h', fontproperties=font_prop, fontsize=12.5)
-ax.set_ylabel('功率/kW', fontproperties=font_prop, fontsize=12.5)
-ax.set_title(f"{title}", fontproperties=font_prop, fontsize=12.5)
-ax.axhline(0, color='black', linewidth=0.8)
+ax.set_ylabel('功率/KW', fontproperties=font_prop, fontsize=12.5)
+ax.set_title(f'{title}功率平衡图', fontproperties=font_prop, fontsize=12.5)
+ax.set_xticks([0, 6, 12, 18, 24])  # 设置x轴刻度为1到24
+ax.axhline(0, color='black', linewidth=0.8)  # 添加水平基线
 
-ax.set_xticks(time)
+ax2 = ax.twinx()  # 创建第二个y轴
+# 电力子系统
+# ax2.plot(x, cpp, color='#003366', linestyle='--', linewidth=1, label='外购电')
+# 天然气子系统
+# ax2.plot(x, gw, color='#990000', linestyle='--', linewidth=1, label='外购气')
 
-ax2 = ax.twinx()
-ax2.plot(CPP, label='电网', color='#F27970')
-ax2.plot(GW, label='气网', color='#BB9727')
-# ax2.plot(E, label='储量', color='#F27970')
+ax2.plot(x, load, color='#990000', linestyle='--', linewidth=1, label='冷负荷')
+# ax2.plot(x, -load, color='#003366', linestyle='--', linewidth=1, label='气负荷')
 
 # 合并
 lines1, labels1 = ax.get_legend_handles_labels()
@@ -825,10 +738,117 @@ lines2, labels2 = ax2.get_legend_handles_labels()
 all_lines = lines1 + lines2
 all_labels = labels1 + labels2
 
-ax.legend(all_lines, all_labels, prop=font_prop, loc="upper center", bbox_to_anchor=(0.5, -0.27), ncol=4, fontsize=11)
-# ax.legend(prop=font_prop, loc="upper center", bbox_to_anchor=(0.5, -0.27), ncol=4, fontsize=11)
-plt.subplots_adjust(top=0.9, bottom=0.35)
+ax.legend(all_lines, all_labels, prop=font_prop, loc="upper center", bbox_to_anchor=(0.5, -0.27), ncol=5)  # 添加图例
+ax.grid(False)
+
+# 调整图形的边距
+plt.subplots_adjust(top=1, bottom=0.5)  # 减少顶部边距，增加底部边距
+
+# 显示图形
+plt.tight_layout()
 plt.show()
+
+
+"""
+————————————实验3——————————————
+"""
+
+"""
+储能与外网供能对比
+"""
+# # 设置字体
+# font_path = r"C:\Windows\Fonts\simsun.ttc"  # 替换为您的字体路径
+# font_prop = font_manager.FontProperties(fname=font_path)
+#
+# # 处理数据
+# path = r"C:\software\Github\DRLmicrogrid\Model_zzy\results_ro.xlsx"
+# dataset = pd.read_excel(path)
+#
+# params = dataset.iloc[:, 0]
+# results = dataset.iloc[:, 1]
+#
+# series_array = pd.Series(params)
+# params = series_array[~series_array.isna() & (series_array != '')].values
+#
+# series_array0 = pd.Series(results)
+# results = series_array0[~series_array0.isna() & (series_array0 != '')].values
+#
+#
+# # 时间数据
+# time = np.array([0, 6, 12, 18, 24])
+#
+# "————储能————"
+#
+# # 电能子系统
+# CP, DP, CP_US, CP_DS, DP_US, DP_DS, E = getStorageResult(type='e', params=params, results=results)
+# title = "储电装置"
+#
+# # 热能子系统
+# # CP, DP, CP_US, CP_DS, DP_US, DP_DS, storage_power = getStorageResult(type='th', params=params, results=results)
+# # title = "储热装置"
+#
+# # 冷能子系统
+# # CP, DP, CP_US, CP_DS, DP_US, DP_DS, storage_power = getStorageResult(type='c', params=params, results=results)
+# # title = "储冷装置"
+#
+# "————外网供能————"
+# # 外网供能数据
+# CPP_name = "cpp_01P"
+# GW_name = "gw_01P"
+#
+# CPP = getDecisionVariableResult(CPP_name, params, results)
+# GW = getDecisionVariableResult(GW_name, params, results)
+#
+# fig, ax = plt.subplots(figsize=(6, 3))
+# x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23])
+# # 绘制设备运行区间
+# # ax.fill_between(time, equipment_operation, label='设备运行区间', alpha=0.3, color='lightblue')
+# # 绘制充电
+# ax.bar(x, CP, label='充电', color='#82B0D2')
+# # ax.plot(x, CP, label='充电', color='#82B0D2')
+# zero = np.zeros(24)
+# CP_L_US = CP - CP_DS
+# DP_L_DS = -DP + DP_DS
+#
+# for i in range(24):
+#     if CP_L_US[i] <=0:
+#         CP_L_US[i] = zero[i]
+#     if DP_L_DS[i] >=0:
+#         DP_L_DS[i] = zero[i]
+#
+# # 绘制充电灵活备用区间
+# ax.fill_between(x, CP_L_US, CP + CP_US, label='充能灵活备用区间', alpha=0.3, color='gray')
+#
+# # 绘制放电
+# ax.bar(x, -DP, label='放电', color='#8ECFC9')
+# # 绘制放电灵活备用区间
+# ax.fill_between(x, DP_L_DS, -DP - DP_US, label='放能灵活备用区间', alpha=0.3, color='gray')
+# # 绘制SOC
+# # plt.plot(E, label='SOC', color='green')
+#
+# ax.set_xlabel('时间尺度/h', fontproperties=font_prop, fontsize=12.5)
+# ax.set_ylabel('功率/kW', fontproperties=font_prop, fontsize=12.5)
+# ax.set_title(f"{title}", fontproperties=font_prop, fontsize=12.5)
+# ax.axhline(0, color='black', linewidth=0.8)
+#
+# ax.set_xticks(time)
+#
+# ax2 = ax.twinx()
+# ax2.plot(CPP, label='电网', color='#F27970')
+# ax2.plot(GW, label='气网', color='#BB9727')
+# # ax2.plot(E, label='储量', color='#F27970')
+#
+# # 合并
+# lines1, labels1 = ax.get_legend_handles_labels()
+# lines2, labels2 = ax2.get_legend_handles_labels()
+#
+# all_lines = lines1 + lines2
+# all_labels = labels1 + labels2
+#
+# ax.legend(all_lines, all_labels, prop=font_prop, loc="upper center", bbox_to_anchor=(0.5, -0.27), ncol=4, fontsize=11)
+# # ax.legend(prop=font_prop, loc="upper center", bbox_to_anchor=(0.5, -0.27), ncol=4, fontsize=11)
+# plt.subplots_adjust(top=0.9, bottom=0.35)
+# plt.show()
 
 # print(f"storage_e_01CP{CP}")
 # print(f"storage_e_01DP{DP}")

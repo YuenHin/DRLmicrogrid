@@ -291,7 +291,7 @@ Gurobi求解
 MILP求解
 """
 "求解所需参数"
-C, integrality, num = MMGs_logic(UIES, path, flag=True)
+C, integrality, num = MMGs_logic(UIES, path, flag=False)
 
 "打印约束"
 # PrintBounds(num)
